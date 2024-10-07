@@ -67,7 +67,7 @@ Resources:
     Properties:
       Handler: app.handler
       Runtime: python3.12
-      CodeUri: functions/input-transformer
+      CodeUri: functions/relay
       Timeout: 10
       Policies:
         - AWSLambdaRole
@@ -84,7 +84,7 @@ Resources:
     Properties:
       Handler: app.handler
       Runtime: python3.12
-      CodeUri: functions/input-transformer
+      CodeUri: functions/relay
       Timeout: 10
       Policies:
         - AWSLambdaRole
