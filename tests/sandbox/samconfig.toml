@@ -1,0 +1,29 @@
+# More information about the configuration file can be found here:
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html
+version = 0.1
+
+[default.global.parameters]
+stack_name = "step-functions-sandbox-sandbox"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_AUTO_EXPAND CAPABILITY_IAM"
+disable_rollback = true
+image_repositories = []
+confirm_changeset = false
+fail_on_empty_changeset = false
+region = "eu-west-1"
+resolve_s3 = true
+s3_prefix = "step-functions-sandbox-sandbox"
+
+[default.package.parameters]
+resolve_s3 = true
+
+[default.sync.parameters]
+watch = false

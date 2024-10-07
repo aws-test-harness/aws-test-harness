@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  ExampleStateMachine:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: example-state-machine/template.yaml
+      Parameters:
+        InputTransformerFunctionArn: !Ref InputTransformerFunction
+  InputTransformerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.12
+      CodeUri: functions/input-transformer
+      Policies:
+        - AWSLambdaRole

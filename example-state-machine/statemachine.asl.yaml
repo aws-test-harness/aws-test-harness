@@ -1,0 +1,11 @@
+StartAt: Transform Input
+States:
+  Transform Input:
+    Type: Task
+    Resource: arn:aws:states:::lambda:invoke
+    Parameters:
+      Payload.$: $.input
+      FunctionName: ${InputTransformerFunctionArn}
+    ResultSelector:
+      "result.$": "$.Payload"
+    End: true

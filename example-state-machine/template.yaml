@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  InputTransformerFunctionArn:
+    Type: String
+Resources:
+  StateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: statemachine.asl.yaml
+      DefinitionSubstitutions:
+        InputTransformerFunctionArn: !Ref InputTransformerFunctionArn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref InputTransformerFunctionArn
+Outputs:
+  StateMachineName:
+    Value: !GetAtt StateMachine.Name

@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  TesterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Ref AWS::AccountId
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: StateMachineInteraction
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:DescribeStateMachine
+                  - states:StartExecution
+                Resource: !Sub arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ExampleStateMachine.Outputs.StateMachineName}
+              - Effect: Allow
+                Action:
+                  - states:DescribeExecution
+                  - states:GetExecutionHistory
+                Resource: !Sub arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:execution:${ExampleStateMachine.Outputs.StateMachineName}:*
+        - PolicyName: SQSInteraction
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:DeleteMessage
+                  - sqs:ReceiveMessage
+                Resource: !GetAtt LambdaFunctionEventsQueue.Arn
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt LambdaFunctionResultsQueue.Arn
+  ExampleStateMachine:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ../../example-state-machine/template.yaml
+      Parameters:
+        InputTransformerFunctionArn: !Ref InputTransformerFunction
+  LambdaFunctionEventsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+        FifoQueue: true
+        ContentBasedDeduplication: true
+        MessageRetentionPeriod: 60
+        VisibilityTimeout: 5
+  LambdaFunctionResultsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+        FifoQueue: true
+        ContentBasedDeduplication: true
+        MessageRetentionPeriod: 60
+        VisibilityTimeout: 5
+  InputTransformerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.12
+      CodeUri: functions/input-transformer
+      Timeout: 10
+      Policies:
+        - AWSLambdaRole
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt LambdaFunctionEventsQueue.QueueName
+        - SQSPollerPolicy:
+            QueueName: !GetAtt LambdaFunctionResultsQueue.QueueName
+      Environment:
+        Variables:
+          EVENTS_QUEUE_URL: !Ref LambdaFunctionEventsQueue
+          RESULTS_QUEUE_URL: !Ref LambdaFunctionResultsQueue
