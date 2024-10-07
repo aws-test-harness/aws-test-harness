@@ -29,8 +29,8 @@ class AWSResourceMockingEngine(Thread):
         super().__init__(daemon=True)
         self.__boto_session = boto_session
         self.__cloudformation_stack = cloudformation_stack
-        self.__events_queue_url = cloudformation_stack.get_physical_resource_id_for('LambdaFunctionEventsQueue')
-        self.__results_queue_url = cloudformation_stack.get_physical_resource_id_for('LambdaFunctionResultsQueue')
+        self.__events_queue_url = cloudformation_stack.get_physical_resource_id_for('TestDoubles::LambdaFunctionEventsQueue')
+        self.__results_queue_url = cloudformation_stack.get_physical_resource_id_for('TestDoubles::LambdaFunctionResultsQueue')
         self.__mock_lambda_functions: Dict[str, Mock] = {}
         self.__stop_waiting = False
 
@@ -44,16 +44,16 @@ class AWSResourceMockingEngine(Thread):
     def stop_listening(self):
         self.__stop_waiting = True
 
-    def mock_a_lambda_function(self, fully_qualified_logical_resource_id: str,
+    def mock_a_lambda_function(self, logical_resource_id: str,
                                event_handler: Callable[[Dict[str, any]], Dict[str, any]]) -> Mock:
         input_transformer_function_name = self.__cloudformation_stack.get_physical_resource_id_for(
-            fully_qualified_logical_resource_id
+            f'TestDoubles::{logical_resource_id}'
         )
 
         def lambda_handler(_: Dict[str, any]) -> Dict[str, any]:
             pass
 
-        mock_lambda_function: Mock = create_autospec(lambda_handler, name=fully_qualified_logical_resource_id)
+        mock_lambda_function: Mock = create_autospec(lambda_handler, name=logical_resource_id)
         self.__mock_lambda_functions[input_transformer_function_name] = mock_lambda_function
         mock_lambda_function.side_effect = event_handler
         return mock_lambda_function

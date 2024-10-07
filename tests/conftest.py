@@ -30,21 +30,26 @@ def cloudformation_stack(configuration: JsonFileConfiguration, developer_boto_se
 
 
 @pytest.fixture(scope="session")
-def tester_boto_session(cloudformation_stack: CloudFormationStack, developer_boto_session: Session):
-    boto_session_factory = BotoSessionFactory(developer_boto_session)
+def boto_session_factory(cloudformation_stack: CloudFormationStack, developer_boto_session: Session):
+    return BotoSessionFactory(developer_boto_session)
 
-    return boto_session_factory.create_boto_session_with_assumed_role(
-        cloudformation_stack.get_physical_resource_id_for("TesterRole")
-    )
 
 @pytest.fixture(scope="session")
-def resource_driver(cloudformation_stack: CloudFormationStack, tester_boto_session: Session):
+def resource_driver(cloudformation_stack: CloudFormationStack, boto_session_factory: BotoSessionFactory):
+    tester_boto_session = boto_session_factory.create_boto_session_with_assumed_role(
+        cloudformation_stack.get_physical_resource_id_for("TesterRole::Role")
+    )
+
     return AWSResourceDriver(cloudformation_stack, tester_boto_session)
 
 
 @pytest.fixture(scope="session")
-def mocking_engine(cloudformation_stack: CloudFormationStack, tester_boto_session: Session):
-    return AWSResourceMockingEngine(cloudformation_stack, tester_boto_session)
+def mocking_engine(cloudformation_stack: CloudFormationStack, boto_session_factory: BotoSessionFactory):
+    test_double_manager_boto_session = boto_session_factory.create_boto_session_with_assumed_role(
+        cloudformation_stack.get_physical_resource_id_for("TestDoubles::TestDoubleManagerRole")
+    )
+
+    return AWSResourceMockingEngine(cloudformation_stack, test_double_manager_boto_session)
 
 
 @pytest.fixture(scope="function", autouse=True)

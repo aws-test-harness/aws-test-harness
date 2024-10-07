@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  TestDoubleManagerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Ref AWS::AccountId
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: SQSInteraction
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:DeleteMessage
+                  - sqs:ReceiveMessage
+                Resource: !GetAtt LambdaFunctionEventsQueue.Arn
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt LambdaFunctionResultsQueue.Arn
+  LambdaFunctionEventsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+        FifoQueue: true
+        ContentBasedDeduplication: true
+        MessageRetentionPeriod: 60
+        VisibilityTimeout: 5
+  LambdaFunctionResultsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+        FifoQueue: true
+        ContentBasedDeduplication: true
+        MessageRetentionPeriod: 60
+        VisibilityTimeout: 5
+  InputTransformerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.12
+      CodeUri: functions/relay
+      Timeout: 10
+      Policies:
+        - AWSLambdaRole
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt LambdaFunctionEventsQueue.QueueName
+        - SQSPollerPolicy:
+            QueueName: !GetAtt LambdaFunctionResultsQueue.QueueName
+      Environment:
+        Variables:
+          EVENTS_QUEUE_URL: !Ref LambdaFunctionEventsQueue
+          RESULTS_QUEUE_URL: !Ref LambdaFunctionResultsQueue
+  DoublerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.12
+      CodeUri: functions/relay
+      Timeout: 10
+      Policies:
+        - AWSLambdaRole
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt LambdaFunctionEventsQueue.QueueName
+        - SQSPollerPolicy:
+            QueueName: !GetAtt LambdaFunctionResultsQueue.QueueName
+      Environment:
+        Variables:
+          EVENTS_QUEUE_URL: !Ref LambdaFunctionEventsQueue
+          RESULTS_QUEUE_URL: !Ref LambdaFunctionResultsQueue
+Outputs:
+  InputTransformerFunctionName:
+    Value: !Ref InputTransformerFunction
+  DoublerFunctionName:
+    Value: !Ref DoublerFunction

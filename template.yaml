@@ -6,12 +6,21 @@ Resources:
     Properties:
       Location: example-state-machine/template.yaml
       Parameters:
-        InputTransformerFunctionArn: !Ref InputTransformerFunction
+        InputTransformerFunctionName: !Ref InputTransformerFunction
+        DoublerFunctionName: !Ref DoublerFunction
   InputTransformerFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: app.handler
       Runtime: python3.12
       CodeUri: functions/input-transformer
+      Policies:
+        - AWSLambdaRole
+  DoublerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.12
+      CodeUri: functions/doubler
       Policies:
         - AWSLambdaRole

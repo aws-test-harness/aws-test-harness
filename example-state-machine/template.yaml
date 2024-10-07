@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Parameters:
-  InputTransformerFunctionArn:
+  InputTransformerFunctionName:
     Type: String
-  DoublerFunctionArn:
+  DoublerFunctionName:
     Type: String
 Resources:
   StateMachine:
@@ -11,13 +11,13 @@ Resources:
     Properties:
       DefinitionUri: statemachine.asl.yaml
       DefinitionSubstitutions:
-        InputTransformerFunctionArn: !Ref InputTransformerFunctionArn
-        DoublerFunctionArn: !Ref DoublerFunctionArn
+        InputTransformerFunctionName: !Ref InputTransformerFunctionName
+        DoublerFunctionName: !Ref DoublerFunctionName
       Policies:
         - LambdaInvokePolicy:
-            FunctionName: !Ref InputTransformerFunctionArn
+            FunctionName: !Ref InputTransformerFunctionName
         - LambdaInvokePolicy:
-            FunctionName: !Ref DoublerFunctionArn
+            FunctionName: !Ref DoublerFunctionName
 Outputs:
-  StateMachineName:
-    Value: !GetAtt StateMachine.Name
+  StateMachineArn:
+    Value: !Ref StateMachine

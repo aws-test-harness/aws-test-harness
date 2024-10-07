@@ -5,7 +5,7 @@ States:
     Resource: arn:aws:states:::lambda:invoke
     Parameters:
       Payload.$: $.input
-      FunctionName: ${InputTransformerFunctionArn}
+      FunctionName: ${InputTransformerFunctionName}
     ResultSelector:
       "result.$": "$.Payload"
     Next: Double
@@ -14,7 +14,7 @@ States:
     Resource: arn:aws:states:::lambda:invoke
     Parameters:
       Payload.$: $.result
-      FunctionName: ${DoublerFunctionArn}
+      FunctionName: ${DoublerFunctionName}
     ResultSelector:
       "result.$": "$.Payload"
     End: true
