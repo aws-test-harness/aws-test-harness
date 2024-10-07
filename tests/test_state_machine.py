@@ -16,14 +16,14 @@ def run_mocking_engine(mocking_engine: AWSResourceMockingEngine):
 def test_state_machine(mocking_engine: AWSResourceMockingEngine, resource_driver: AWSResourceDriver):
     input_transformer_function = mocking_engine.mock_a_lambda_function(
         'InputTransformerFunction',
-        lambda event: dict(number=event['data']['number'] + 1)
+        lambda event: {'number': event['data']['number'] + 1}
     )
 
     state_machine = resource_driver.get_stack_machine("ExampleStateMachine::StateMachine")
 
-    final_state = state_machine.execute(dict(input=dict(data=dict(number=1))))
+    final_state = state_machine.execute({'input': {'data': {'number': 1}}})
 
-    assert json.loads(final_state['output']) == dict(result=dict(number=2))
+    assert json.loads(final_state['output']) == {'result': {'number': 2}}
 
     # TODO: Tolerate eventual consistency
-    input_transformer_function.assert_called_with(dict(data=dict(number=1)))
+    input_transformer_function.assert_called_with({'data': {'number': 1}})
