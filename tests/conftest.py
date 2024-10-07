@@ -7,6 +7,7 @@ from boto3 import Session
 from aws_resource_mocking_engine import AWSResourceMockingEngine
 from boto_session_factory import BotoSessionFactory
 from cloudformation_stack import CloudFormationStack
+from aws_resource_driver import AWSResourceDriver
 from json_file_configuration import JsonFileConfiguration
 
 
@@ -35,6 +36,10 @@ def tester_boto_session(cloudformation_stack: CloudFormationStack, developer_bot
     return boto_session_factory.create_boto_session_with_assumed_role(
         cloudformation_stack.get_physical_resource_id_for("TesterRole")
     )
+
+@pytest.fixture(scope="session")
+def resource_driver(cloudformation_stack: CloudFormationStack, tester_boto_session: Session):
+    return AWSResourceDriver(cloudformation_stack, tester_boto_session)
 
 
 @pytest.fixture(scope="session")
