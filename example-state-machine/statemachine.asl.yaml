@@ -8,4 +8,13 @@ States:
       FunctionName: ${InputTransformerFunctionArn}
     ResultSelector:
       "result.$": "$.Payload"
+    Next: Double
+  Double:
+    Type: Task
+    Resource: arn:aws:states:::lambda:invoke
+    Parameters:
+      Payload.$: $.result
+      FunctionName: ${DoublerFunctionArn}
+    ResultSelector:
+      "result.$": "$.Payload"
     End: true
