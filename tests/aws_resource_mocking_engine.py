@@ -23,6 +23,7 @@ def handle_uncaught_thread_exception(args):
 threading.excepthook = handle_uncaught_thread_exception
 
 
+# TODO: Ensure that (undeleted) messages from previous test runs do not interfere with the current test run
 class AWSResourceMockingEngine(Thread):
     def __init__(self, cloudformation_stack: CloudFormationStack, boto_session: Session):
         super().__init__(daemon=True)
