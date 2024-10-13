@@ -37,7 +37,7 @@ def boto_session_factory(cloudformation_stack: CloudFormationStack, developer_bo
 @pytest.fixture(scope="session")
 def resource_driver(cloudformation_stack: CloudFormationStack, boto_session_factory: BotoSessionFactory):
     tester_boto_session = boto_session_factory.create_boto_session_with_assumed_role(
-        cloudformation_stack.get_physical_resource_id_for("TesterRole::Role")
+        cloudformation_stack.get_physical_resource_id_for("TesterRoleRole")
     )
 
     return AWSResourceDriver(cloudformation_stack, tester_boto_session)

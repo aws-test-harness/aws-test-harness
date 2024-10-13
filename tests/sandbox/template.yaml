@@ -2,11 +2,9 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Resources:
   TesterRole:
-    Type: AWS::Serverless::Application
+    Type: StefanSmith::CloudTesting::TesterRole::MODULE
     Properties:
-      Location: tester-role/template.yaml
-      Parameters:
-        StateMachineArn: !GetAtt ExampleStateMachine.Outputs.StateMachineArn
+      StateMachineArn: !GetAtt ExampleStateMachine.Outputs.StateMachineArn
   TestDoubles:
     Type: AWS::Serverless::Application
     Properties:

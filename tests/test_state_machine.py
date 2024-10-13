@@ -18,6 +18,7 @@ def test_state_machine(mocking_engine: AWSResourceMockingEngine, resource_driver
         'InputTransformerFunction',
         lambda event: {'number': event['data']['number'] + 1}
     )
+
     doubler_function = mocking_engine.mock_a_lambda_function(
         'DoublerFunction',
         lambda event: {'number': event['number'] * 2}

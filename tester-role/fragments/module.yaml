@@ -1,5 +1,5 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
+AWSTemplateFormatVersion: "2010-09-09"
+Description: A module that provides an IAM role for testing a specified AWS resource
 Parameters:
   StateMachineArn:
     Type: String
@@ -30,4 +30,8 @@ Resources:
                 Action:
                   - states:DescribeExecution
                   - states:GetExecutionHistory
-                Resource: !Join [ ":execution:", !Split [ ":stateMachine:", !Sub "${ StateMachineArn }:*" ] ]
+                Resource: !Sub
+                  - "${ExecutionArnPrefix}:*"
+                  - ExecutionArnPrefix: !Join
+                    - ":execution:"
+                    - !Split [":stateMachine:", !Ref StateMachineArn]

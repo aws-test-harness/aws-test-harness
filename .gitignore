@@ -246,3 +246,5 @@ $RECYCLE.BIN/
 /.aws-sam/
 /config.json
 /.idea/
+/tester-role/rpdk.log
+/tester-role/schema.json
