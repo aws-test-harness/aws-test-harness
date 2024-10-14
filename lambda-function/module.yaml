@@ -1,14 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: A module that provides an Lambda Function that can be spied-on and stubbed via SQS FIFO queues
-Parameters:
-  EventsQueueUrl:
-    Type: String
-  EventsQueueArn:
-    Type: String
-  ResultsQueueUrl:
-    Type: String
-  ResultsQueueArn:
-    Type: String
 Resources:
   Function:
     Type: AWS::Lambda::Function
@@ -17,14 +8,14 @@ Resources:
         ZipFile: |
           __CODE_PLACEHOLDER__
       Handler: index.handler
-      Role: !GetAtt FunctionRole.Arn
+      Role: !GetAtt ExecutionRole.Arn
       Runtime: python3.12
       Timeout: 10
       Environment:
         Variables:
-          EVENTS_QUEUE_URL: !Ref EventsQueueUrl
-          RESULTS_QUEUE_URL: !Ref ResultsQueueUrl
-  FunctionRole:
+          EVENTS_QUEUE_URL: !Ref EventsQueue
+          RESULTS_QUEUE_URL: !Ref ResultsQueue
+  ExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -45,7 +36,7 @@ Resources:
               - Action:
                   - sqs:SendMessage*
                 Effect: Allow
-                Resource: !Ref EventsQueueArn
+                Resource: !GetAtt EventsQueue.Arn
         - PolicyName: ReceiveResults
           PolicyDocument:
             Statement:
@@ -57,4 +48,18 @@ Resources:
                   - sqs:GetQueueAttributes
                   - sqs:ReceiveMessage
                 Effect: Allow
-                Resource: !Ref ResultsQueueArn
+                Resource: !GetAtt ResultsQueue.Arn
+  EventsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+        FifoQueue: true
+        ContentBasedDeduplication: true
+        MessageRetentionPeriod: 60
+        VisibilityTimeout: 5
+  ResultsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+        FifoQueue: true
+        ContentBasedDeduplication: true
+        MessageRetentionPeriod: 60
+        VisibilityTimeout: 5

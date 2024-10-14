@@ -4,10 +4,10 @@ import boto3
 import pytest
 from boto3 import Session
 
+from aws_resource_driver import AWSResourceDriver
 from aws_resource_mocking_engine import AWSResourceMockingEngine
 from boto_session_factory import BotoSessionFactory
 from cloudformation_stack import CloudFormationStack
-from aws_resource_driver import AWSResourceDriver
 from json_file_configuration import JsonFileConfiguration
 
 
@@ -46,12 +46,7 @@ def resource_driver(cloudformation_stack: CloudFormationStack, boto_session_fact
 @pytest.fixture(scope="session")
 def mocking_engine(cloudformation_stack: CloudFormationStack, boto_session_factory: BotoSessionFactory):
     test_double_manager_boto_session = boto_session_factory.create_boto_session_with_assumed_role(
-        cloudformation_stack.get_physical_resource_id_for("TestDoubles.TestDoubleManagerRole")
+        cloudformation_stack.get_physical_resource_id_for("TestDoubleManagerRole")
     )
 
     return AWSResourceMockingEngine(cloudformation_stack, test_double_manager_boto_session)
-
-
-@pytest.fixture(scope="function", autouse=True)
-def reset_mocking_engine(mocking_engine: AWSResourceMockingEngine):
-    mocking_engine.reset()

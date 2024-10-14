@@ -8,7 +8,7 @@ from aws_resource_driver import AWSResourceDriver
 
 @pytest.fixture(scope="function", autouse=True)
 def run_mocking_engine(mocking_engine: AWSResourceMockingEngine):
-    mocking_engine.start()
+    mocking_engine.reset()
     yield
     mocking_engine.stop_listening()
 

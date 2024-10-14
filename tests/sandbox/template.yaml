@@ -5,12 +5,44 @@ Resources:
     Type: StefanSmith::CloudTesting::TesterRole::MODULE
     Properties:
       StateMachineArn: !GetAtt ExampleStateMachine.Outputs.StateMachineArn
-  TestDoubles:
-    Type: StefanSmith::CloudTesting::TestDoubles::MODULE
+  TestDoubleManagerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Ref AWS::AccountId
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: SQSInteraction
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:DeleteMessage
+                  - sqs:ReceiveMessage
+                Resource:
+                  - !GetAtt InputTransformerFunction.EventsQueue.Arn
+                  - !GetAtt DoublerFunction.EventsQueue.Arn
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource:
+                  - !GetAtt InputTransformerFunction.ResultsQueue.Arn
+                  - !GetAtt DoublerFunction.ResultsQueue.Arn
+  InputTransformerFunction:
+    Type: StefanSmith::CloudTesting::LambdaFunction::MODULE
+  DoublerFunction:
+    Type: StefanSmith::CloudTesting::LambdaFunction::MODULE
   ExampleStateMachine:
     Type: AWS::Serverless::Application
     Properties:
       Location: ../../example-state-machine/template.yaml
       Parameters:
-        InputTransformerFunctionName: !Ref TestDoubles.InputTransformerFunction.Function
-        DoublerFunctionName: !Ref TestDoubles.DoublerFunction.Function
+        InputTransformerFunctionName: !Ref InputTransformerFunction.Function
+        DoublerFunctionName: !Ref DoublerFunction.Function
