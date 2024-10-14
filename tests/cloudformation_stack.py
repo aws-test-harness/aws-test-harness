@@ -8,7 +8,7 @@ class CloudFormationStack:
     def __init__(self, cloudformation_stack_name: str, boto_session: Session):
         super().__init__()
         self.__cloudformation_stack_name = cloudformation_stack_name
-        self.__boto_session = boto_session
+        self.__client = boto_session.client("cloudformation")
 
     def get_physical_resource_id_for(self, fully_qualified_logical_resource_id: str):
         logical_resource_parts = fully_qualified_logical_resource_id.split('::')
@@ -19,9 +19,12 @@ class CloudFormationStack:
         return reduce(reducer, logical_resource_parts, self.__cloudformation_stack_name)
 
     def __get_physical_resource_id_in_stack(self, stack_name: str, logical_resource_id: str):
-        client = self.__boto_session.client("cloudformation")
-        response = client.list_stack_resources(StackName=stack_name)
+        response = self.__client.list_stack_resources(StackName=stack_name)
         resources = response["StackResourceSummaries"]
+
+        # Supports CloudFormation module reference syntax
+        logical_resource_id = logical_resource_id.replace('.', '')
+
         matching_resources = [
             resource for resource in resources if resource["LogicalResourceId"] == logical_resource_id
         ]

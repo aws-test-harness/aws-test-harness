@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: A module that provides an Lambda Function that can be spied-on and stubbed via SQS FIFO queues
+Parameters:
+  EventsQueueUrl:
+    Type: String
+  EventsQueueArn:
+    Type: String
+  ResultsQueueUrl:
+    Type: String
+  ResultsQueueArn:
+    Type: String
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          __CODE_PLACEHOLDER__
+      Handler: index.handler
+      Role: !GetAtt FunctionRole.Arn
+      Runtime: python3.12
+      Timeout: 10
+      Environment:
+        Variables:
+          EVENTS_QUEUE_URL: !Ref EventsQueueUrl
+          RESULTS_QUEUE_URL: !Ref ResultsQueueUrl
+  FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SendEvents
+          PolicyDocument:
+            Statement:
+              - Action:
+                  - sqs:SendMessage*
+                Effect: Allow
+                Resource: !Ref EventsQueueArn
+        - PolicyName: ReceiveResults
+          PolicyDocument:
+            Statement:
+              - Action:
+                  - sqs:ChangeMessageVisibility
+                  - sqs:ChangeMessageVisibilityBatch
+                  - sqs:DeleteMessage
+                  - sqs:DeleteMessageBatch
+                  - sqs:GetQueueAttributes
+                  - sqs:ReceiveMessage
+                Effect: Allow
+                Resource: !Ref ResultsQueueArn
