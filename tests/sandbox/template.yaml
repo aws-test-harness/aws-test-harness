@@ -1,5 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
+Parameters:
+  StackTemplatesS3BucketName:
+    Type: String
+    Description: The name of the S3 bucket where the stack templates are stored
 Resources:
   TesterRole:
     Type: StefanSmith::CloudTesting::TesterRole::MODULE
@@ -27,22 +31,22 @@ Resources:
                   - sqs:DeleteMessage
                   - sqs:ReceiveMessage
                 Resource:
-                  - !GetAtt InputTransformerFunction.EventsQueue.Arn
-                  - !GetAtt DoublerFunction.EventsQueue.Arn
+                  - !GetAtt TestDoubles.Outputs.EventsQueueArn
               - Effect: Allow
                 Action:
                   - sqs:SendMessage
                 Resource:
-                  - !GetAtt InputTransformerFunction.ResultsQueue.Arn
-                  - !GetAtt DoublerFunction.ResultsQueue.Arn
-  InputTransformerFunction:
-    Type: StefanSmith::CloudTesting::LambdaFunction::MODULE
-  DoublerFunction:
-    Type: StefanSmith::CloudTesting::LambdaFunction::MODULE
+                  - !GetAtt TestDoubles.Outputs.ResultsQueueArn
+  TestDoubles:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        LambdaFunctionNames: InputTransformer, Doubler
+      TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/test-doubles/template.yaml
   ExampleStateMachine:
     Type: AWS::Serverless::Application
     Properties:
       Location: ../../example-state-machine/template.yaml
       Parameters:
-        InputTransformerFunctionName: !Ref InputTransformerFunction.Function
-        DoublerFunctionName: !Ref DoublerFunction.Function
+        InputTransformerFunctionName: !GetAtt TestDoubles.Outputs.InputTransformerFunctionName
+        DoublerFunctionName:  !GetAtt TestDoubles.Outputs.DoublerFunctionName

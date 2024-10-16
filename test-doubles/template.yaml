@@ -1,21 +1,27 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: A module that provides an Lambda Function that can be spied-on and stubbed via SQS FIFO queues
+Transform: AWS::LanguageExtensions
+Parameters:
+  LambdaFunctionNames:
+    Type: CommaDelimitedList
 Resources:
-  Function:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        ZipFile: |
-          __CODE_PLACEHOLDER__
-      Handler: index.handler
-      Role: !GetAtt ExecutionRole.Arn
-      Runtime: python3.12
-      Timeout: 10
-      Environment:
-        Variables:
-          EVENTS_QUEUE_URL: !Ref EventsQueue
-          RESULTS_QUEUE_URL: !Ref ResultsQueue
-  ExecutionRole:
+  'Fn::ForEach::LambdaFunctions':
+    - LambdaFunctionName
+    - !Ref LambdaFunctionNames
+    - '${LambdaFunctionName}Function':
+        Type: AWS::Lambda::Function
+        Properties:
+          Code:
+            ZipFile: |
+              __CODE_PLACEHOLDER__
+          Handler: index.handler
+          Role: !GetAtt LambdaFunctionExecutionRole.Arn
+          Runtime: python3.12
+          Timeout: 10
+          Environment:
+            Variables:
+              EVENTS_QUEUE_URL: !Ref EventsQueue
+              RESULTS_QUEUE_URL: !Ref ResultsQueue
+  LambdaFunctionExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -52,14 +58,25 @@ Resources:
   EventsQueue:
     Type: AWS::SQS::Queue
     Properties:
-        FifoQueue: true
-        ContentBasedDeduplication: true
-        MessageRetentionPeriod: 60
-        VisibilityTimeout: 5
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      MessageRetentionPeriod: 60
+      VisibilityTimeout: 5
   ResultsQueue:
     Type: AWS::SQS::Queue
     Properties:
-        FifoQueue: true
-        ContentBasedDeduplication: true
-        MessageRetentionPeriod: 60
-        VisibilityTimeout: 5
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      MessageRetentionPeriod: 60
+      VisibilityTimeout: 5
+Outputs:
+  'Fn::ForEach::LambdaFunctionNameOutputs':
+    - LambdaFunctionName
+    - !Ref LambdaFunctionNames
+    - '${LambdaFunctionName}FunctionName':
+        Value:
+          Ref: !Sub '${LambdaFunctionName}Function'
+  EventsQueueArn:
+    Value: !GetAtt EventsQueue.Arn
+  ResultsQueueArn:
+    Value: !GetAtt ResultsQueue.Arn

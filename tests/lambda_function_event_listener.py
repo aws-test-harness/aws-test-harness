@@ -2,8 +2,13 @@ import json
 import sys
 import threading
 import traceback
+from threading import Thread
+from typing import Dict
+from unittest.mock import Mock
 
+from boto3 import Session
 from botocore.exceptions import ClientError
+from mypy_boto3_sqs import SQSClient
 
 
 def handle_uncaught_thread_exception(args):
@@ -15,16 +20,16 @@ def handle_uncaught_thread_exception(args):
 
 threading.excepthook = handle_uncaught_thread_exception
 
-# TODO: Ensure that (undeleted) messages from previous test runs do not interfere with the current test run
-class LambdaFunctionListener(threading.Thread):
+
+class LambdaFunctionEventListener(Thread):
+    __mock_lambda_functions: Dict[str, Mock] = {}
     __stop_waiting = False
 
-    def __init__(self, event_queue_url, mock_lambda_function, results_queue_url, sqs_client):
+    def __init__(self, boto_session: Session, events_queue_url: str, results_queue_url: str):
         super().__init__(daemon=True)
-        self.__sqs_client = sqs_client
+        self.__sqs_client: SQSClient = boto_session.client('sqs')
+        self.__events_queue_url = events_queue_url
         self.__results_queue_url = results_queue_url
-        self.__mock_lambda_function = mock_lambda_function
-        self.__event_queue_url = event_queue_url
 
     def run(self):
         # noinspection PyBroadException
@@ -32,7 +37,7 @@ class LambdaFunctionListener(threading.Thread):
             while True:
                 print('Waiting for message...')
                 result = self.__sqs_client.receive_message(
-                    QueueUrl=self.__event_queue_url,
+                    QueueUrl=self.__events_queue_url,
                     MessageSystemAttributeNames=['All'],
                     MessageAttributeNames=['All'],
                     MaxNumberOfMessages=1,
@@ -55,7 +60,9 @@ class LambdaFunctionListener(threading.Thread):
                               f"with invocation ID {lambda_function_invocation_id} "
                               f"received event {lambda_function_event}")
 
-                        lambda_function_result = self.__mock_lambda_function(lambda_function_event)
+                        mock_lambda_function = self.__mock_lambda_functions[lambda_function_name]
+
+                        lambda_function_result = mock_lambda_function(lambda_function_event)
                         print(lambda_function_result)
 
                         message_payload = dict(
@@ -74,7 +81,7 @@ class LambdaFunctionListener(threading.Thread):
                         try:
                             receipt_handle = message['ReceiptHandle']
                             self.__sqs_client.delete_message(
-                                QueueUrl=self.__event_queue_url,
+                                QueueUrl=self.__events_queue_url,
                                 ReceiptHandle=receipt_handle
                             )
                         except ClientError as e:
@@ -94,3 +101,9 @@ class LambdaFunctionListener(threading.Thread):
 
     def stop(self):
         self.__stop_waiting = True
+
+    def register_function(self, function_physical_resource_id, mock_lambda_function):
+        self.__mock_lambda_functions[function_physical_resource_id] = mock_lambda_function
+
+    def reset(self):
+        self.__mock_lambda_functions = {}
