@@ -46,7 +46,7 @@ def resource_driver(cloudformation_stack: CloudFormationStack, boto_session_fact
 @pytest.fixture(scope="session")
 def mocking_engine(cloudformation_stack: CloudFormationStack, boto_session_factory: BotoSessionFactory):
     test_double_manager_boto_session = boto_session_factory.create_boto_session_with_assumed_role(
-        cloudformation_stack.get_physical_resource_id_for("TestDoubleManagerRole")
+        cloudformation_stack.get_physical_resource_id_for("TestDoubles::TestDoubleManagerRole")
     )
 
     return AWSResourceMockingEngine(cloudformation_stack, test_double_manager_boto_session)

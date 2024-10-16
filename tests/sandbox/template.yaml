@@ -9,34 +9,6 @@ Resources:
     Type: StefanSmith::CloudTesting::TesterRole::MODULE
     Properties:
       StateMachineArn: !GetAtt ExampleStateMachine.Outputs.StateMachineArn
-  TestDoubleManagerRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS:
-                - !Ref AWS::AccountId
-            Action:
-              - sts:AssumeRole
-      Policies:
-        - PolicyName: SQSInteraction
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - sqs:DeleteMessage
-                  - sqs:ReceiveMessage
-                Resource:
-                  - !GetAtt TestDoubles.Outputs.EventsQueueArn
-              - Effect: Allow
-                Action:
-                  - sqs:SendMessage
-                Resource:
-                  - !GetAtt TestDoubles.Outputs.ResultsQueueArn
   TestDoubles:
     Type: AWS::CloudFormation::Stack
     Properties:

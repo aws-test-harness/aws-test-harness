@@ -4,6 +4,34 @@ Parameters:
   LambdaFunctionNames:
     Type: CommaDelimitedList
 Resources:
+  TestDoubleManagerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Ref AWS::AccountId
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: SQSInteraction
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:DeleteMessage
+                  - sqs:ReceiveMessage
+                Resource:
+                  - !GetAtt EventsQueue.Arn
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource:
+                  - !GetAtt ResultsQueue.Arn
   'Fn::ForEach::LambdaFunctions':
     - LambdaFunctionName
     - !Ref LambdaFunctionNames
