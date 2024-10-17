@@ -47,44 +47,49 @@ class LambdaFunctionEventListener(Thread):
                 )
 
                 if 'Messages' in result:
-                    print(json.dumps(result))
+                    mocking_session_id = self.__get_mocking_session_id()
+                    print(f'Current mocking session id: {mocking_session_id}')
+
                     for message in result['Messages']:
-                        message_payload = json.loads(message['Body'])
+                        print(f'Message received: {json.dumps(message)}')
 
-                        lambda_function_event = json.loads(message_payload['event'])
-                        lambda_function_invocation_id = message_payload['invocationId']
-                        lambda_function_name = message_payload['functionName']
-                        lambda_execution_environment_id = message_payload['executionEnvironmentId']
-                        message_group_id = message['Attributes']['MessageGroupId']
+                        if message['MessageAttributes']['MockingSessionId']['StringValue'] == mocking_session_id:
+                            message_payload = json.loads(message['Body'])
 
-                        print(f"{lambda_function_name} invocation "
-                              f"from execution environment {lambda_execution_environment_id} "
-                              f"with invocation ID {lambda_function_invocation_id} "
-                              f"received event {lambda_function_event}")
+                            lambda_function_event = json.loads(message_payload['event'])
+                            lambda_function_invocation_id = message_payload['invocationId']
+                            lambda_function_name = message_payload['functionName']
+                            lambda_execution_environment_id = message_payload['executionEnvironmentId']
+                            message_group_id = message['Attributes']['MessageGroupId']
 
-                        mock_lambda_function = self.__mock_lambda_functions[lambda_function_name]
+                            print(f"{lambda_function_name} invocation "
+                                  f"from execution environment {lambda_execution_environment_id} "
+                                  f"with invocation ID {lambda_function_invocation_id} "
+                                  f"received event {lambda_function_event}")
 
-                        lambda_function_result = mock_lambda_function(lambda_function_event)
-                        print(lambda_function_result)
+                            mock_lambda_function = self.__mock_lambda_functions[lambda_function_name]
 
-                        message_payload = dict(
-                            result=json.dumps(lambda_function_result),
-                            invocationId=lambda_function_invocation_id,
-                            functionName=lambda_function_name,
-                            executionEnvironmentId=lambda_execution_environment_id
-                        )
+                            lambda_function_result = mock_lambda_function(lambda_function_event)
+                            print(f'Returning result: {json.dumps(lambda_function_result)}')
 
-                        self.__sqs_client.send_message(
-                            QueueUrl=self.__results_queue_url,
-                            MessageGroupId=message_group_id,
-                            MessageAttributes={
-                                'MockingSessionId': {
-                                    'DataType': 'String',
-                                    'StringValue': self.__get_mocking_session_id()
-                                }
-                            },
-                            MessageBody=json.dumps(message_payload)
-                        )
+                            message_payload = dict(
+                                result=json.dumps(lambda_function_result),
+                                invocationId=lambda_function_invocation_id,
+                                functionName=lambda_function_name,
+                                executionEnvironmentId=lambda_execution_environment_id
+                            )
+
+                            self.__sqs_client.send_message(
+                                QueueUrl=self.__results_queue_url,
+                                MessageGroupId=message_group_id,
+                                MessageAttributes={
+                                    'MockingSessionId': {
+                                        'DataType': 'String',
+                                        'StringValue': mocking_session_id
+                                    }
+                                },
+                                MessageBody=json.dumps(message_payload)
+                            )
 
                         try:
                             receipt_handle = message['ReceiptHandle']
@@ -94,12 +99,12 @@ class LambdaFunctionEventListener(Thread):
                             )
                         except ClientError as e:
                             print(f"Failed to delete message: {e}")
+
                 else:
                     print('No messages received')
 
                 if self.__stop_waiting:
                     print('Stopped waiting for messages')
-                    # return
         except Exception:
             print('Exception thrown whilst waiting for messages')
             exc_type, exc_value, exc_traceback = sys.exc_info()
