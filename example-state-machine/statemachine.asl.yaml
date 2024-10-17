@@ -8,6 +8,10 @@ States:
       FunctionName: ${InputTransformerFunctionName}
     ResultSelector:
       "result.$": "$.Payload"
+    Retry:
+      - ErrorEquals:
+          - States.TaskFailed
+        MaxAttempts: 2
     Next: Double
   Double:
     Type: Task
@@ -17,4 +21,8 @@ States:
       FunctionName: ${DoublerFunctionName}
     ResultSelector:
       "result.$": "$.Payload"
+    Retry:
+      - ErrorEquals:
+          - States.TaskFailed
+        MaxAttempts: 2
     End: true

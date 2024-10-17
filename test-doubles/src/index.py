@@ -62,14 +62,28 @@ def handler(event, _):
                         if result_message_payload['executionEnvironmentId'] == lambda_execution_environment_id:
                             if result_message_payload['invocationId'] == invocation_id:
                                 try:
-                                    lambda_function_result = json.loads(result_message_payload['result'])
+                                    raise_exception = result_message_payload.get('raiseException')
 
-                                    print(f"Result received for {lambda_function_name} invocation "
-                                          f"in execution environment {lambda_execution_environment_id} "
-                                          f"with invocation ID {invocation_id} : {lambda_function_result}")
+                                    if raise_exception:
+                                        exception_message = result_message_payload['exceptionMessage']
 
-                                    # TODO: support throwing exceptions instead of returning results
-                                    return lambda_function_result
+                                        print(
+                                            f"Exception to throw (with message {exception_message}) received for "
+                                            f"{lambda_function_name} invocation in execution environment "
+                                            f"{lambda_execution_environment_id} with invocation ID {invocation_id}"
+                                        )
+
+                                        raise Exception(exception_message)
+                                    else:
+                                        lambda_function_result = json.loads(result_message_payload['result'])
+
+                                        print(
+                                            f"Result received for {lambda_function_name} invocation "
+                                            f"in execution environment {lambda_execution_environment_id} "
+                                            f"with invocation ID {invocation_id} : {lambda_function_result}"
+                                        )
+
+                                        return lambda_function_result
                                 finally:
                                     print(f"Deleting consumed message {json.dumps(result_message_payload)}...")
                                     delete_message(receipt_handle, results_queue_url)

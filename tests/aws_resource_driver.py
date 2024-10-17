@@ -6,7 +6,7 @@ class AWSResourceDriver:
         self.__cloudformation_stack = cloudformation_stack
         self.__boto_session = boto_session
 
-    def get_stack_machine(self, fully_qualified_cfn_logical_resource_id):
+    def get_state_machine(self, fully_qualified_cfn_logical_resource_id):
         state_machine_arn = self.__cloudformation_stack.get_physical_resource_id_for(
             fully_qualified_cfn_logical_resource_id
         )

@@ -50,3 +50,8 @@ def mocking_engine(cloudformation_stack: CloudFormationStack, boto_session_facto
     )
 
     return AWSResourceMockingEngine(cloudformation_stack, test_double_manager_boto_session)
+
+
+@pytest.fixture(scope="function", autouse=True)
+def reset_mocking_engine(mocking_engine: AWSResourceMockingEngine):
+    mocking_engine.reset()
