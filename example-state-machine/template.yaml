@@ -18,6 +18,9 @@ Resources:
             FunctionName: !Ref InputTransformerFunctionName
         - LambdaInvokePolicy:
             FunctionName: !Ref DoublerFunctionName
+      Tags:
+        DefinitionSubstitutions:InputTransformerFunctionName: !Ref InputTransformerFunctionName
+        DefinitionSubstitutions:DoublerFunctionName: !Ref DoublerFunctionName
 Outputs:
   StateMachineArn:
     Value: !Ref StateMachine
