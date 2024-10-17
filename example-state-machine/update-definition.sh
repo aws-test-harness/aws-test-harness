@@ -74,6 +74,7 @@ function updateStateMachineDefinition {
 }
 
 definitionSubstitutions="$(getDefinitionSubstitutions "${state_machine_arn}")"
+definitionTemplate="$(yq eval -P -o=json "${state_machine_definition_file_path}")"
 definition="$(renderDefinition "${definitionTemplate}" "${definitionSubstitutions}")"
 previewDefinitionChanges "${state_machine_arn}" "${definition}"
 updateStateMachineDefinition "${state_machine_arn}" "${definition}"
