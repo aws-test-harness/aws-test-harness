@@ -10,7 +10,7 @@ from boto3 import Session
 from botocore.exceptions import ClientError
 from mypy_boto3_sqs import SQSClient
 
-from lambda_runtime_exception import LambdaRuntimeException
+from a_thrown_exception import AThrownException
 
 
 def handle_uncaught_thread_exception(args):
@@ -81,7 +81,7 @@ class LambdaFunctionEventListener(Thread):
                                 executionEnvironmentId=lambda_execution_environment_id
                             )
 
-                            if isinstance(lambda_function_result, LambdaRuntimeException):
+                            if isinstance(lambda_function_result, AThrownException):
                                 message_payload['raiseException'] = True
 
                                 exception_message = lambda_function_result.message

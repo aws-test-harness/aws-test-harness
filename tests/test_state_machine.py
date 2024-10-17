@@ -1,11 +1,11 @@
 import json
-from unittest.mock import DEFAULT, call
+from unittest.mock import call
 
 import pytest
 
+from a_thrown_exception import an_exception_thrown_with_message
 from aws_resource_driver import AWSResourceDriver
 from aws_resource_mocking_engine import AWSResourceMockingEngine
-from lambda_runtime_exception import LambdaRuntimeException
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -39,11 +39,11 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
 
 
 def test_state_machine_retries_input_transformation_twice(mocking_engine: AWSResourceMockingEngine,
-                                                       resource_driver: AWSResourceDriver):
+                                                          resource_driver: AWSResourceDriver):
     input_transformer_function = mocking_engine.get_mock_lambda_function('InputTransformerFunction')
     input_transformer_function.side_effect = [
-        LambdaRuntimeException("the error message"),
-        LambdaRuntimeException("the error message"),
+        an_exception_thrown_with_message("the error message"),
+        an_exception_thrown_with_message("the error message"),
         {'number': 2},
     ]
 
@@ -59,12 +59,13 @@ def test_state_machine_retries_input_transformation_twice(mocking_engine: AWSRes
         call({'data': {'number': 1}})
     ])
 
+
 def test_state_machine_retries_doubling_twice(mocking_engine: AWSResourceMockingEngine,
-                                                       resource_driver: AWSResourceDriver):
+                                              resource_driver: AWSResourceDriver):
     doubler_function = mocking_engine.get_mock_lambda_function('DoublerFunction')
     doubler_function.side_effect = [
-        LambdaRuntimeException("the error message"),
-        LambdaRuntimeException("the error message"),
+        an_exception_thrown_with_message("the error message"),
+        an_exception_thrown_with_message("the error message"),
         {'number': 2},
     ]
 
