@@ -3,7 +3,7 @@ import sys
 import threading
 import traceback
 from threading import Thread
-from typing import Dict
+from typing import Dict, Callable
 from unittest.mock import Mock
 
 from boto3 import Session
@@ -23,13 +23,15 @@ threading.excepthook = handle_uncaught_thread_exception
 
 class LambdaFunctionEventListener(Thread):
     __mock_lambda_functions: Dict[str, Mock] = {}
-    __stop_waiting = False
+    __stop_waiting: bool = False
 
-    def __init__(self, boto_session: Session, events_queue_url: str, results_queue_url: str):
+    def __init__(self, boto_session: Session, events_queue_url: str, results_queue_url: str,
+                 get_mocking_session_id: Callable[[], str]):
         super().__init__(daemon=True)
         self.__sqs_client: SQSClient = boto_session.client('sqs')
         self.__events_queue_url = events_queue_url
         self.__results_queue_url = results_queue_url
+        self.__get_mocking_session_id = get_mocking_session_id
 
     def run(self):
         # noinspection PyBroadException
@@ -75,6 +77,12 @@ class LambdaFunctionEventListener(Thread):
                         self.__sqs_client.send_message(
                             QueueUrl=self.__results_queue_url,
                             MessageGroupId=message_group_id,
+                            MessageAttributes={
+                                'MockingSessionId': {
+                                    'DataType': 'String',
+                                    'StringValue': self.__get_mocking_session_id()
+                                }
+                            },
                             MessageBody=json.dumps(message_payload)
                         )
 

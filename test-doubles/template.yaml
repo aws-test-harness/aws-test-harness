@@ -32,6 +32,15 @@ Resources:
                   - sqs:SendMessage
                 Resource:
                   - !GetAtt ResultsQueue.Arn
+        - PolicyName: S3Interaction
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  - !Sub "${TestContextBucket.Arn}/*"
   'Fn::ForEach::LambdaFunctions':
     - LambdaFunctionName
     - !Ref LambdaFunctionNames
@@ -49,6 +58,7 @@ Resources:
             Variables:
               EVENTS_QUEUE_URL: !Ref EventsQueue
               RESULTS_QUEUE_URL: !Ref ResultsQueue
+              TEST_CONTEXT_BUCKET_NAME: !Ref TestContextBucket
   LambdaFunctionExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -64,16 +74,13 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
-        - PolicyName: SendEvents
+        - PolicyName: SQSInteraction
           PolicyDocument:
             Statement:
               - Action:
                   - sqs:SendMessage*
                 Effect: Allow
                 Resource: !GetAtt EventsQueue.Arn
-        - PolicyName: ReceiveResults
-          PolicyDocument:
-            Statement:
               - Action:
                   - sqs:ChangeMessageVisibility
                   - sqs:ChangeMessageVisibilityBatch
@@ -83,6 +90,13 @@ Resources:
                   - sqs:ReceiveMessage
                 Effect: Allow
                 Resource: !GetAtt ResultsQueue.Arn
+        - PolicyName: S3Interaction
+          PolicyDocument:
+            Statement:
+              - Action:
+                  - s3:GetObject
+                Effect: Allow
+                Resource: !Sub "${TestContextBucket.Arn}/*"
   EventsQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -97,6 +111,9 @@ Resources:
       ContentBasedDeduplication: true
       MessageRetentionPeriod: 60
       VisibilityTimeout: 5
+  TestContextBucket:
+    Type: AWS::S3::Bucket
+    Properties: {}
 Outputs:
   'Fn::ForEach::LambdaFunctionNameOutputs':
     - LambdaFunctionName

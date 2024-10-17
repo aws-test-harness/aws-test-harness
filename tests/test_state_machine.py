@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from aws_resource_mocking_engine import AWSResourceMockingEngine
 from aws_resource_driver import AWSResourceDriver
+from aws_resource_mocking_engine import AWSResourceMockingEngine
 
 
 @pytest.fixture(scope="function", autouse=True)

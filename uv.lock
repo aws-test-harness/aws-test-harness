@@ -59,8 +59,8 @@ wheels = [
 cloudformation = [
     { name = "mypy-boto3-cloudformation" },
 ]
-iot-data = [
-    { name = "mypy-boto3-iot-data" },
+s3 = [
+    { name = "mypy-boto3-s3" },
 ]
 sqs = [
     { name = "mypy-boto3-sqs" },
@@ -135,12 +135,12 @@ wheels = [
 ]
 
 [[package]]
-name = "mypy-boto3-iot-data"
-version = "1.35.0"
+name = "mypy-boto3-s3"
+version = "1.35.42"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ee/d9/0f92f5d335a2aeb46570d03859ae8a8f697968bb52415a2e4681477c99ac/mypy_boto3_iot_data-1.35.0.tar.gz", hash = "sha256:e83cbbd948bc388ed139d2820442af1d319ca37dce708df44295c4acfcfb30f8", size = 15320 }
+sdist = { url = "https://files.pythonhosted.org/packages/92/8a/f91790871d9a0ef1443ff2dd5da0da77eefc36edec76a50814b9d4b00349/mypy_boto3_s3-1.35.42.tar.gz", hash = "sha256:2d040c05d68a161d91c4b72926127034da28ade98d480def6a9569ab7655cddd", size = 73099 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ac/73/2fc2e5da738a4002795397662349f3ba481c32edc8708c1ad80d0d02de65/mypy_boto3_iot_data-1.35.0-py3-none-any.whl", hash = "sha256:1f442679a71f22a82b0436ee4f71c06104a9ed722aa71c6800fd93bd345cfc03", size = 20713 },
+    { url = "https://files.pythonhosted.org/packages/c6/fb/3ed7047edaee9484f3361b7e70d24826b9b37ec11a20247f4da252f3c4a2/mypy_boto3_s3-1.35.42-py3-none-any.whl", hash = "sha256:4e47094a43012be18e8ce858d6ec50f6505ba1d5364ca611093d9f736a38e8b2", size = 80231 },
 ]
 
 [[package]]
@@ -243,7 +243,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "awsiotsdk" },
     { name = "boto3" },
-    { name = "boto3-stubs", extra = ["cloudformation", "iot-data", "sqs", "stepfunctions", "sts"] },
+    { name = "boto3-stubs", extra = ["cloudformation", "s3", "sqs", "stepfunctions", "sts"] },
     { name = "pytest" },
 ]
 
@@ -251,7 +251,7 @@ dependencies = [
 requires-dist = [
     { name = "awsiotsdk", specifier = ">=1.22.0" },
     { name = "boto3", specifier = ">=1.35.24" },
-    { name = "boto3-stubs", extras = ["cloudformation", "stepfunctions", "iot-data", "sts", "sqs"], specifier = ">=1.35.24" },
+    { name = "boto3-stubs", extras = ["cloudformation", "stepfunctions", "sts", "sqs", "s3"], specifier = ">=1.35.24" },
     { name = "pytest", specifier = ">=8.3.3" },
 ]
 
