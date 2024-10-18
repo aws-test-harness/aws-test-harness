@@ -14,12 +14,44 @@ while [[ "${1:-}" != "" ]]; do
         --help )
             usage
             ;;
+        --cfn-stack )
+            shift
+
+            if [ -z "${1:-}" ]; then
+              echo "Missing argument for --cfn-stack"
+              usage
+            fi
+
+            stack_name="${1}"
+            ;;
+        --cfn-resource )
+            shift
+
+            if [ -z "${1:-}" ]; then
+              echo "Missing argument for --cfn-resource"
+              usage
+            fi
+
+            resource_logical_id="${1}"
+            ;;
         --arn )
             shift
+
+            if [ -z "${1:-}" ]; then
+              echo "Missing argument for --arn"
+              usage
+            fi
+
             state_machine_arn="${1}"
             ;;
         --definition )
             shift
+
+            if [ -z "${1:-}" ]; then
+              echo "Missing argument for --definition"
+              usage
+            fi
+
             # TODO: Derive the state machine ARN from the (nested) stack logical resource ID
             state_machine_definition_relative_file_path="${1}"
             ;;
@@ -34,6 +66,38 @@ while [[ "${1:-}" != "" ]]; do
     shift
 done
 
+function get_cfn_resource_physical_id {
+  local stack_name="$1"
+  local resource_logical_id="$2"
+
+  if [[ "${resource_logical_id}" == */* ]]; then
+    local nested_stack_logical_id
+    local nested_resource_logical_id
+
+    nested_stack_logical_id=$(echo "$resource_logical_id" | cut -d'/' -f1)
+    nested_stack_name="$(get_cfn_resource_physical_id "${stack_name}" "${nested_stack_logical_id}")"
+
+    nested_resource_logical_id=$(echo "$resource_logical_id" | cut -d'/' -f2)
+
+    get_cfn_resource_physical_id "${nested_stack_name}" "${nested_resource_logical_id}"
+    return
+  fi
+
+  aws cloudformation describe-stack-resource \
+    --stack-name "${stack_name}" \
+    --logical-resource-id "${resource_logical_id}" | \
+    jq -r '.StackResourceDetail.PhysicalResourceId'
+}
+
+if [ -n "${stack_name:-}" ] || [ -n "${resource_logical_id:-}" ]; then
+  if [ -z "${stack_name:-}" ] || [ -z "${resource_logical_id:-}" ]; then
+    echo "Both --cfn-stack and --cfn-resource must be provided"
+    usage
+  fi
+
+  # TODO: Cache result in local file
+  state_machine_arn="$(get_cfn_resource_physical_id "${stack_name}" "${resource_logical_id}")"
+fi
 
 script_directory_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
