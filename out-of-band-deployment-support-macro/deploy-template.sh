@@ -23,7 +23,7 @@ artifact_path="${dist_directory}/${template_relative_path}"
 sed "s/^ *__CODE_PLACEHOLDER__/${code}/" "${template_relative_path}" > "${artifact_path}"
 
 aws cloudformation deploy \
-  --stack-name "${stack_name_prefix}state-machine-metadata-macro" \
+  --stack-name "${stack_name_prefix}out-of-band-deployment-support-macro" \
   --template-file "${artifact_path}" \
   --capabilities CAPABILITY_IAM \
   --parameter-overrides MacroNamePrefix="${macro_name_prefix}"

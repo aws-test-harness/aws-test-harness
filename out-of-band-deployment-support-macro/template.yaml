@@ -6,8 +6,8 @@ Resources:
   Macro:
     Type: AWS::CloudFormation::Macro
     Properties:
-      Name: !Sub "${MacroNamePrefix}StateMachineMetadataMacro"
-      Description: Adds a State Machine's DefinitionSubstitutions to its Metadata
+      Name: !Sub "${MacroNamePrefix}OutOfBandDeploymentSupport"
+      Description: Adds resource metadata to support out-of-band deployments
       FunctionName: !Ref Function
   Function:
     Type: AWS::Lambda::Function

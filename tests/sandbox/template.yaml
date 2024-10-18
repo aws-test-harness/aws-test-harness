@@ -20,5 +20,6 @@ Resources:
     Properties:
       Location: ../../example-state-machine/template.yaml
       Parameters:
+        OutOfBandDeploymentSupport: "true"
         InputTransformerFunctionName: !GetAtt TestDoubles.Outputs.InputTransformerFunctionName
         DoublerFunctionName:  !GetAtt TestDoubles.Outputs.DoublerFunctionName

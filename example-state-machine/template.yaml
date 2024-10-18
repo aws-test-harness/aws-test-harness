@@ -5,11 +5,16 @@ Parameters:
     Type: String
   DoublerFunctionName:
     Type: String
+  OutOfBandDeploymentSupport:
+    Type: String
+    Default: "false"
 Resources:
   StateMachine:
     Type: AWS::Serverless::StateMachine
     Fn::Transform:
-      Name: StateMachineMetadataMacro
+      Name: OutOfBandDeploymentSupport
+      Parameters:
+        Enabled: !Ref OutOfBandDeploymentSupport
     Properties:
       DefinitionUri: statemachine.asl.yaml
       DefinitionSubstitutions:
