@@ -8,11 +8,8 @@ Parameters:
 Resources:
   StateMachine:
     Type: AWS::Serverless::StateMachine
-    Metadata:
-#     TODO: CloudFormation Macro that adds a tag for each state machine definition substitution
-      DefinitionSubstitutions:
-        InputTransformerFunctionName: !Ref InputTransformerFunctionName
-        DoublerFunctionName: !Ref DoublerFunctionName
+    Fn::Transform:
+      Name: StateMachineMetadataMacro
     Properties:
       DefinitionUri: statemachine.asl.yaml
       DefinitionSubstitutions:
