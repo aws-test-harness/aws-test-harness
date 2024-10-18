@@ -66,7 +66,7 @@ while [[ "${1:-}" != "" ]]; do
     shift
 done
 
-function get_cfn_resource_physical_id {
+function get_cfn_ids {
   local stack_name="$1"
   local resource_logical_id="$2"
 
@@ -74,19 +74,20 @@ function get_cfn_resource_physical_id {
     local nested_stack_logical_id
     local nested_resource_logical_id
 
-    nested_stack_logical_id=$(echo "$resource_logical_id" | cut -d'/' -f1)
-    nested_stack_name="$(get_cfn_resource_physical_id "${stack_name}" "${nested_stack_logical_id}")"
+    nested_stack_logical_id=$(echo "${resource_logical_id}" | cut -d'/' -f1)
+    nested_resource_logical_id=$(echo "${resource_logical_id}" | cut -d'/' -f2)
 
-    nested_resource_logical_id=$(echo "$resource_logical_id" | cut -d'/' -f2)
+    nested_stack_cfn_ids="$(get_cfn_ids "${stack_name}" "${nested_stack_logical_id}")"
+    nested_stack_name="$(jq -r '.PhysicalResourceId' <<< "${nested_stack_cfn_ids}")"
 
-    get_cfn_resource_physical_id "${nested_stack_name}" "${nested_resource_logical_id}"
+    get_cfn_ids "${nested_stack_name}" "${nested_resource_logical_id}"
     return
   fi
 
   aws cloudformation describe-stack-resource \
     --stack-name "${stack_name}" \
     --logical-resource-id "${resource_logical_id}" | \
-    jq -r '.StackResourceDetail.PhysicalResourceId'
+    jq '.StackResourceDetail | {StackId, LogicalResourceId, PhysicalResourceId}'
 }
 
 if [ -n "${stack_name:-}" ] || [ -n "${resource_logical_id:-}" ]; then
@@ -96,7 +97,10 @@ if [ -n "${stack_name:-}" ] || [ -n "${resource_logical_id:-}" ]; then
   fi
 
   # TODO: Cache result in local file
-  state_machine_arn="$(get_cfn_resource_physical_id "${stack_name}" "${resource_logical_id}")"
+  state_machine_cfn_ids="$(get_cfn_ids "${stack_name}" "${resource_logical_id}")"
+  state_machine_arn="$(jq -r '.PhysicalResourceId' <<< "${state_machine_cfn_ids}")"
+  state_machine_cfn_stack_id="$(jq -r '.StackId' <<< "${state_machine_cfn_ids}")"
+  stack_machine_cfn_resource_id="$(jq -r '.LogicalResourceId' <<< "${state_machine_cfn_ids}")"
 fi
 
 script_directory_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -109,11 +113,13 @@ if [ ! -e "${state_machine_definition_file_path}" ]; then
 fi
 
 function getDefinitionSubstitutions {
-  local state_machine_arn="$1"
+  local cloudformation_stack_name="$1"
+  local stack_machine_cfn_resource_id="$2"
 
-  aws stepfunctions list-tags-for-resource \
-    --resource-arn "${state_machine_arn}" | \
-    jq '[.tags[]|select(.key | startswith("DefinitionSubstitutions:"))] | map({(.key | gsub("^DefinitionSubstitutions:"; "")): .value}) | add'
+  aws cloudformation describe-stack-resource \
+    --stack-name "${cloudformation_stack_name}" \
+    --logical-resource-id "${stack_machine_cfn_resource_id}" | \
+    jq '.StackResourceDetail.Metadata | fromjson | .DefinitionSubstitutions'
 }
 
 function renderDefinition {
@@ -165,7 +171,7 @@ function updateStateMachineDefinition {
   echo "State machine definition updated at $(date +"%H:%M:%S on %Y-%m-%d")"
 }
 
-definitionSubstitutions="$(getDefinitionSubstitutions "${state_machine_arn}")"
+definitionSubstitutions="$(getDefinitionSubstitutions "${state_machine_cfn_stack_id}" "${stack_machine_cfn_resource_id}")"
 definitionTemplate="$(yq eval -P -o=json "${state_machine_definition_file_path}")"
 definition="$(renderDefinition "${definitionTemplate}" "${definitionSubstitutions}")"
 
