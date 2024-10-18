@@ -6,9 +6,11 @@ Parameters:
     Description: The name of the S3 bucket where the stack templates are stored
 Resources:
   TesterRole:
-    Type: StefanSmith::CloudTesting::TesterRole::MODULE
+    Type: AWS::CloudFormation::Stack
     Properties:
-      StateMachineArn: !GetAtt ExampleStateMachine.Outputs.StateMachineArn
+      Parameters:
+        StateMachineArn: !GetAtt ExampleStateMachine.Outputs.StateMachineArn
+      TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/tester-role/template.yaml
   TestDoubles:
     Type: AWS::CloudFormation::Stack
     Properties:

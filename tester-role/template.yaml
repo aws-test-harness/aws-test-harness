@@ -1,5 +1,4 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: A module that provides an IAM role for testing a specified AWS resource
 Parameters:
   StateMachineArn:
     Type: String
