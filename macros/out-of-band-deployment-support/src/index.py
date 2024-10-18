@@ -6,9 +6,9 @@ from uuid import uuid4
 def handler(event, _):
     original_fragment = event['fragment']
 
-    enabled = event['params'].get('Enabled', False)
+    enabled = event['params'].get('Enabled', 'false')
 
-    if not enabled:
+    if enabled != 'true':
         return create_response(event, original_fragment)
 
     print(f'Received fragment: {json.dumps(original_fragment)}')
