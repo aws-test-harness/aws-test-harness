@@ -2,8 +2,38 @@
 
 set -o nounset -o errexit -o pipefail
 
-state_machine_definition_relative_file_path="${1}"
-state_machine_arn="${2}"
+force=false
+
+usage() {
+  echo "Usage: $0 [--help] [--arn arn] [--definition path] [--force]"
+  exit 1
+}
+
+while [[ "${1:-}" != "" ]]; do
+    case ${1} in
+        --help )
+            usage
+            ;;
+        --arn )
+            shift
+            state_machine_arn="${1}"
+            ;;
+        --definition )
+            shift
+            # TODO: Derive the state machine ARN from the (nested) stack logical resource ID
+            state_machine_definition_relative_file_path="${1}"
+            ;;
+        --force )
+            force=true
+            ;;
+        * )
+            echo "Unknown option: ${1}"
+            usage
+            ;;
+    esac
+    shift
+done
+
 
 script_directory_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -13,8 +43,6 @@ if [ ! -e "${state_machine_definition_file_path}" ]; then
   echo "State machine definition file not found at ${state_machine_definition_file_path}"
   exit 1
 fi
-
-definitionTemplate="$(yq eval -P -o=json "${state_machine_definition_file_path}")"
 
 function getDefinitionSubstitutions {
   local state_machine_arn="$1"
@@ -76,5 +104,9 @@ function updateStateMachineDefinition {
 definitionSubstitutions="$(getDefinitionSubstitutions "${state_machine_arn}")"
 definitionTemplate="$(yq eval -P -o=json "${state_machine_definition_file_path}")"
 definition="$(renderDefinition "${definitionTemplate}" "${definitionSubstitutions}")"
-previewDefinitionChanges "${state_machine_arn}" "${definition}"
+
+if [ "${force}" != true ]; then
+  previewDefinitionChanges "${state_machine_arn}" "${definition}"
+fi
+
 updateStateMachineDefinition "${state_machine_arn}" "${definition}"
