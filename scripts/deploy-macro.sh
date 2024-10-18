@@ -8,7 +8,7 @@ macro_name_prefix="${3:-}"
 
 script_directory_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-cd "${script_directory_path}/../${macro_name}"
+cd "${script_directory_path}/../macros/${macro_name}"
 
 template_relative_path="template.yaml"
 artifact_path="${template_relative_path}"

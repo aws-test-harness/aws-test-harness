@@ -7,7 +7,7 @@ templates_s3_bucket="${2}"
 
 script_directory_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-cd "${script_directory_path}/../${nested_stack_name}"
+cd "${script_directory_path}/../templates/${nested_stack_name}"
 
 template_relative_path="template.yaml"
 artifact_path="${template_relative_path}"
