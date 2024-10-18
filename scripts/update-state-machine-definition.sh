@@ -105,7 +105,7 @@ fi
 
 script_directory_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-state_machine_definition_file_path="${script_directory_path}/${state_machine_definition_relative_file_path}"
+state_machine_definition_file_path="${script_directory_path}/../${state_machine_definition_relative_file_path}"
 
 if [ ! -e "${state_machine_definition_file_path}" ]; then
   echo "State machine definition file not found at ${state_machine_definition_file_path}"
