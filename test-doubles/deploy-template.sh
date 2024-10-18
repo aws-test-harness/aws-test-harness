@@ -16,7 +16,7 @@ template_relative_path="template.yaml"
 code_indent_whitespace="$(grep -E '^ *__CODE_PLACEHOLDER__' "${template_relative_path}" | grep -o '^ *')"
 
 # Escape new lines and indent
-code="$(awk -v prefix="${code_indent_whitespace}" '{printf "%s%s\\n", prefix, $0}' src/index.py)"
+code="$(awk -v prefix="${code_indent_whitespace}" '{gsub(/\\n/, "\\\\n"); printf "%s%s\\n", prefix, $0}' src/index.py)"
 
 artifact_path="${dist_directory}/${template_relative_path}"
 sed "s/^ *__CODE_PLACEHOLDER__/${code}/" "${template_relative_path}" > "${artifact_path}"
