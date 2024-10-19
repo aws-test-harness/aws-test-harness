@@ -1,0 +1,13 @@
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pytest>=8.3.3",
+    "step-functions-sandbox-client",
+]
+
+[tool.uv.sources]
+step-functions-sandbox-client = { path = "../" }

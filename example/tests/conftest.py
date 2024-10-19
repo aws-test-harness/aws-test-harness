@@ -3,8 +3,8 @@ import os
 
 import pytest
 
-from src.step_functions_sandbox_client.aws_resource_mocking_engine import AWSResourceMockingEngine
-from src.step_functions_sandbox_client.test_resources_factory import TestResourcesFactory
+from step_functions_sandbox_client.aws_resource_mocking_engine import AWSResourceMockingEngine
+from step_functions_sandbox_client.test_resources_factory import TestResourcesFactory
 
 
 @pytest.fixture(scope="session")

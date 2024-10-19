@@ -245,6 +245,6 @@ $RECYCLE.BIN/
 
 /.aws-sam/
 /example/config.json
-/.idea/
+.idea/
 rpdk.log
 schema.json
