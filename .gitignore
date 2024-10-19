@@ -244,7 +244,7 @@ $RECYCLE.BIN/
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode
 
 /.aws-sam/
-/config.json
+/example/config.json
 /.idea/
 rpdk.log
 schema.json
