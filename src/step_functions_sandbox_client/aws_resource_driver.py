@@ -1,4 +1,4 @@
-from state_machine import StateMachine
+from .state_machine import StateMachine
 
 
 class AWSResourceDriver:

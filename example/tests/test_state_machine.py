@@ -3,9 +3,9 @@ from unittest.mock import call
 
 import pytest
 
-from a_thrown_exception import an_exception_thrown_with_message
-from aws_resource_driver import AWSResourceDriver
-from aws_resource_mocking_engine import AWSResourceMockingEngine
+from src.step_functions_sandbox_client.a_thrown_exception import an_exception_thrown_with_message
+from src.step_functions_sandbox_client.aws_resource_driver import AWSResourceDriver
+from src.step_functions_sandbox_client.aws_resource_mocking_engine import AWSResourceMockingEngine
 
 
 @pytest.fixture(scope="function", autouse=True)

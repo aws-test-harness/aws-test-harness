@@ -10,7 +10,7 @@ from boto3 import Session
 from botocore.exceptions import ClientError
 from mypy_boto3_sqs import SQSClient
 
-from a_thrown_exception import AThrownException
+from .a_thrown_exception import AThrownException
 
 
 def handle_uncaught_thread_exception(args):

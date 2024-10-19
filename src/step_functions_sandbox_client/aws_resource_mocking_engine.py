@@ -5,8 +5,8 @@ from uuid import uuid4
 from boto3 import Session
 from mypy_boto3_s3 import S3Client
 
-from cloudformation_stack import CloudFormationStack
-from lambda_function_event_listener import LambdaFunctionEventListener
+from .cloudformation_stack import CloudFormationStack
+from .lambda_function_event_listener import LambdaFunctionEventListener
 
 
 class AWSResourceMockingEngine:
