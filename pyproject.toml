@@ -3,10 +3,10 @@ name = "step-functions-sandbox-client"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.8"
 dependencies = [
-    "boto3>=1.35.44",
-    "boto3-stubs[cloudformation,s3,sqs,stepfunctions,sts]>=1.35.44",
+    "boto3>=1.29.7",
+    "boto3-stubs[cloudformation,s3,sqs,stepfunctions,sts]>=1.29.7",
 ]
 
 [build-system]

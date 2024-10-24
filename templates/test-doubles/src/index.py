@@ -44,7 +44,7 @@ def handler(event, _):
 
         result = sqs_client.receive_message(
             QueueUrl=results_queue_url,
-            MessageSystemAttributeNames=['All'],
+            AttributeNames=['All'],
             MessageAttributeNames=['All'],
             MaxNumberOfMessages=1,
             WaitTimeSeconds=20,

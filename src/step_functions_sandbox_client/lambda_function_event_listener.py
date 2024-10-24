@@ -43,7 +43,7 @@ class LambdaFunctionEventListener(Thread):
                 print('Waiting for message...')
                 result = self.__sqs_client.receive_message(
                     QueueUrl=self.__events_queue_url,
-                    MessageSystemAttributeNames=['All'],
+                    AttributeNames=['All'],
                     MessageAttributeNames=['All'],
                     MaxNumberOfMessages=1,
                     WaitTimeSeconds=20,
