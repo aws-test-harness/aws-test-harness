@@ -37,8 +37,8 @@ def handler(event, _):
             }
         }
 
-        print(f'Returning fragment: {json.dumps(updated_fragment)}')
-        return create_response(event, updated_fragment)
+    print(f'Returning fragment: {json.dumps(updated_fragment)}')
+    return create_response(event, updated_fragment)
 
 
 def create_response(event, updated_fragment):
