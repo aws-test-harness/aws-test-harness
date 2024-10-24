@@ -4,7 +4,6 @@ set -o nounset -o errexit -o pipefail;
 
 macro_name="${1}"
 stack_name_prefix="${2:-}"
-macro_name_prefix="${3:-}"
 
 script_directory_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
@@ -30,5 +29,4 @@ fi
 aws cloudformation deploy \
   --stack-name "${stack_name_prefix}${macro_name}" \
   --template-file "${artifact_path}" \
-  --capabilities CAPABILITY_IAM \
-  --parameter-overrides MacroNamePrefix="${macro_name_prefix}"
+  --capabilities CAPABILITY_IAM

@@ -1,8 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::LanguageExtensions
+Transform:
+  - AWS::LanguageExtensions
+  - StepFunctionsSandbox-SecondSub
 Parameters:
   LambdaFunctionNames:
     Type: CommaDelimitedList
+    Default: ""
+  S3BucketNames:
+    Type: CommaDelimitedList
+    Default: ""
 Resources:
   TestDoubleManagerRole:
     Type: AWS::IAM::Role
@@ -32,7 +38,7 @@ Resources:
                   - sqs:SendMessage
                 Resource:
                   - !GetAtt ResultsQueue.Arn
-        - PolicyName: S3Interaction
+        - PolicyName: TestContextBucketInteraction
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -41,6 +47,45 @@ Resources:
                   - s3:PutObject
                 Resource:
                   - !Sub "${TestContextBucket.Arn}/*"
+  'Fn::ForEach::S3BucketInteractionRolePolicies':
+    - S3BucketName
+    - !Ref S3BucketNames
+    - '${S3BucketName}RolePolicy':
+        Type: AWS::IAM::RolePolicy
+        Properties:
+          PolicyName: !Sub "${S3BucketName}BucketInteraction"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:DeleteObject
+                - s3:PutObject
+              Resource: !Sub "!SecondSub arn:aws:s3:::@{${S3BucketName}Bucket}/*"
+          RoleName: !Ref TestDoubleManagerRole
+  'Fn::ForEach::S3Buckets':
+    - S3BucketName
+    - !Ref S3BucketNames
+    - '${S3BucketName}Bucket':
+        Type: AWS::S3::Bucket
+        Properties:
+          PublicAccessBlockConfiguration:
+            BlockPublicAcls: true
+            BlockPublicPolicy: true
+            IgnorePublicAcls: true
+            RestrictPublicBuckets: true
+          BucketEncryption:
+            ServerSideEncryptionConfiguration:
+              - ServerSideEncryptionByDefault:
+                  SSEAlgorithm: AES256
+          LifecycleConfiguration:
+            Rules:
+              - Status: Enabled
+                ExpirationInDays: 1
+                NoncurrentVersionExpiration:
+                  NewerNoncurrentVersions: 1
+                  NoncurrentDays: 1
   'Fn::ForEach::LambdaFunctions':
     - LambdaFunctionName
     - !Ref LambdaFunctionNames
@@ -121,6 +166,12 @@ Outputs:
     - '${LambdaFunctionName}FunctionName':
         Value:
           Ref: !Sub '${LambdaFunctionName}Function'
+  'Fn::ForEach::S3BucketNameOutputs':
+    - S3BucketName
+    - !Ref S3BucketNames
+    - '${S3BucketName}BucketName':
+        Value:
+          Ref: !Sub '${S3BucketName}Bucket'
   EventsQueueArn:
     Value: !GetAtt EventsQueue.Arn
   ResultsQueueArn:

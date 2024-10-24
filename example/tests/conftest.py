@@ -4,6 +4,7 @@ import os
 import pytest
 
 from step_functions_sandbox_client.aws_resource_mocking_engine import AWSResourceMockingEngine
+from step_functions_sandbox_client.aws_test_double_driver import AWSTestDoubleDriver
 from step_functions_sandbox_client.test_resources_factory import TestResourcesFactory
 
 
@@ -25,6 +26,11 @@ def resource_driver(test_resources_factory):
 @pytest.fixture(scope="session")
 def mocking_engine(test_resources_factory):
     return test_resources_factory.mocking_engine
+
+
+@pytest.fixture(scope="session")
+def test_double_driver(test_resources_factory):
+    return test_resources_factory.test_double_driver
 
 
 @pytest.fixture(scope="function", autouse=True)

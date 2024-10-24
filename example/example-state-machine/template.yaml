@@ -5,6 +5,10 @@ Parameters:
     Type: String
   DoublerFunctionName:
     Type: String
+  FirstBucketName:
+    Type: String
+  SecondBucketName:
+    Type: String
   OutOfBandDeploymentSupport:
     Type: String
     Default: "false"
@@ -12,7 +16,7 @@ Resources:
   StateMachine:
     Type: AWS::Serverless::StateMachine
     Fn::Transform:
-      Name: OutOfBandDeploymentSupport
+      Name: StepFunctionsSandbox-OutOfBandDeploymentSupport
       Parameters:
         Enabled: !Ref OutOfBandDeploymentSupport
     Properties:
@@ -20,11 +24,17 @@ Resources:
       DefinitionSubstitutions:
         InputTransformerFunctionName: !Ref InputTransformerFunctionName
         DoublerFunctionName: !Ref DoublerFunctionName
+        FirstBucketName: !Ref FirstBucketName
+        SecondBucketName: !Ref SecondBucketName
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref InputTransformerFunctionName
         - LambdaInvokePolicy:
             FunctionName: !Ref DoublerFunctionName
+        - S3ReadPolicy:
+            BucketName: !Ref FirstBucketName
+        - S3WritePolicy:
+            BucketName: !Ref SecondBucketName
 Outputs:
   StateMachineArn:
     Value: !Ref StateMachine

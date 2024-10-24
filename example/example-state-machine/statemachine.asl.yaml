@@ -4,21 +4,34 @@ States:
     Type: Task
     Resource: arn:aws:states:::lambda:invoke
     Parameters:
-      Payload.$: $.input
+      Payload:
+        "data.$": "$.input.data"
       FunctionName: ${InputTransformerFunctionName}
+    ResultPath: "$.transformInput"
     ResultSelector:
       "result.$": "$.Payload"
     Retry:
       - ErrorEquals:
           - States.TaskFailed
         MaxAttempts: 2
+    Next: Get Object
+  Get Object:
+    Type: Task
+    Parameters:
+      Bucket: ${FirstBucketName}
+      Key.$: $.input.firstBucketKey
+    Resource: arn:aws:states:::aws-sdk:s3:getObject
     Next: Double
+    ResultPath: "$.getObject"
+    ResultSelector:
+      "result.$": "$.Body"
   Double:
     Type: Task
     Resource: arn:aws:states:::lambda:invoke
     Parameters:
-      Payload.$: $.result
+      Payload.$: $.transformInput.result
       FunctionName: ${DoublerFunctionName}
+    ResultPath: "$.double"
     ResultSelector:
       "result.$": "$.Payload"
     Retry:

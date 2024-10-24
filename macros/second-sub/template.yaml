@@ -3,8 +3,8 @@ Resources:
   Macro:
     Type: AWS::CloudFormation::Macro
     Properties:
-      Name: StepFunctionsSandbox-OutOfBandDeploymentSupport
-      Description: Adds resource metadata to support out-of-band deployments
+      Name: StepFunctionsSandbox-SecondSub
+      Description: Replaces the __DEFERRED_DOLLARS__ placeholder with a '$' dollar sign in Fn::Sub input strings
       FunctionName: !Ref Function
   Function:
     Type: AWS::Lambda::Function

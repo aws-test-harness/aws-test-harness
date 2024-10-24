@@ -16,6 +16,7 @@ Resources:
     Properties:
       Parameters:
         LambdaFunctionNames: InputTransformer, Doubler
+        S3BucketNames: First, Second
       TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/test-doubles/template.yaml
   ExampleStateMachine:
     Type: AWS::Serverless::Application
@@ -24,4 +25,6 @@ Resources:
       Parameters:
         OutOfBandDeploymentSupport: "true"
         InputTransformerFunctionName: !GetAtt TestDoubles.Outputs.InputTransformerFunctionName
-        DoublerFunctionName:  !GetAtt TestDoubles.Outputs.DoublerFunctionName
+        DoublerFunctionName: !GetAtt TestDoubles.Outputs.DoublerFunctionName
+        FirstBucketName: !GetAtt TestDoubles.Outputs.FirstBucketName
+        SecondBucketName: !GetAtt TestDoubles.Outputs.SecondBucketName

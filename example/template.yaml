@@ -8,6 +8,8 @@ Resources:
       Parameters:
         InputTransformerFunctionName: !Ref InputTransformerFunction
         DoublerFunctionName: !Ref DoublerFunction
+        FirstBucketName: !Ref SourceBucket
+        SecondBucketName: !Ref DestinationBucket
   InputTransformerFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -24,3 +26,27 @@ Resources:
       CodeUri: functions/doubler
       Policies:
         - AWSLambdaRole
+  SourceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+  DestinationBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256

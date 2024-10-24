@@ -2,6 +2,7 @@ import boto3
 
 from .aws_resource_driver import AWSResourceDriver
 from .aws_resource_mocking_engine import AWSResourceMockingEngine
+from .aws_test_double_driver import AWSTestDoubleDriver
 from .boto_session_factory import BotoSessionFactory
 from .cloudformation_stack import CloudFormationStack
 
@@ -22,6 +23,11 @@ class TestResourcesFactory:
         self.__ensure_initialised()
         return self.__mocking_engine
 
+    @property
+    def test_double_driver(self) -> AWSTestDoubleDriver:
+        self.__ensure_initialised()
+        return self.__test_double_driver
+
     def __ensure_initialised(self):
         if not self.__initialised:
             self.__initialised = True
@@ -39,9 +45,12 @@ class TestResourcesFactory:
                 )
             )
 
-            self.__mocking_engine = AWSResourceMockingEngine(
-                cloudformation_stack,
-                boto_session_factory.create_boto_session_with_assumed_role(
-                    cloudformation_stack.get_physical_resource_id_for("TestDoubles::TestDoubleManagerRole")
-                )
+            test_double_manager_boto_session = boto_session_factory.create_boto_session_with_assumed_role(
+                cloudformation_stack.get_physical_resource_id_for("TestDoubles::TestDoubleManagerRole")
             )
+
+            self.__mocking_engine = AWSResourceMockingEngine(cloudformation_stack, test_double_manager_boto_session)
+
+            test_double_stack = CloudFormationStack(cloudformation_stack.get_physical_resource_id_for('TestDoubles'),
+                                                    developer_boto_session)
+            self.__test_double_driver = AWSTestDoubleDriver(test_double_stack, test_double_manager_boto_session)
