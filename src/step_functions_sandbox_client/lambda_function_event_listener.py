@@ -34,6 +34,7 @@ class LambdaFunctionEventListener(Thread):
         self.__test_double_driver = test_double_driver
         self.__get_mocking_session_id = get_mocking_session_id
 
+    # TODO: Move some responsibilities into classes that represent Lambda functions or queues, created by test double driver
     def run(self):
         # noinspection PyBroadException
         try:
