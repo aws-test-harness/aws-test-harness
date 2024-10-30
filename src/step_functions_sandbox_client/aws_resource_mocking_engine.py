@@ -20,11 +20,11 @@ class AWSResourceMockingEngine:
         self.__s3_client: S3Client = self.__boto_session.client('s3')
 
         self.__test_context_s3_bucket_name = self.__cloudformation_stack.get_physical_resource_id_for(
-            'TestDoubles::TestContextBucket'
+            'TestContextBucket'
         )
 
-        self.__events_queue_url = cloudformation_stack.get_physical_resource_id_for(f'TestDoubles::EventsQueue')
-        self.__results_queue_url = cloudformation_stack.get_physical_resource_id_for(f'TestDoubles::ResultsQueue')
+        self.__events_queue_url = cloudformation_stack.get_physical_resource_id_for(f'EventsQueue')
+        self.__results_queue_url = cloudformation_stack.get_physical_resource_id_for(f'ResultsQueue')
 
     def reset(self):
         if self.__lambda_function_event_listener:
@@ -44,7 +44,7 @@ class AWSResourceMockingEngine:
     def mock_a_lambda_function(self, logical_resource_id: str,
                                event_handler: Callable[[Dict[str, any]], Dict[str, any]]) -> Mock:
         function_physical_resource_id = self.__cloudformation_stack.get_physical_resource_id_for(
-            f'TestDoubles::{logical_resource_id}'
+            logical_resource_id
         )
 
         def lambda_handler(_: Dict[str, any]) -> Dict[str, any]:
