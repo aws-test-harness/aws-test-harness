@@ -24,7 +24,7 @@ threading.excepthook = handle_uncaught_thread_exception
 
 
 class LambdaFunctionEventListener(Thread):
-    __event_handlers_functions_by_function_physical_id: Dict[str, Callable[[Dict[str, any]], Any]] = {}
+    __event_handlers: Dict[str, Callable[[Dict[str, any]], Any]] = {}
     __stop_waiting: bool = False
 
     def __init__(self, test_double_driver: AWSTestDoubleDriver, boto_session: Session,
@@ -57,36 +57,36 @@ class LambdaFunctionEventListener(Thread):
                         if message['MessageAttributes']['MockingSessionId']['StringValue'] == mocking_session_id:
                             message_payload = json.loads(message['Body'])
 
-                            lambda_function_event = json.loads(message_payload['event'])
-                            lambda_function_invocation_id = message_payload['invocationId']
-                            lambda_function_name = message_payload['functionName']
-                            lambda_execution_environment_id = message_payload['executionEnvironmentId']
+                            function_event = json.loads(message_payload['event'])
+                            function_invocation_id = message_payload['invocationId']
+                            function_name = message_payload['functionName']
+                            function_execution_environment_id = message_payload['executionEnvironmentId']
                             message_group_id = message['Attributes']['MessageGroupId']
 
-                            print(f"{lambda_function_name} invocation "
-                                  f"from execution environment {lambda_execution_environment_id} "
-                                  f"with invocation ID {lambda_function_invocation_id} "
-                                  f"received event {lambda_function_event}")
+                            print(f"{function_name} invocation "
+                                  f"from execution environment {function_execution_environment_id} "
+                                  f"with invocation ID {function_invocation_id} "
+                                  f"received event {function_event}")
 
-                            event_handler = self.__event_handlers_functions_by_function_physical_id[lambda_function_name]
-                            lambda_function_result = event_handler(lambda_function_event)
+                            event_handler = self.__event_handlers[function_name]
+                            function_result = event_handler(function_event)
 
                             message_payload = dict(
                                 raiseException=False,
-                                invocationId=lambda_function_invocation_id,
-                                functionName=lambda_function_name,
-                                executionEnvironmentId=lambda_execution_environment_id
+                                invocationId=function_invocation_id,
+                                functionName=function_name,
+                                executionEnvironmentId=function_execution_environment_id
                             )
 
-                            if isinstance(lambda_function_result, AThrownException):
+                            if isinstance(function_result, AThrownException):
                                 message_payload['raiseException'] = True
 
-                                exception_message = lambda_function_result.message
+                                exception_message = function_result.message
                                 message_payload['exceptionMessage'] = exception_message
                                 print(f'Throwing exception with message "{exception_message}"')
                             else:
-                                message_payload['result'] = json.dumps(lambda_function_result)
-                                print(f'Returning result: {json.dumps(lambda_function_result)}')
+                                message_payload['result'] = json.dumps(function_result)
+                                print(f'Returning result: {json.dumps(function_result)}')
 
                             self.__sqs_client.send_message(
                                 QueueUrl=self.__test_double_driver.results_queue_url,
@@ -124,5 +124,5 @@ class LambdaFunctionEventListener(Thread):
     def stop(self):
         self.__stop_waiting = True
 
-    def register_event_handler(self, function_physical_resource_id: str, event_handler):
-        self.__event_handlers_functions_by_function_physical_id[function_physical_resource_id] = event_handler
+    def register_event_handler(self, function_name: str, event_handler):
+        self.__event_handlers[function_name] = event_handler

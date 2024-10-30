@@ -20,6 +20,9 @@ class AWSTestDoubleDriver:
 
         return S3Bucket(s3_bucket_name, self.__boto_session)
 
+    def get_lambda_function_name(self, function_id):
+        return self.__cloudformation_stack.get_physical_resource_id_for(f'{function_id}Function')
+
     @property
     def events_queue_url(self) -> str:
         if self.__events_queue_url is None:

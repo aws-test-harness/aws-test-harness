@@ -53,5 +53,5 @@ class TestResourcesFactory:
                                                      developer_boto_session)
 
             self.__test_double_driver = AWSTestDoubleDriver(test_doubles_stack, test_double_manager_boto_session)
-            self.__mocking_engine = AWSResourceMockingEngine(test_doubles_stack, self.__test_double_driver,
+            self.__mocking_engine = AWSResourceMockingEngine(self.__test_double_driver,
                                                              test_double_manager_boto_session)

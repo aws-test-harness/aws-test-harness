@@ -14,12 +14,12 @@ from step_functions_sandbox_client.aws_test_double_driver import AWSTestDoubleDr
 def setup_default_mock_behaviour(mocking_engine: AWSResourceMockingEngine,
                                  test_double_driver: AWSTestDoubleDriver):
     mocking_engine.mock_a_lambda_function(
-        'InputTransformerFunction',
+        'InputTransformer',
         lambda event: {'number': event['data']['number']}
     )
 
     mocking_engine.mock_a_lambda_function(
-        'DoublerFunction',
+        'Doubler',
         lambda event: {'number': event['number'], 'objectKey': 'any-object-key'}
     )
 
@@ -33,10 +33,10 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
     first_bucket_key = f'data/message-{uuid4()}'
     first_bucket.put_object(first_bucket_key, 'This is the retrieved message')
 
-    input_transformer_function = mocking_engine.get_mock_lambda_function('InputTransformerFunction')
+    input_transformer_function = mocking_engine.get_mock_lambda_function('InputTransformer')
     input_transformer_function.side_effect = lambda event: {'number': event['data']['number'] + 1}
 
-    doubler_function = mocking_engine.get_mock_lambda_function('DoublerFunction')
+    doubler_function = mocking_engine.get_mock_lambda_function('Doubler')
 
     second_bucket = test_double_driver.get_s3_bucket('Second')
 
@@ -80,7 +80,7 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
 
 def test_state_machine_retries_input_transformation_twice(mocking_engine: AWSResourceMockingEngine,
                                                           resource_driver: AWSResourceDriver):
-    input_transformer_function = mocking_engine.get_mock_lambda_function('InputTransformerFunction')
+    input_transformer_function = mocking_engine.get_mock_lambda_function('InputTransformer')
     input_transformer_function.side_effect = [
         an_exception_thrown_with_message("the error message"),
         an_exception_thrown_with_message("the error message"),
@@ -107,7 +107,7 @@ def test_state_machine_retries_input_transformation_twice(mocking_engine: AWSRes
 
 def test_state_machine_retries_doubling_twice(mocking_engine: AWSResourceMockingEngine,
                                               resource_driver: AWSResourceDriver):
-    doubler_function = mocking_engine.get_mock_lambda_function('DoublerFunction')
+    doubler_function = mocking_engine.get_mock_lambda_function('Doubler')
     doubler_function.side_effect = [
         an_exception_thrown_with_message("the error message"),
         an_exception_thrown_with_message("the error message"),
