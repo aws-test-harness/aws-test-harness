@@ -15,6 +15,7 @@ class AWSResourceMockingEngine:
 
     def __init__(self, cloudformation_stack: CloudFormationStack, test_double_driver: AWSTestDoubleDriver,
                  boto_session: Session):
+        self.__mock_lambda_functions_by_logical_id: Dict[str, Mock] = {}
         self.__cloudformation_stack = cloudformation_stack
         self.__test_double_driver = test_double_driver
         self.__boto_session = boto_session
@@ -43,8 +44,9 @@ class AWSResourceMockingEngine:
         mock_lambda_function: Mock = create_autospec(lambda_handler, name=logical_resource_id)
         mock_lambda_function.side_effect = event_handler
 
-        self.__lambda_function_event_listener.register_function(function_physical_resource_id, logical_resource_id,
-                                                                mock_lambda_function)
+        self.__lambda_function_event_listener.register_event_handler(function_physical_resource_id,
+                                                                     lambda event: mock_lambda_function(event))
+        self.__mock_lambda_functions_by_logical_id[logical_resource_id] = mock_lambda_function
 
         return mock_lambda_function
 
@@ -54,4 +56,4 @@ class AWSResourceMockingEngine:
         return self.__mocking_session_id
 
     def get_mock_lambda_function(self, logical_resource_id: str) -> Mock:
-        return self.__lambda_function_event_listener.get_mock_lambda_function(logical_resource_id)
+        return self.__mock_lambda_functions_by_logical_id[logical_resource_id]

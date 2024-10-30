@@ -18,9 +18,7 @@ class AWSTestDoubleDriver:
             f'{logical_resource_id}Bucket'
         )
 
-        s3_bucket = S3Bucket(s3_bucket_name, self.__boto_session)
-
-        return s3_bucket
+        return S3Bucket(s3_bucket_name, self.__boto_session)
 
     @property
     def events_queue_url(self) -> str:

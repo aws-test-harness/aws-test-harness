@@ -3,8 +3,7 @@ import sys
 import threading
 import traceback
 from threading import Thread
-from typing import Dict, Callable
-from unittest.mock import Mock
+from typing import Dict, Callable, Any
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -25,8 +24,7 @@ threading.excepthook = handle_uncaught_thread_exception
 
 
 class LambdaFunctionEventListener(Thread):
-    __mock_lambda_functions_by_physical_id: Dict[str, Mock] = {}
-    __mock_lambda_functions_by_logical_id: Dict[str, Mock] = {}
+    __event_handlers_functions_by_function_physical_id: Dict[str, Callable[[Dict[str, any]], Any]] = {}
     __stop_waiting: bool = False
 
     def __init__(self, test_double_driver: AWSTestDoubleDriver, boto_session: Session,
@@ -70,9 +68,8 @@ class LambdaFunctionEventListener(Thread):
                                   f"with invocation ID {lambda_function_invocation_id} "
                                   f"received event {lambda_function_event}")
 
-                            mock_lambda_function = self.__mock_lambda_functions_by_physical_id[lambda_function_name]
-
-                            lambda_function_result = mock_lambda_function(lambda_function_event)
+                            event_handler = self.__event_handlers_functions_by_function_physical_id[lambda_function_name]
+                            lambda_function_result = event_handler(lambda_function_event)
 
                             message_payload = dict(
                                 raiseException=False,
@@ -127,10 +124,5 @@ class LambdaFunctionEventListener(Thread):
     def stop(self):
         self.__stop_waiting = True
 
-    def register_function(self, function_physical_resource_id: str, function_logical_resource_id: str,
-                          mock_lambda_function: Mock):
-        self.__mock_lambda_functions_by_physical_id[function_physical_resource_id] = mock_lambda_function
-        self.__mock_lambda_functions_by_logical_id[function_logical_resource_id] = mock_lambda_function
-
-    def get_mock_lambda_function(self, logical_resource_id) -> Mock:
-        return self.__mock_lambda_functions_by_logical_id[logical_resource_id]
+    def register_event_handler(self, function_physical_resource_id: str, event_handler):
+        self.__event_handlers_functions_by_function_physical_id[function_physical_resource_id] = event_handler
