@@ -13,9 +13,9 @@ class AWSTestDoubleDriver:
         self.__cloudformation_stack = cloudformation_stack
         self.__boto_session = boto_session
 
-    def get_s3_bucket(self, logical_resource_id) -> S3Bucket:
+    def get_s3_bucket(self, bucket_id) -> S3Bucket:
         s3_bucket_name = self.__cloudformation_stack.get_physical_resource_id_for(
-            f'{logical_resource_id}Bucket'
+            f'{bucket_id}Bucket'
         )
 
         return S3Bucket(s3_bucket_name, self.__boto_session)
