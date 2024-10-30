@@ -11,9 +11,6 @@ class S3Bucket:
         s3_resource: S3ServiceResource = session.resource('s3')
         self.__boto_bucket_resource: Bucket = s3_resource.Bucket(name)
 
-    def reset(self):
-        self.__boto_bucket_resource.objects.all().delete()
-
     def put_object(self, key, content):
         self.__boto_bucket_resource.put_object(Key=key, Body=content)
 
