@@ -50,7 +50,8 @@ class TestResourcesFactory:
             )
 
             test_doubles_stack = CloudFormationStack(cloudformation_stack.get_physical_resource_id_for('TestDoubles'),
-                                                    developer_boto_session)
+                                                     developer_boto_session)
 
-            self.__mocking_engine = AWSResourceMockingEngine(test_doubles_stack, test_double_manager_boto_session)
             self.__test_double_driver = AWSTestDoubleDriver(test_doubles_stack, test_double_manager_boto_session)
+            self.__mocking_engine = AWSResourceMockingEngine(test_doubles_stack, self.__test_double_driver,
+                                                             test_double_manager_boto_session)

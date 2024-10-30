@@ -3,8 +3,8 @@ from unittest.mock import Mock, create_autospec
 from uuid import uuid4
 
 from boto3 import Session
-from mypy_boto3_s3 import S3Client
 
+from .aws_test_double_driver import AWSTestDoubleDriver
 from .cloudformation_stack import CloudFormationStack
 from .lambda_function_event_listener import LambdaFunctionEventListener
 
@@ -13,31 +13,21 @@ class AWSResourceMockingEngine:
     __mocking_session_id: str = None
     __lambda_function_event_listener: LambdaFunctionEventListener = None
 
-    def __init__(self, cloudformation_stack: CloudFormationStack, boto_session: Session):
+    def __init__(self, cloudformation_stack: CloudFormationStack, test_double_driver: AWSTestDoubleDriver,
+                 boto_session: Session):
         self.__cloudformation_stack = cloudformation_stack
+        self.__test_double_driver = test_double_driver
         self.__boto_session = boto_session
-
-        self.__s3_client: S3Client = self.__boto_session.client('s3')
-
-        self.__test_context_s3_bucket_name = self.__cloudformation_stack.get_physical_resource_id_for(
-            'TestContextBucket'
-        )
-
-        self.__events_queue_url = cloudformation_stack.get_physical_resource_id_for(f'EventsQueue')
-        self.__results_queue_url = cloudformation_stack.get_physical_resource_id_for(f'ResultsQueue')
 
     def reset(self):
         if self.__lambda_function_event_listener:
             self.__lambda_function_event_listener.stop()
 
-        self.__generate_new_mocking_session_id()
+        self.__set_mocking_session_id()
 
-        self.__lambda_function_event_listener = LambdaFunctionEventListener(
-            self.__boto_session,
-            self.__events_queue_url,
-            self.__results_queue_url,
-            lambda: self.__mocking_session_id
-        )
+        self.__lambda_function_event_listener = LambdaFunctionEventListener(self.__test_double_driver,
+                                                                            self.__boto_session,
+                                                                            lambda: self.__mocking_session_id)
 
         self.__lambda_function_event_listener.start()
 
@@ -58,15 +48,9 @@ class AWSResourceMockingEngine:
 
         return mock_lambda_function
 
-    def __generate_new_mocking_session_id(self) -> str:
+    def __set_mocking_session_id(self) -> str:
         self.__mocking_session_id = str(uuid4())
-
-        self.__s3_client.put_object(
-            Bucket=self.__test_context_s3_bucket_name,
-            Key='test-id',
-            Body=self.__mocking_session_id
-        )
-
+        self.__test_double_driver.test_context_bucket.put_object('test-id', self.__mocking_session_id)
         return self.__mocking_session_id
 
     def get_mock_lambda_function(self, logical_resource_id: str) -> Mock:

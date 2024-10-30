@@ -11,6 +11,7 @@ from botocore.exceptions import ClientError
 from mypy_boto3_sqs import SQSClient
 
 from .a_thrown_exception import AThrownException
+from .aws_test_double_driver import AWSTestDoubleDriver
 
 
 def handle_uncaught_thread_exception(args):
@@ -28,12 +29,11 @@ class LambdaFunctionEventListener(Thread):
     __mock_lambda_functions_by_logical_id: Dict[str, Mock] = {}
     __stop_waiting: bool = False
 
-    def __init__(self, boto_session: Session, events_queue_url: str, results_queue_url: str,
+    def __init__(self, test_double_driver: AWSTestDoubleDriver, boto_session: Session,
                  get_mocking_session_id: Callable[[], str]):
         super().__init__(daemon=True)
         self.__sqs_client: SQSClient = boto_session.client('sqs')
-        self.__events_queue_url = events_queue_url
-        self.__results_queue_url = results_queue_url
+        self.__test_double_driver = test_double_driver
         self.__get_mocking_session_id = get_mocking_session_id
 
     def run(self):
@@ -42,7 +42,7 @@ class LambdaFunctionEventListener(Thread):
             while True:
                 print('Waiting for message...')
                 result = self.__sqs_client.receive_message(
-                    QueueUrl=self.__events_queue_url,
+                    QueueUrl=self.__test_double_driver.events_queue_url,
                     AttributeNames=['All'],
                     MessageAttributeNames=['All'],
                     MaxNumberOfMessages=1,
@@ -92,7 +92,7 @@ class LambdaFunctionEventListener(Thread):
                                 print(f'Returning result: {json.dumps(lambda_function_result)}')
 
                             self.__sqs_client.send_message(
-                                QueueUrl=self.__results_queue_url,
+                                QueueUrl=self.__test_double_driver.results_queue_url,
                                 MessageGroupId=message_group_id,
                                 MessageAttributes={
                                     'MockingSessionId': {
@@ -106,7 +106,7 @@ class LambdaFunctionEventListener(Thread):
                         try:
                             receipt_handle = message['ReceiptHandle']
                             self.__sqs_client.delete_message(
-                                QueueUrl=self.__events_queue_url,
+                                QueueUrl=self.__test_double_driver.events_queue_url,
                                 ReceiptHandle=receipt_handle
                             )
                         except ClientError as e:
