@@ -10,14 +10,14 @@ Resources:
     Properties:
       Parameters:
         StateMachineArn: !GetAtt ExampleStateMachine.Outputs.StateMachineArn
-      TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/tester-role/template.yaml
+      TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/aws-test-harness-templates/tester-role.yaml
   TestDoubles:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
         LambdaFunctionNames: InputTransformer, Doubler
         S3BucketNames: First, Second
-      TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/test-doubles/template.yaml
+      TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/aws-test-harness-templates/test-doubles.yaml
   ExampleStateMachine:
     Type: AWS::Serverless::Application
     Properties:

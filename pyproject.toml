@@ -1,6 +1,6 @@
 [project]
 name = "step-functions-sandbox-client"
-version =   "0.1.2a7"
+version =   "0.1.2a8"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.8"

@@ -5,7 +5,7 @@ set -o nounset -o errexit -o pipefail
 force=false
 
 usage() {
-  echo "Usage: $0 [--help] [--arn arn] [--definition path] [--force]"
+  echo "Usage: $0 [--help] [--cfn-stack stack_name] [--cfn-resource resource_logical_id] [--definition file_path] [--force]"
   exit 1
 }
 
@@ -34,16 +34,6 @@ while [[ "${1:-}" != "" ]]; do
 
             resource_logical_id="${1}"
             ;;
-        --arn )
-            shift
-
-            if [ -z "${1:-}" ]; then
-              echo "Missing argument for --arn"
-              usage
-            fi
-
-            state_machine_arn="${1}"
-            ;;
         --definition )
             shift
 
@@ -52,8 +42,7 @@ while [[ "${1:-}" != "" ]]; do
               usage
             fi
 
-            # TODO: Derive the state machine ARN from the (nested) stack logical resource ID
-            state_machine_definition_relative_file_path="${1}"
+            state_machine_definition_file_path="${1}"
             ;;
         --force )
             force=true
@@ -102,10 +91,6 @@ if [ -n "${stack_name:-}" ] || [ -n "${resource_logical_id:-}" ]; then
   state_machine_cfn_stack_id="$(jq -r '.StackId' <<< "${state_machine_cfn_ids}")"
   stack_machine_cfn_resource_id="$(jq -r '.LogicalResourceId' <<< "${state_machine_cfn_ids}")"
 fi
-
-script_directory_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-state_machine_definition_file_path="${script_directory_path}/../${state_machine_definition_relative_file_path}"
 
 if [ ! -e "${state_machine_definition_file_path}" ]; then
   echo "State machine definition file not found at ${state_machine_definition_file_path}"

@@ -1,17 +1,33 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Resources:
-  Macro:
+  OutOfBandDeploymentSupportMacro:
     Type: AWS::CloudFormation::Macro
     Properties:
       Name: AWSTestHarness-OutOfBandDeploymentSupport
       Description: Adds resource metadata to support out-of-band deployments
-      FunctionName: !Ref Function
-  Function:
+      FunctionName: !Ref OutofBandDeploymentSupportFunction
+  OutofBandDeploymentSupportFunction:
     Type: AWS::Lambda::Function
     Properties:
       Code:
         ZipFile: |
-          __CODE_PLACEHOLDER__
+          __CODE_PLACEHOLDER__:src/out_of_band_deployment_support.py
+      Handler: index.handler
+      Role: !GetAtt LambdaFunctionExecutionRole.Arn
+      Runtime: python3.12
+      Timeout: 5
+  SecondSubMacro:
+    Type: AWS::CloudFormation::Macro
+    Properties:
+      Name: AWSTestHarness-SecondSub
+      Description: Replaces the __DEFERRED_DOLLARS__ placeholder with a '$' dollar sign in Fn::Sub input strings
+      FunctionName: !Ref SecondSubFunction
+  SecondSubFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          __CODE_PLACEHOLDER__:src/second_sub.py
       Handler: index.handler
       Role: !GetAtt LambdaFunctionExecutionRole.Arn
       Runtime: python3.12

@@ -94,7 +94,7 @@ Resources:
         Properties:
           Code:
             ZipFile: |
-              __CODE_PLACEHOLDER__
+              __CODE_PLACEHOLDER__:src/index.py
           Handler: index.handler
           Role: !GetAtt LambdaFunctionExecutionRole.Arn
           Runtime: python3.12
