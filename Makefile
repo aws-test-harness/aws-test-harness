@@ -12,15 +12,12 @@ clean:
 build: clean build-infrastructure build-tools build-library
 
 .PHONY: build-tools
-build-tools: create-tools-dist-directory
-	cp tools/* dist/tools
-
-.PHONY: create-tools-dist-directory
-create-tools-dist-directory:
-	mkdir -p dist/tools
+build-tools:
+	tar -czf dist/tools.tar.gz tools
 
 .PHONY: build-infrastructure
 build-infrastructure: build-stack-templates build-macros-template copy-installation-script
+	tar -czf dist/infrastructure.tar.gz -C dist infrastructure && rm -rf dist/infrastructure
 
 .PHONY: create-infrastructure-dist-directory
 create-infrastructure-dist-directory:
