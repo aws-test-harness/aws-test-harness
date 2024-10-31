@@ -1,3 +1,4 @@
+VERSION := 0.1.2a8
 STACK_TEMPLATES_DIRECTORY := infrastructure/templates
 STACK_TEMPLATE_BUILD_TARGETS := $(shell find $(STACK_TEMPLATES_DIRECTORY) -type d -depth 1 -exec basename {} \; | sed 's/^/build-/' | sed 's/$$/-stack-template/')
 
@@ -45,6 +46,10 @@ copy-installation-script: create-infrastructure-dist-directory
 .PHONY: build-library
 build-library:
 	uv build -o dist/library
+
+.PHONY: publish-non-library-assets
+publish-non-library-assets:
+	gh release create --prerelease --target spike --generate-notes "$(VERSION)" dist/*.tar.gz
 
 .PHONY: publish-library
 publish-library:
