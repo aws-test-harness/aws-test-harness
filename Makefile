@@ -69,3 +69,7 @@ deploy-example:
 .PHONY: deploy-example-sandbox
 deploy-example-sandbox:
 	sam deploy --template example/tests/sandbox/template.yaml --config-file samconfig.toml --parameter-overrides StackTemplatesS3BucketName=$(STACK_TEMPLATES_S3_BUCKET_NAME)
+
+.PHONY: test-example
+test-example:
+	uv run --directory example pytest tests
