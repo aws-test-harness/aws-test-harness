@@ -61,3 +61,11 @@ publish-non-library-assets:
 .PHONY: publish-library
 publish-library:
 	uv publish --token "$(PYPI_TOKEN)" dist/library/*
+
+.PHONY: deploy-example
+deploy-example:
+	sam deploy --template example/template.yaml --config-file samconfig.toml
+
+.PHONY: deploy-example-sandbox
+deploy-example-sandbox:
+	sam deploy --template example/tests/sandbox/template.yaml --config-file samconfig.toml --parameter-overrides StackTemplatesS3BucketName=$(STACK_TEMPLATES_S3_BUCKET_NAME)
