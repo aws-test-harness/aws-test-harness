@@ -3,7 +3,7 @@
 version = 0.1
 
 [default.global.parameters]
-stack_name = "step-functions-sandbox-sandbox"
+stack_name = "aws-test-harness-example-sandbox"
 
 [default.build.parameters]
 cached = true
@@ -19,7 +19,7 @@ confirm_changeset = false
 fail_on_empty_changeset = false
 region = "eu-west-1"
 resolve_s3 = true
-s3_prefix = "step-functions-sandbox-sandbox"
+s3_prefix = "aws-test-harness-example-sandbox"
 
 [default.package.parameters]
 resolve_s3 = true

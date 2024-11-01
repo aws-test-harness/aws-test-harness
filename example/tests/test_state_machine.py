@@ -4,10 +4,10 @@ from uuid import uuid4
 
 import pytest
 
-from step_functions_sandbox_client.a_thrown_exception import an_exception_thrown_with_message
-from step_functions_sandbox_client.aws_resource_driver import AWSResourceDriver
-from step_functions_sandbox_client.aws_resource_mocking_engine import AWSResourceMockingEngine
-from step_functions_sandbox_client.aws_test_double_driver import AWSTestDoubleDriver
+from aws_test_harness.a_thrown_exception import an_exception_thrown_with_message
+from aws_test_harness.aws_resource_driver import AWSResourceDriver
+from aws_test_harness.aws_resource_mocking_engine import AWSResourceMockingEngine
+from aws_test_harness.aws_test_double_driver import AWSTestDoubleDriver
 
 
 @pytest.fixture(scope="function", autouse=True)

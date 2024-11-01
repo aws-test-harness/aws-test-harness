@@ -1,7 +1,7 @@
 from boto3 import Session
 
-from step_functions_sandbox_client.cloudformation_stack import CloudFormationStack
-from step_functions_sandbox_client.s3_bucket import S3Bucket
+from aws_test_harness.cloudformation_stack import CloudFormationStack
+from aws_test_harness.s3_bucket import S3Bucket
 
 
 class AWSTestDoubleDriver:

@@ -3,10 +3,10 @@ import os
 
 import pytest
 
-from step_functions_sandbox_client.aws_resource_driver import AWSResourceDriver
-from step_functions_sandbox_client.aws_resource_mocking_engine import AWSResourceMockingEngine
-from step_functions_sandbox_client.aws_test_double_driver import AWSTestDoubleDriver
-from step_functions_sandbox_client.test_resources_factory import TestResourcesFactory
+from aws_test_harness.aws_resource_driver import AWSResourceDriver
+from aws_test_harness.aws_resource_mocking_engine import AWSResourceMockingEngine
+from aws_test_harness.aws_test_double_driver import AWSTestDoubleDriver
+from aws_test_harness.test_resources_factory import TestResourcesFactory
 
 
 @pytest.fixture(scope="session")
