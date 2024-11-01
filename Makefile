@@ -3,7 +3,14 @@ STACK_TEMPLATES_DIRECTORY := infrastructure/templates
 STACK_TEMPLATE_BUILD_TARGETS := $(shell find $(STACK_TEMPLATES_DIRECTORY) -type d -depth 1 -exec basename {} \; | sed 's/^/build-/' | sed 's/$$/-stack-template/')
 
 .PHONY: default
-default: build
+default: setup
+
+.PHONY: setup
+setup:
+	uv venv --seed
+	uv sync
+	uv venv --seed --project example
+	uv sync --project example
 
 .PHONY: clean
 clean:
