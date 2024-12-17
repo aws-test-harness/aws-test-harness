@@ -16,7 +16,7 @@ Resources:
   StateMachine:
     Type: AWS::Serverless::StateMachine
     Fn::Transform:
-      Name: AWSTestHarness-OutOfBandDeploymentSupport
+      Name: MacroNamesPrefix-AWSTestHarness-OutOfBandDeploymentSupport
       Parameters:
         Enabled: !Ref OutOfBandDeploymentSupport
     Properties:

@@ -3,7 +3,7 @@
 set -o nounset -o errexit -o pipefail;
 
 usage() {
-  echo "Usage: $0 [--help] [--macros-stack-name stack_name] [--stack-templates-s3-uri s3_uri]"
+  echo "Usage: $0 [--help] --macros-stack-name stack_name --stack-templates-s3-uri s3_uri [--macro-names-prefix macro_names_prefix]"
   exit 1
 }
 
@@ -21,6 +21,10 @@ while [[ "${1:-}" != "" ]]; do
             fi
 
             macros_stack_name="${1}"
+            ;;
+        --macro-names-prefix )
+            shift
+            macro_names_prefix="${1:-}"
             ;;
         --stack-templates-s3-uri )
             shift
@@ -58,9 +62,16 @@ echo "Deploying macros..."
 aws cloudformation deploy \
   --stack-name "${macros_stack_name}" \
   --template-file macros.yaml \
-  --capabilities CAPABILITY_IAM
+  --capabilities CAPABILITY_IAM \
+  --parameter-overrides MacroNamesPrefix="${macro_names_prefix}"
+
+working_directory_path=$(mktemp -d)
+
+cp -r templates/* "${working_directory_path}"
+
+cd "${working_directory_path}"
+
+sed -i '' "s/__MACRO_NAMES_PREFIX__/${macro_names_prefix}/" ./*
 
 echo "Deploying stack templates..."
-aws s3 sync \
-  templates \
-  "${stack_templates_s3_uri}"
+aws s3 sync . "${stack_templates_s3_uri}"

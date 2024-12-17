@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform:
   - AWS::LanguageExtensions
-  - AWSTestHarness-SecondSub
+  - __MACRO_NAMES_PREFIX__AWSTestHarness-SecondSub
 Parameters:
   LambdaFunctionNames:
     Type: CommaDelimitedList
