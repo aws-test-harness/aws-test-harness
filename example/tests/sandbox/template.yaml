@@ -24,7 +24,7 @@ Resources:
       Location: ../../example-state-machine/template.yaml
       Parameters:
         OutOfBandDeploymentSupport: "true"
-        InputTransformerFunctionName: !GetAtt TestDoubles.Outputs.InputTransformerFunctionName
-        DoublerFunctionName: !GetAtt TestDoubles.Outputs.DoublerFunctionName
-        FirstBucketName: !GetAtt TestDoubles.Outputs.FirstBucketName
-        SecondBucketName: !GetAtt TestDoubles.Outputs.SecondBucketName
+        InputTransformerFunctionName: !GetAtt TestDoubles.Outputs.InputTransformerLambdaFunctionName
+        DoublerFunctionName: !GetAtt TestDoubles.Outputs.DoublerLambdaFunctionName
+        FirstBucketName: !GetAtt TestDoubles.Outputs.FirstS3BucketName
+        SecondBucketName: !GetAtt TestDoubles.Outputs.SecondS3BucketName

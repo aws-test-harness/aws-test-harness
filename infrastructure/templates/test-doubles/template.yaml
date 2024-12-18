@@ -163,13 +163,13 @@ Outputs:
   'Fn::ForEach::LambdaFunctionNameOutputs':
     - LambdaFunctionName
     - !Ref LambdaFunctionNames
-    - '${LambdaFunctionName}FunctionName':
+    - '${LambdaFunctionName}LambdaFunctionName':
         Value:
           Ref: !Sub '${LambdaFunctionName}Function'
   'Fn::ForEach::S3BucketNameOutputs':
     - S3BucketName
     - !Ref S3BucketNames
-    - '${S3BucketName}BucketName':
+    - '${S3BucketName}S3BucketName':
         Value:
           Ref: !Sub '${S3BucketName}Bucket'
   EventsQueueArn:
