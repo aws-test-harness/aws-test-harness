@@ -71,7 +71,9 @@ cp -r templates/* "${working_directory_path}"
 
 cd "${working_directory_path}"
 
-sed -i '' "s/__MACRO_NAMES_PREFIX__/${macro_names_prefix}/" ./*
+# Specify in-place backup extentions so sed works on both Linux and macOS
+sed -i.original '' "s/__MACRO_NAMES_PREFIX__/${macro_names_prefix}/" ./*
+rm ./*.original
 
 echo "Deploying stack templates..."
 aws s3 sync . "${stack_templates_s3_uri}"
