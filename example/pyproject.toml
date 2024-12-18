@@ -4,9 +4,12 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.8"
-dependencies = [
-    "pytest>=8.3.3",
+dependencies = []
+
+[tool.uv]
+dev-dependencies = [
     "aws-test-harness",
+    "pytest>=8.3.4",
 ]
 
 [tool.uv.sources]
