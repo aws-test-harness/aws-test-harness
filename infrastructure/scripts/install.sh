@@ -72,7 +72,7 @@ cp -r templates/* "${working_directory_path}"
 cd "${working_directory_path}"
 
 # Specify in-place backup extentions so sed works on both Linux and macOS
-sed -i.original '' "s/__MACRO_NAMES_PREFIX__/${macro_names_prefix}/" ./*
+sed -i.original "s/__MACRO_NAMES_PREFIX__/${macro_names_prefix}/" ./*
 rm ./*.original
 
 echo "Deploying stack templates..."
