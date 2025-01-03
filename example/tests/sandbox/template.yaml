@@ -5,13 +5,13 @@ Parameters:
     Type: String
     Description: The name of the S3 bucket where the stack templates are stored
 Resources:
-  TesterRole:
+  AWSTestHarnessTesterRole:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
         StateMachineArn: !GetAtt ExampleStateMachine.Outputs.StateMachineArn
       TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/aws-test-harness-templates/tester-role.yaml
-  TestDoubles:
+  AWSTestHarnessTestDoubles:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
@@ -24,7 +24,7 @@ Resources:
       Location: ../../example-state-machine/template.yaml
       Parameters:
         OutOfBandDeploymentSupport: "true"
-        InputTransformerFunctionName: !GetAtt TestDoubles.Outputs.InputTransformerLambdaFunctionName
-        DoublerFunctionName: !GetAtt TestDoubles.Outputs.DoublerLambdaFunctionName
-        FirstBucketName: !GetAtt TestDoubles.Outputs.FirstS3BucketName
-        SecondBucketName: !GetAtt TestDoubles.Outputs.SecondS3BucketName
+        InputTransformerFunctionName: !GetAtt AWSTestHarnessTestDoubles.Outputs.InputTransformerLambdaFunctionName
+        DoublerFunctionName: !GetAtt AWSTestHarnessTestDoubles.Outputs.DoublerLambdaFunctionName
+        FirstBucketName: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstS3BucketName
+        SecondBucketName: !GetAtt AWSTestHarnessTestDoubles.Outputs.SecondS3BucketName

@@ -41,15 +41,15 @@ class TestResourcesFactory:
             self.__aws_resource_driver = AWSResourceDriver(
                 cloudformation_stack,
                 boto_session_factory.create_boto_session_with_assumed_role(
-                    cloudformation_stack.get_physical_resource_id_for("TesterRole::Role")
+                    cloudformation_stack.get_physical_resource_id_for("AWSTestHarnessTesterRole::Role")
                 )
             )
 
             test_double_manager_boto_session = boto_session_factory.create_boto_session_with_assumed_role(
-                cloudformation_stack.get_physical_resource_id_for("TestDoubles::TestDoubleManagerRole")
+                cloudformation_stack.get_physical_resource_id_for("AWSTestHarnessTestDoubles::TestDoubleManagerRole")
             )
 
-            test_doubles_stack = CloudFormationStack(cloudformation_stack.get_physical_resource_id_for('TestDoubles'),
+            test_doubles_stack = CloudFormationStack(cloudformation_stack.get_physical_resource_id_for('AWSTestHarnessTestDoubles'),
                                                      developer_boto_session)
 
             self.__test_double_driver = AWSTestDoubleDriver(test_doubles_stack, test_double_manager_boto_session)
