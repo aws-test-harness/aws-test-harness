@@ -158,7 +158,23 @@ Resources:
       VisibilityTimeout: 5
   TestContextBucket:
     Type: AWS::S3::Bucket
-    Properties: {}
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            ExpirationInDays: 1
+            NoncurrentVersionExpiration:
+              NewerNoncurrentVersions: 1
+              NoncurrentDays: 1
 Outputs:
   'Fn::ForEach::LambdaFunctionNameOutputs':
     - LambdaFunctionName
