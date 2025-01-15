@@ -16,3 +16,7 @@ class S3Bucket:
 
     def get_object(self, key):
         return self.__boto_bucket_resource.Object(key).get()['Body'].read().decode('utf-8')
+
+    @property
+    def name(self):
+        return self.__name
