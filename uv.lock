@@ -7,7 +7,7 @@ resolution-markers = [
 
 [[package]]
 name = "aws-test-harness"
-version = "0.0.1a7"
+version = "0.0.1a8"
 source = { editable = "." }
 dependencies = [
     { name = "boto3" },
