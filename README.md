@@ -5,8 +5,8 @@
 ### Prerequisites
 - [uv](https://docs.astral.sh/uv/)
 
-### Development environment
-Always run `./go.sh` after pulling the latest changes.
+### After pulling code
+Always run `./go.sh` after pulling the latest changes, to ensure your local development environment is up to date.
 
 ### Running tests
 Create a config file at `tests/config.json` with the following content (appropriately substituted):
@@ -18,3 +18,9 @@ Create a config file at `tests/config.json` with the following content (appropri
 ```
 
 Then run `./test.sh`.
+
+### Linting
+Run `./lint.sh`.
+
+### Before pushing core
+Run `./check.sh`.
