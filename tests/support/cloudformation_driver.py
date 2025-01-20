@@ -1,6 +1,6 @@
 import json
 from logging import Logger
-from typing import Dict
+from typing import Dict, Any
 
 from botocore.exceptions import ClientError
 from mypy_boto3_cloudformation import CloudFormationClient
@@ -19,7 +19,7 @@ class CloudFormationDriver:
 
         return describe_stack_resource_result['StackResourceDetail']['PhysicalResourceId']
 
-    def ensure_stack_is_up_to_date(self, cloudformation_stack_name: str, stack_template_data: Dict[str, any]):
+    def ensure_stack_is_up_to_date(self, cloudformation_stack_name: str, stack_template_data: Dict[str, Any]):
         self.__logger.info('Ensuring CloudFormation stack is up-to-date...')
 
         try:
@@ -44,7 +44,7 @@ class CloudFormationDriver:
                 Capabilities=['CAPABILITY_IAM', 'CAPABILITY_AUTO_EXPAND'],
             )
 
-            create_stack_waiter = self.__cloudformation_client.get_waiter('stack_update_complete')
-            create_stack_waiter.wait(StackName=cloudformation_stack_name, WaiterConfig=dict(Delay=3, MaxAttempts=30))
+            update_stack_waiter = self.__cloudformation_client.get_waiter('stack_update_complete')
+            update_stack_waiter.wait(StackName=cloudformation_stack_name, WaiterConfig=dict(Delay=3, MaxAttempts=30))
 
         self.__logger.info('CloudFormation stack is up-to-date.')

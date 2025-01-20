@@ -1,7 +1,7 @@
 import json
 from logging import Logger
 from time import sleep
-from typing import Dict
+from typing import Dict, Any
 from uuid import uuid4
 
 from boto3 import Session
@@ -16,7 +16,7 @@ class StateMachineDriver:
         self.__logger = logger
         self.__step_functions_client = boto_session.client('stepfunctions')
 
-    def start_execution(self, execution_input: Dict[str, any], state_machine_logic_id: str,
+    def start_execution(self, execution_input: Dict[str, Any], state_machine_logic_id: str,
                         cloudformation_stack_name: str):
         state_machine_arn = self.__cloudformation_driver.get_physical_resource_id(
             cloudformation_stack_name,
