@@ -11,14 +11,6 @@ class CloudFormationDriver:
         self.__cloudformation_client = cloudformation_client
         self.__logger = logger
 
-    def get_physical_resource_id(self, cloudformation_stack_name, logical_resource_id):
-        describe_stack_resource_result = self.__cloudformation_client.describe_stack_resource(
-            StackName=cloudformation_stack_name,
-            LogicalResourceId=logical_resource_id
-        )
-
-        return describe_stack_resource_result['StackResourceDetail']['PhysicalResourceId']
-
     def ensure_stack_is_up_to_date(self, cloudformation_stack_name: str, stack_template_data: Dict[str, Any]):
         self.__logger.info('Ensuring CloudFormation stack is up-to-date...')
 

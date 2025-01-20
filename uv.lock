@@ -1,15 +1,41 @@
 version = 1
 requires-python = ">=3.13"
 
+[manifest]
+members = [
+    "aws-test-harness",
+    "aws-test-harness-project",
+]
+
 [[package]]
 name = "aws-test-harness"
+version = "0.1.0"
+source = { editable = "languages/python" }
+
+[package.dev-dependencies]
+dev = [
+    { name = "boto3" },
+    { name = "boto3-stubs", extra = ["stepfunctions"] },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "boto3", specifier = ">=1.36.2" },
+    { name = "boto3-stubs", extras = ["stepfunctions"], specifier = ">=1.36.2" },
+]
+
+[[package]]
+name = "aws-test-harness-project"
 version = "0.1.0"
 source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "aws-test-harness" },
     { name = "boto3" },
-    { name = "boto3-stubs", extra = ["cloudformation", "stepfunctions"] },
+    { name = "boto3-stubs", extra = ["cloudformation"] },
     { name = "mypy" },
     { name = "pytest" },
     { name = "ruff" },
@@ -19,8 +45,9 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "aws-test-harness", editable = "languages/python" },
     { name = "boto3", specifier = ">=1.36.2" },
-    { name = "boto3-stubs", extras = ["cloudformation", "stepfunctions"], specifier = ">=1.36.2" },
+    { name = "boto3-stubs", extras = ["cloudformation"], specifier = ">=1.36.2" },
     { name = "mypy", specifier = ">=1.14.1" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "ruff", specifier = ">=0.9.2" },
