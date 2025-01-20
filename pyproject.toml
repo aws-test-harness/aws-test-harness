@@ -1,0 +1,7 @@
+[project]
+name = "aws-test-harness"
+version = "0.1.0"
+description = "Infrastructure for test-driving real AWS resources from your local machine"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
