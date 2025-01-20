@@ -22,5 +22,5 @@ Then run `./test.sh`.
 ### Linting
 Run `./lint.sh`.
 
-### Before pushing core
+### Before pushing code
 Run `./check.sh`.
