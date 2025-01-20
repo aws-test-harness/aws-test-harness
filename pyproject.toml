@@ -5,3 +5,8 @@ description = "Infrastructure for test-driving real AWS resources from your loca
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = []
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.4",
+]
