@@ -1,8 +1,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform:
+  - __MACRO_NAMES_PREFIX__AWSTestHarness-TestDoubles
   - AWS::LanguageExtensions
   - __MACRO_NAMES_PREFIX__AWSTestHarness-SecondSub
 Parameters:
+  DynamoDBTables:
+    Type: String
+    Default: "{}"
   LambdaFunctionNames:
     Type: CommaDelimitedList
     Default: ""

@@ -25,7 +25,7 @@ Resources:
     Type: AWS::CloudFormation::Macro
     Properties:
       Name: !Sub "${MacroNamesPrefix}AWSTestHarness-SecondSub"
-      Description: Replaces the __DEFERRED_DOLLARS__ placeholder with a '$' dollar sign in Fn::Sub input strings
+      Description: Converts !SecondSub and "@{ ... }" into Fn::Sub and "${ ... }", respectively
       FunctionName: !Ref SecondSubFunction
   SecondSubFunction:
     Type: AWS::Lambda::Function
@@ -33,6 +33,22 @@ Resources:
       Code:
         ZipFile: |
           __CODE_PLACEHOLDER__:src/second_sub.py
+      Handler: index.handler
+      Role: !GetAtt LambdaFunctionExecutionRole.Arn
+      Runtime: python3.12
+      Timeout: 5
+  TestDoublesMacro:
+    Type: AWS::CloudFormation::Macro
+    Properties:
+      Name: !Sub "${MacroNamesPrefix}AWSTestHarness-TestDoubles"
+      Description: Generates a mapping from each template parameter, with the assumption that the parameter is a JSON object provided as a string
+      FunctionName: !Ref TestDoublesFunction
+  TestDoublesFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          __CODE_PLACEHOLDER__:src/test_doubles.py
       Handler: index.handler
       Role: !GetAtt LambdaFunctionExecutionRole.Arn
       Runtime: python3.12
