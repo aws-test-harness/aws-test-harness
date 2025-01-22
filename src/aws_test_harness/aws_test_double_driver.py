@@ -1,6 +1,7 @@
 from boto3 import Session
 
 from aws_test_harness.cloudformation_stack import CloudFormationStack
+from aws_test_harness.dynamodb_table import DynamoDBTable
 from aws_test_harness.s3_bucket import S3Bucket
 
 
@@ -19,6 +20,13 @@ class AWSTestDoubleDriver:
         )
 
         return S3Bucket(s3_bucket_name, self.__boto_session)
+
+    def get_dynamodb_table(self, table_name) -> DynamoDBTable:
+        ddb_table_name = self.__cloudformation_stack.get_physical_resource_id_for(
+            f'{table_name}Table'
+        )
+
+        return DynamoDBTable(ddb_table_name, self.__boto_session)
 
     def get_lambda_function_name(self, function_id):
         return self.__cloudformation_stack.get_physical_resource_id_for(f'{function_id}Function')

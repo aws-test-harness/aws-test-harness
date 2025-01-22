@@ -11,13 +11,13 @@ version = "0.0.1a8"
 source = { editable = "../" }
 dependencies = [
     { name = "boto3" },
-    { name = "boto3-stubs", extra = ["cloudformation", "s3", "sqs", "stepfunctions", "sts"] },
+    { name = "boto3-stubs", extra = ["cloudformation", "dynamodb", "s3", "sqs", "stepfunctions", "sts"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.29.7" },
-    { name = "boto3-stubs", extras = ["cloudformation", "s3", "sqs", "stepfunctions", "sts"], specifier = ">=1.29.7" },
+    { name = "boto3-stubs", extras = ["cloudformation", "dynamodb", "s3", "sqs", "stepfunctions", "sts"], specifier = ">=1.29.7" },
 ]
 
 [[package]]
@@ -51,6 +51,9 @@ wheels = [
 [package.optional-dependencies]
 cloudformation = [
     { name = "mypy-boto3-cloudformation" },
+]
+dynamodb = [
+    { name = "mypy-boto3-dynamodb" },
 ]
 s3 = [
     { name = "mypy-boto3-s3" },
@@ -160,6 +163,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/73/7d/1069133a9fdd527022738ad912154253e69243c91ade0b8fba950d8ce136/mypy_boto3_cloudformation-1.36.0.tar.gz", hash = "sha256:acc2c7ae8920f1167be097f6151685fe5aee99be2f890075edf93e05d298e8b0", size = 54664 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d7/c3/35f97c2c23c325178892c400a16fd22d8d7ef299b7d72244ba779129de2c/mypy_boto3_cloudformation-1.36.0-py3-none-any.whl", hash = "sha256:3f6cd81739aaf9634c4aa2b92579081038a76e4f2dec306d02eaaf558b332ce9", size = 66147 },
+]
+
+[[package]]
+name = "mypy-boto3-dynamodb"
+version = "1.36.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e6/c1/9a5a4a6ac684e8abc6ae7d316ceeb7c44aa2f0190af43f7344d66767558f/mypy_boto3_dynamodb-1.36.0.tar.gz", hash = "sha256:1687e4689236a5391755126e86ec2596d408eb95408c31ac09a3d1eb289d516d", size = 47132 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e2/af/1352d3695844388e597107aed65c528ed9e3c891a6fd3b9afd5050428e48/mypy_boto3_dynamodb-1.36.0-py3-none-any.whl", hash = "sha256:b782a817ce8956f8d53ac94c85f969dfe51451fc99f16a3b62776f1e0ed3f1ba", size = 55968 },
 ]
 
 [[package]]

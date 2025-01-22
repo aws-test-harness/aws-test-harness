@@ -1,5 +1,17 @@
-StartAt: Transform Input
+StartAt: DynamoDB GetItem
 States:
+  DynamoDB GetItem:
+    Type: Task
+    Resource: arn:aws:states:::dynamodb:getItem
+    Parameters:
+      TableName: ${FirstTableName}
+      Key:
+        PK:
+          S.$: $.input.firstTableItemKey
+        SK:
+          S: "1"
+    Next: Transform Input
+    ResultPath: $.getItem
   Transform Input:
     Type: Task
     Resource: arn:aws:states:::lambda:invoke

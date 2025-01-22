@@ -1,5 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
 Parameters:
   StackTemplatesS3BucketName:
     Type: String
@@ -15,6 +17,19 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
+        DynamoDBTables:
+          Fn::ToJsonString:
+            First:
+              PartitionKey:
+                Name: PK
+                Type: S
+              SortKey:
+                Name: SK
+                Type: S
+            Second:
+              PartitionKey:
+                Name: ID
+                Type: S
         LambdaFunctionNames: InputTransformer, Doubler
         S3BucketNames: First, Second
       TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/aws-test-harness-templates/test-doubles.yaml
@@ -26,5 +41,6 @@ Resources:
         OutOfBandDeploymentSupport: "true"
         InputTransformerFunctionName: !GetAtt AWSTestHarnessTestDoubles.Outputs.InputTransformerLambdaFunctionName
         DoublerFunctionName: !GetAtt AWSTestHarnessTestDoubles.Outputs.DoublerLambdaFunctionName
+        FirstTableName: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstDynamoDBTableName
         FirstBucketName: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstS3BucketName
         SecondBucketName: !GetAtt AWSTestHarnessTestDoubles.Outputs.SecondS3BucketName

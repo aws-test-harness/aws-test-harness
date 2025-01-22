@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta
 from unittest.mock import call
 from uuid import uuid4
 
@@ -31,7 +32,16 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
                                         test_double_driver: AWSTestDoubleDriver):
     first_bucket = test_double_driver.get_s3_bucket('First')
     first_bucket_key = f'data/message-{uuid4()}'
-    first_bucket.put_object(first_bucket_key, 'This is the retrieved message')
+    first_bucket.put_object(first_bucket_key, 'This is the message retrieved from S3')
+
+    first_table = test_double_driver.get_dynamodb_table('First')
+    first_table_item_key = str(uuid4())
+    first_table.put_item({
+        'PK': first_table_item_key,
+        'SK': '1',
+        'TTL': int((datetime.now() + timedelta(hours=1)).timestamp()),
+        'message': 'This is the message retrieved from DynamoDB',
+    })
 
     input_transformer_function = mocking_engine.get_mock_lambda_function('InputTransformer')
     input_transformer_function.side_effect = lambda event: {'number': event['data']['number'] + 1}
@@ -39,12 +49,20 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
     doubler_function = mocking_engine.get_mock_lambda_function('Doubler')
 
     second_bucket = test_double_driver.get_s3_bucket('Second')
+    second_table = test_double_driver.get_dynamodb_table('Second')
 
     def doubler_function_handler(event):
         number = event["number"]
         object_key = str(uuid4())
         second_bucket.put_object(object_key, f'Number passed to doubler function: {number}')
-        return {'number': number * 2, 'objectKey': object_key}
+        record_key = str(uuid4())
+        second_table.put_item({
+            'ID': record_key,
+            'TTL': int((datetime.now() + timedelta(hours=1)).timestamp()),
+            'message': f'Number passed to doubler function: {number}',
+        })
+
+        return {'number': number * 2, 'objectKey': object_key, 'recordKey': record_key}
 
     doubler_function.side_effect = doubler_function_handler
 
@@ -53,7 +71,8 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
     final_state = state_machine.execute({
         'input': {
             'data': {'number': 1},
-            'firstBucketKey': first_bucket_key
+            'firstBucketKey': first_bucket_key,
+            'firstTableItemKey': first_table_item_key
         }
     })
 
@@ -66,13 +85,18 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
 
     assert 'getObject' in final_state_output_data
     assert 'result' in final_state_output_data['getObject']
-    assert final_state_output_data['getObject']['result'] == 'This is the retrieved message'
+    assert final_state_output_data['getObject']['result'] == 'This is the message retrieved from S3'
+    assert final_state_output_data['getItem']['Item']['message']['S'] == 'This is the message retrieved from DynamoDB'
 
     assert 'objectKey' in final_state_output_data['double']['result']
     object_key_from_result = final_state_output_data['double']['result']['objectKey']
-
     object_content = second_bucket.get_object(object_key_from_result)
     assert object_content == 'Number passed to doubler function: 2'
+
+    assert 'recordKey' in final_state_output_data['double']['result']
+    record_key_from_result = final_state_output_data['double']['result']['recordKey']
+    item = second_table.get_item(dict(ID=record_key_from_result))
+    assert item['message'] == 'Number passed to doubler function: 2'
 
     input_transformer_function.assert_called_with({'data': {'number': 1}})
     doubler_function.assert_called_with({'number': 2})

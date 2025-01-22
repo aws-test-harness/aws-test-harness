@@ -5,6 +5,8 @@ Parameters:
     Type: String
   DoublerFunctionName:
     Type: String
+  FirstTableName:
+    Type: String
   FirstBucketName:
     Type: String
   SecondBucketName:
@@ -24,6 +26,7 @@ Resources:
       DefinitionSubstitutions:
         InputTransformerFunctionName: !Ref InputTransformerFunctionName
         DoublerFunctionName: !Ref DoublerFunctionName
+        FirstTableName: !Ref FirstTableName
         FirstBucketName: !Ref FirstBucketName
         SecondBucketName: !Ref SecondBucketName
       Policies:
@@ -35,6 +38,8 @@ Resources:
             BucketName: !Ref FirstBucketName
         - S3WritePolicy:
             BucketName: !Ref SecondBucketName
+        - DynamoDBReadPolicy:
+            TableName: !Ref FirstTableName
 Outputs:
   StateMachineArn:
     Value: !Ref StateMachine
