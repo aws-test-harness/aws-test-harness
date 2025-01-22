@@ -1,4 +1,4 @@
-VERSION := 0.0.1a8
+VERSION := 0.0.1a9
 STACK_TEMPLATES_DIRECTORY := infrastructure/templates
 STACK_TEMPLATE_BUILD_TARGETS := $(shell find $(STACK_TEMPLATES_DIRECTORY) -type d -depth 1 -exec basename {} \; | sed 's/^/build-/' | sed 's/$$/-stack-template/')
 
