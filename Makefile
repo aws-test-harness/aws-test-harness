@@ -62,6 +62,11 @@ publish-non-library-assets:
 publish-library:
 	uv publish --token "$(PYPI_TOKEN)" dist/library/*
 
+.PHONY: deploy-infrastructure
+deploy-infrastructure: build-infrastructure
+	tar -xf dist/infrastructure.tar.gz -C dist
+	./dist/infrastructure/install.sh --macros-stack-name aws-test-harness-macros --stack-templates-s3-uri s3://$(STACK_TEMPLATES_S3_BUCKET_NAME)/aws-test-harness-templates --macro-names-prefix MacroNamesPrefix-
+
 .PHONY: deploy-example
 deploy-example:
 	sam deploy --template example/template.yaml --config-file samconfig.toml
