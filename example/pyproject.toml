@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-    "aws-test-harness>=0.0.1a9",
+    "aws-test-harness>=0.0.1a10",
 ]
 
 [tool.uv]
