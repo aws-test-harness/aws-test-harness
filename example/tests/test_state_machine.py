@@ -9,6 +9,7 @@ from aws_test_harness.a_thrown_exception import an_exception_thrown_with_message
 from aws_test_harness.aws_resource_driver import AWSResourceDriver
 from aws_test_harness.aws_resource_mocking_engine import AWSResourceMockingEngine
 from aws_test_harness.aws_test_double_driver import AWSTestDoubleDriver
+from aws_test_harness.state_machine_execution import StateMachineExecutionState
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -68,7 +69,7 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
 
     state_machine = resource_driver.get_state_machine("ExampleStateMachine::StateMachine")
 
-    final_state = state_machine.execute({
+    execution = state_machine.start_execution({
         'input': {
             'data': {'number': 1},
             'firstBucketKey': first_bucket_key,
@@ -76,7 +77,10 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
         }
     })
 
-    final_state_output_data = json.loads(final_state['output'])
+    execution.wait_for_completion()
+    execution.assert_succeeded()
+
+    final_state_output_data = execution.output_json
 
     assert 'double' in final_state_output_data
     assert 'result' in final_state_output_data['double']
@@ -113,14 +117,16 @@ def test_state_machine_retries_input_transformation_twice(mocking_engine: AWSRes
 
     state_machine = resource_driver.get_state_machine("ExampleStateMachine::StateMachine")
 
-    final_state = state_machine.execute({
+    execution = state_machine.execute({
         'input': {
             'data': {'number': 1},
-            'firstBucketKey': 'default-message'
+            'firstBucketKey': 'default-message',
+            'firstTableItemKey': 'any key'
         }
     })
 
-    assert json.loads(final_state['output'])['double']['result']['number'] == 2
+    execution.assert_succeeded()
+    assert execution.output_json['double']['result']['number'] == 2
 
     input_transformer_function.assert_has_calls([
         call({'data': {'number': 1}}),
@@ -140,14 +146,16 @@ def test_state_machine_retries_doubling_twice(mocking_engine: AWSResourceMocking
 
     state_machine = resource_driver.get_state_machine("ExampleStateMachine::StateMachine")
 
-    final_state = state_machine.execute({
+    execution = state_machine.execute({
         'input': {
             'data': {'number': 1},
-            'firstBucketKey': 'default-message'
+            'firstBucketKey': 'default-message',
+            'firstTableItemKey': 'any key'
         }
     })
 
-    assert json.loads(final_state['output'])['double']['result']['number'] == 2
+    execution.assert_succeeded()
+    assert execution.output_json['double']['result']['number'] == 2
 
     doubler_function.assert_has_calls([
         call({'number': 1}),

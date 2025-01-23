@@ -5,6 +5,8 @@ from uuid import uuid4
 
 from boto3 import Session
 
+from aws_test_harness.state_machine_execution import StateMachineExecution
+
 
 class StateMachine:
     def __init__(self, arn: str, boto_session: Session):
@@ -12,18 +14,19 @@ class StateMachine:
         self.__sfn_client = boto_session.client('stepfunctions')
 
     def execute(self, execution_input):
-        execution_arn = self.__start_execute(execution_input)
-        final_state = self.__wait_execution(execution_arn)
-        return final_state
+        execution = self.start_execution(execution_input)
+        execution.wait_for_completion()
 
-    def __start_execute(self, input_data: dict) -> str:
+        return execution
+
+    def start_execution(self, execution_input):
         response = self.__sfn_client.start_execution(
             stateMachineArn=self.__arn,
-            input=json.dumps(input_data),
-            name=f"integ-test-{uuid4()}"
+            input=json.dumps(execution_input),
+            name=f"test-{uuid4()}"
         )
 
-        return response["executionArn"]
+        return StateMachineExecution(response["executionArn"], self.__sfn_client)
 
     def __wait_execution(self, execution_arn: str):
         while True:
