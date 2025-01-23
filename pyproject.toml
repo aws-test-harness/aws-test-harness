@@ -3,7 +3,7 @@ name = "aws-test-harness"
 version =   "0.0.1a11"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = [
     "boto3>=1.29.7",
     "boto3-stubs[cloudformation,dynamodb,s3,sqs,stepfunctions,sts]>=1.29.7",
