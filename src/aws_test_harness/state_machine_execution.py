@@ -41,6 +41,10 @@ class StateMachineExecution:
         )
 
     @property
+    def running(self):
+        return self.status == StateMachineExecutionState.RUNNING
+
+    @property
     def succeeded(self):
         return self.status == StateMachineExecutionState.SUCCEEDED
 
