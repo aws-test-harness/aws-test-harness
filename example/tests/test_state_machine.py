@@ -1,4 +1,3 @@
-import json
 from datetime import datetime, timedelta
 from unittest.mock import call
 from uuid import uuid4
@@ -9,7 +8,15 @@ from aws_test_harness.a_thrown_exception import an_exception_thrown_with_message
 from aws_test_harness.aws_resource_driver import AWSResourceDriver
 from aws_test_harness.aws_resource_mocking_engine import AWSResourceMockingEngine
 from aws_test_harness.aws_test_double_driver import AWSTestDoubleDriver
-from aws_test_harness.state_machine_execution import StateMachineExecutionState
+
+
+@pytest.fixture(scope="session", autouse=True)
+def reset_database(test_double_driver: AWSTestDoubleDriver):
+    first_table = test_double_driver.get_dynamodb_table('First')
+    first_table.empty()
+
+    second_table = test_double_driver.get_dynamodb_table('Second')
+    second_table.empty()
 
 
 @pytest.fixture(scope="function", autouse=True)

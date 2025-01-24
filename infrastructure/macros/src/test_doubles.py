@@ -49,6 +49,7 @@ def create_table_interaction_role_policy(table_name, table_logical_id):
                             "dynamodb:BatchGetItem",
                             "dynamodb:BatchWriteItem",
                             "dynamodb:ConditionCheckItem",
+                            "dynamodb:DescribeTable",
                             "dynamodb:DeleteItem",
                             "dynamodb:GetItem",
                             "dynamodb:PutItem",
