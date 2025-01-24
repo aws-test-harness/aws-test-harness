@@ -27,19 +27,3 @@ class StateMachine:
         )
 
         return StateMachineExecution(response["executionArn"], self.__sfn_client)
-
-    def __wait_execution(self, execution_arn: str):
-        while True:
-            response = self.__sfn_client.describe_execution(executionArn=execution_arn)
-            status = response["status"]
-            if status == "SUCCEEDED":
-                logging.info(f"Execution {execution_arn} completely successfully.")
-                return response
-            elif status == "RUNNING":
-                logging.info(f"Execution {execution_arn} is still running, waiting")
-                sleep(1)
-            elif status == "FAILED":
-                cause = response["cause"]
-                raise Exception(f"Execution {execution_arn} failed with status {status} and cause {cause}")
-            else:
-                raise Exception(f"Execution {execution_arn} failed with status {status}")
