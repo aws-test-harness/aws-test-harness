@@ -7,7 +7,6 @@ from boto3 import Session
 
 from aws_test_harness.cloudformation_resource_registry import CloudFormationResourceRegistry
 from aws_test_harness.state_machine_execution import StateMachineExecution
-from aws_test_harness.state_machine_execution_result import StateMachineExecutionResult
 
 
 class StateMachineDriver:
@@ -17,8 +16,15 @@ class StateMachineDriver:
         self.__step_functions_client = boto_session.client('stepfunctions')
         self.__cloudformation_resource_registry = cloudformation_resource_registry
 
-    def start_execution(self, execution_input: Dict[str, Any], state_machine_logic_id: str,
-                        cloudformation_stack_name: str) -> StateMachineExecutionResult:
+    def execute(self, execution_input: Dict[str, Any], state_machine_logic_id: str,
+                cloudformation_stack_name: str) -> StateMachineExecution:
+        execution = self.__start_execution(execution_input, state_machine_logic_id, cloudformation_stack_name)
+        execution.wait_for_completion()
+
+        return execution
+
+    def __start_execution(self, execution_input: Dict[str, Any], state_machine_logic_id: str,
+                          cloudformation_stack_name: str) -> StateMachineExecution:
         state_machine_arn = self.__cloudformation_resource_registry.get_physical_resource_id(
             cloudformation_stack_name,
             state_machine_logic_id)
@@ -30,6 +36,5 @@ class StateMachineDriver:
             input=json.dumps(execution_input)
         )
 
-        execution = StateMachineExecution(self.__step_functions_client, self.__logger)
-
-        return execution.wait_for_completion(start_execution_result)
+        return StateMachineExecution(start_execution_result['executionArn'], self.__step_functions_client,
+                                     self.__logger)
