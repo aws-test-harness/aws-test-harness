@@ -9,11 +9,11 @@
 Always run `./go.sh` after pulling the latest changes, to ensure your local development environment is up to date.
 
 ### Running tests
-Create a config file at `tests/config.json` with the following content (appropriately substituted):
+Create a config file at `tests/config.json` and another at `languages/python/tests/config.json` with the following content (appropriately substituted):
 ```json
 {
   "awsProfile": "<your AWS CLI profile>",
-  "cfnStackName": "<chosen name for the acceptance test stack>"
+  "cfnStackName": "<chosen name for each test stack>"
 }
 ```
 
