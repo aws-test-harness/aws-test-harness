@@ -3,7 +3,7 @@
 set -o nounset -o errexit -o pipefail
 
 echo Type checking...
-uv run --frozen mypy .
+uv run mypy
 echo
 
 echo Linting...
