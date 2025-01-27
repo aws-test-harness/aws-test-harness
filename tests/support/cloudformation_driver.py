@@ -11,7 +11,7 @@ class CloudFormationDriver:
         self.__cloudformation_client = cloudformation_client
         self.__logger = logger
 
-    def ensure_stack_is_up_to_date(self, cloudformation_stack_name: str, stack_template_data: Dict[str, Any]):
+    def ensure_stack_is_up_to_date(self, cloudformation_stack_name: str, stack_template_data: Dict[str, Any]) -> None:
         self.__logger.info('Ensuring CloudFormation stack is up-to-date...')
 
         try:
