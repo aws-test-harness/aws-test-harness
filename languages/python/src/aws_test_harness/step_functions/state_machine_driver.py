@@ -4,6 +4,7 @@ from typing import Dict, Any
 from uuid import uuid4
 
 from boto3 import Session
+from mypy_boto3_stepfunctions.client import SFNClient
 
 from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
 from aws_test_harness.step_functions.state_machine_execution import StateMachineExecution
@@ -13,7 +14,7 @@ class StateMachineDriver:
     def __init__(self, resource_registry: ResourceRegistry, boto_session: Session,
                  logger: Logger):
         self.__logger = logger
-        self.__step_functions_client = boto_session.client('stepfunctions')
+        self.__step_functions_client: SFNClient = boto_session.client('stepfunctions')
         self.__resource_registry = resource_registry
 
     def execute(self, execution_input: Dict[str, Any], state_machine_logic_id: str,
