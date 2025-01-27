@@ -1,12 +1,12 @@
 import json
 from logging import Logger
-from time import sleep
 from typing import Dict, Any
 from uuid import uuid4
 
 from boto3 import Session
 
 from aws_test_harness.cloudformation_resource_registry import CloudFormationResourceRegistry
+from aws_test_harness.state_machine_execution import StateMachineExecution
 from aws_test_harness.state_machine_execution_result import StateMachineExecutionResult
 
 
@@ -30,20 +30,6 @@ class StateMachineDriver:
             input=json.dumps(execution_input)
         )
 
-        while True:
-            describe_execution_result = self.__step_functions_client.describe_execution(
-                executionArn=start_execution_result['executionArn']
-            )
+        execution = StateMachineExecution(self.__step_functions_client, self.__logger)
 
-            status = describe_execution_result['status']
-
-            if status in ['SUCCEEDED', 'FAILED', 'TIMED_OUT', 'ABORTED']:
-                self.__logger.info('State machine execution completed.')
-                return StateMachineExecutionResult(
-                    status=status,
-                    output=describe_execution_result.get('output'),
-                    error=describe_execution_result.get('error'),
-                    cause=describe_execution_result.get('cause')
-                )
-
-            sleep(0.1)
+        return execution.wait_for_completion(start_execution_result)
