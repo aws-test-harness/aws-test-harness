@@ -1,0 +1,17 @@
+[project]
+name = "aws-test-harness-test-support"
+version = "0.1.0"
+description = "Test utilities for testing the aws-test-harness project"
+requires-python = ">=3.13"
+dependencies = [
+    "boto3>=1.36.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "boto3-stubs[cloudformation]>=1.36.6",
+]
