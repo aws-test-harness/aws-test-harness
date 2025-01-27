@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo Typing checking...
+echo Type checking...
 uv run --frozen mypy .
 echo
 
