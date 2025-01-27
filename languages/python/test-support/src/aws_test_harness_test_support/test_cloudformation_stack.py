@@ -8,9 +8,13 @@ class TestCloudFormationStack:
         self.__stack_name = stack_name
         self.__cloudformation_driver = cloudformation_driver
 
-    def get_output_value(self, output_name: str) -> Optional[str]:
-        return self.__cloudformation_driver.get_stack_output_value(self.__stack_name,
-                                                                   output_name)
+    def get_output_value(self, output_name: str) -> str:
+        value = self.__cloudformation_driver.get_stack_output_value(self.__stack_name, output_name)
+
+        if value is None:
+            raise Exception(f'Output "{output_name}" not found in stack "{self.__stack_name}"')
+
+        return value
 
     # noinspection PyPep8Naming
     def ensure_state_is(self, Resources: Dict[str, Any],

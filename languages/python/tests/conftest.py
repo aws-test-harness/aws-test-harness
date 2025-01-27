@@ -108,8 +108,8 @@ def before_all(cloudformation_driver: CloudFormationDriver, cloudformation_test_
             )
         ),
         Outputs=dict(
-            PassThroughStateMachineArn=dict(
-                Value=dict(Ref='PassThroughStateMachine')
-            )
+            PassThroughStateMachineArn=dict(Value=dict(Ref='PassThroughStateMachine')),
+            AddNumbersStateMachineArn=dict(Value=dict(Ref='AddNumbersStateMachine')),
+            TimingOutStateMachineArn=dict(Value=dict(Ref='TimingOutStateMachine')),
         )
     )
