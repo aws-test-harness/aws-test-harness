@@ -41,7 +41,7 @@ def cloudformation_driver(boto_session: Session, logger: Logger):
 
 
 @pytest.fixture(scope="session")
-def state_machine_driver(cloudformation_driver: CloudFormationDriver, boto_session: Session, logger: Logger):
+def state_machine_driver(boto_session: Session, logger: Logger):
     cloudformation_resource_registry = CloudFormationResourceRegistry(boto_session)
     return StateMachineDriver(cloudformation_resource_registry, boto_session, logger)
 
