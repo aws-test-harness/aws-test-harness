@@ -9,7 +9,7 @@ from boto3 import Session
 
 from aws_test_harness_test_support.cloudformation_driver import CloudFormationDriver
 from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
-from aws_test_harness.step_functions.state_machine_driver import StateMachineDriver
+from aws_test_harness.step_functions.state_machine import StateMachine
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 
 
@@ -48,9 +48,10 @@ def test_cloudformation_stack(cloudformation_test_stack_name: str,
 
 
 @pytest.fixture(scope="session")
-def state_machine_driver(boto_session: Session, logger: Logger) -> StateMachineDriver:
+def state_machine(boto_session: Session, logger: Logger, cloudformation_test_stack_name: str) -> StateMachine:
     resource_registry = ResourceRegistry(boto_session)
-    return StateMachineDriver(resource_registry, boto_session, logger)
+    state_machine_arn = resource_registry.get_physical_resource_id('StateMachine', cloudformation_test_stack_name)
+    return StateMachine(state_machine_arn, boto_session, logger)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -73,10 +74,9 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack) -> None:
     )
 
 
-def test_detecting_a_successful_step_function_execution(state_machine_driver: StateMachineDriver,
+def test_detecting_a_successful_step_function_execution(state_machine: StateMachine,
                                                         cloudformation_test_stack_name: str) -> None:
-    execution = state_machine_driver.execute({'input': 'Any input'}, 'StateMachine',
-                                             cloudformation_test_stack_name)
+    execution = state_machine.execute({'input': 'Any input'})
 
     assert execution.status == 'SUCCEEDED'
 
@@ -84,10 +84,9 @@ def test_detecting_a_successful_step_function_execution(state_machine_driver: St
     assert json.loads(execution.output) == {"result": "Any input"}
 
 
-def test_detecting_a_failed_step_function_execution(state_machine_driver: StateMachineDriver,
+def test_detecting_a_failed_step_function_execution(state_machine: StateMachine,
                                                     cloudformation_test_stack_name: str) -> None:
-    execution = state_machine_driver.execute({}, 'StateMachine',
-                                             cloudformation_test_stack_name)
+    execution = state_machine.execute({})
 
     assert execution.status == 'FAILED'
 
