@@ -10,6 +10,7 @@ from boto3 import Session
 from aws_test_harness_test_support.cloudformation_driver import CloudFormationDriver
 from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
 from aws_test_harness.step_functions.state_machine_driver import StateMachineDriver
+from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 
 
 @pytest.fixture(scope="session")
@@ -41,30 +42,32 @@ def cloudformation_driver(boto_session: Session, logger: Logger) -> CloudFormati
 
 
 @pytest.fixture(scope="session")
+def test_cloudformation_stack(cloudformation_test_stack_name: str,
+                              cloudformation_driver: CloudFormationDriver) -> TestCloudFormationStack:
+    return TestCloudFormationStack(cloudformation_test_stack_name, cloudformation_driver)
+
+
+@pytest.fixture(scope="session")
 def state_machine_driver(boto_session: Session, logger: Logger) -> StateMachineDriver:
     resource_registry = ResourceRegistry(boto_session)
     return StateMachineDriver(resource_registry, boto_session, logger)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def before_all(cloudformation_driver: CloudFormationDriver, cloudformation_test_stack_name: str) -> None:
+def before_all(test_cloudformation_stack: TestCloudFormationStack) -> None:
     state_machine_definition = dict(
         StartAt='SetResult',
         States=dict(
             SetResult=dict(Type='Pass', Parameters={'result.$': '$.input'}, End=True)
         )
     )
-
-    cloudformation_driver.ensure_stack_is_up_to_date(
-        cloudformation_test_stack_name,
-        dict(
-            AWSTemplateFormatVersion='2010-09-09',
-            Transform='AWS::Serverless-2016-10-31',
-            Resources=dict(
-                StateMachine=dict(
-                    Type='AWS::Serverless::StateMachine',
-                    Properties=dict(Definition=state_machine_definition)
-                )
+    test_cloudformation_stack.ensure_state_is(
+        AWSTemplateFormatVersion='2010-09-09',
+        Transform='AWS::Serverless-2016-10-31',
+        Resources=dict(
+            StateMachine=dict(
+                Type='AWS::Serverless::StateMachine',
+                Properties=dict(Definition=state_machine_definition)
             )
         )
     )
