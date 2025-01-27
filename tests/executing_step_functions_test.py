@@ -72,25 +72,25 @@ def before_all(cloudformation_driver: CloudFormationDriver, cloudformation_stack
 
 def test_detecting_a_successful_step_function_execution(state_machine_driver: StateMachineDriver,
                                                         cloudformation_stack_name: str) -> None:
-    execution_result = state_machine_driver.start_execution({'input': 'Any input'}, 'StateMachine',
-                                                            cloudformation_stack_name)
+    execution = state_machine_driver.execute({'input': 'Any input'}, 'StateMachine',
+                                             cloudformation_stack_name)
 
-    assert execution_result.status == 'SUCCEEDED'
+    assert execution.status == 'SUCCEEDED'
 
-    assert execution_result.output is not None
-    assert json.loads(execution_result.output) == {"result": "Any input"}
+    assert execution.output is not None
+    assert json.loads(execution.output) == {"result": "Any input"}
 
 
 def test_detecting_a_failed_step_function_execution(state_machine_driver: StateMachineDriver,
                                                     cloudformation_stack_name: str) -> None:
-    execution_result = state_machine_driver.start_execution({}, 'StateMachine',
-                                                            cloudformation_stack_name)
+    execution = state_machine_driver.execute({}, 'StateMachine',
+                                             cloudformation_stack_name)
 
-    assert execution_result.status == 'FAILED'
+    assert execution.status == 'FAILED'
 
-    cause = execution_result.cause
+    cause = execution.cause
     assert cause is not None
     assert "JSONPath '$.input' specified for the field 'result.$' could not be found in the input" in cause
 
-    error = execution_result.error
+    error = execution.error
     assert error == 'States.Runtime'
