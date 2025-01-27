@@ -7,7 +7,7 @@ from typing import Dict, cast
 import pytest
 from boto3 import Session
 
-from support.cloudformation_driver import CloudFormationDriver
+from aws_test_harness_test_support.cloudformation_driver import CloudFormationDriver
 from aws_test_harness.cloudformation_resource_registry import CloudFormationResourceRegistry
 from aws_test_harness.state_machine_driver import StateMachineDriver
 
