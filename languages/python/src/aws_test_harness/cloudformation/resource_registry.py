@@ -1,7 +1,7 @@
 from boto3 import Session
 
 
-class CloudFormationResourceRegistry:
+class ResourceRegistry:
     def __init__(self, boto_session: Session):
         self.__cloudformation_client = boto_session.client('cloudformation')
 

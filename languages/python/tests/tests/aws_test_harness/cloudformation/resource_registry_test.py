@@ -1,27 +1,17 @@
-import json
 import logging
-import os
 from logging import Logger
-from typing import Dict, cast
+from typing import Dict
 
 import pytest
 from boto3 import Session
 
-from aws_test_harness.cloudformation_resource_registry import CloudFormationResourceRegistry
+from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
 from aws_test_harness_test_support.cloudformation_driver import CloudFormationDriver
 
 
 @pytest.fixture(scope="session")
 def logger() -> Logger:
     return logging.getLogger()
-
-
-@pytest.fixture(scope="session")
-def test_configuration() -> Dict[str, str]:
-    configuration_file_path = os.path.join(os.path.dirname(__file__), '..', '..', 'config.json')
-
-    with open(configuration_file_path, 'r') as f:
-        return cast(Dict[str, str], json.load(f))
 
 
 @pytest.fixture(scope="session")
@@ -81,7 +71,7 @@ def test_provides_physical_id_for_resource_specified_by_logical_id(boto_session:
     first_state_machine_arn = cloudformation_driver.get_stack_output_value(cloudformation_test_stack_name,
                                                                            'FirstStateMachineArn')
 
-    resource_registry = CloudFormationResourceRegistry(boto_session)
+    resource_registry = ResourceRegistry(boto_session)
 
     physical_id = resource_registry.get_physical_resource_id('FirstStateMachine', cloudformation_test_stack_name)
 
