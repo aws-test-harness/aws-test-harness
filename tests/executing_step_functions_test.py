@@ -31,7 +31,7 @@ def boto_session(test_configuration: Dict[str, str]) -> Session:
 
 
 @pytest.fixture(scope="session")
-def cloudformation_stack_name(test_configuration: Dict[str, str]) -> str:
+def cloudformation_test_stack_name(test_configuration: Dict[str, str]) -> str:
     return test_configuration['cfnStackName']
 
 
@@ -47,7 +47,7 @@ def state_machine_driver(boto_session: Session, logger: Logger) -> StateMachineD
 
 
 @pytest.fixture(scope="session", autouse=True)
-def before_all(cloudformation_driver: CloudFormationDriver, cloudformation_stack_name: str) -> None:
+def before_all(cloudformation_driver: CloudFormationDriver, cloudformation_test_stack_name: str) -> None:
     state_machine_definition = dict(
         StartAt='SetResult',
         States=dict(
@@ -56,7 +56,7 @@ def before_all(cloudformation_driver: CloudFormationDriver, cloudformation_stack
     )
 
     cloudformation_driver.ensure_stack_is_up_to_date(
-        cloudformation_stack_name,
+        cloudformation_test_stack_name,
         dict(
             AWSTemplateFormatVersion='2010-09-09',
             Transform='AWS::Serverless-2016-10-31',
@@ -71,9 +71,9 @@ def before_all(cloudformation_driver: CloudFormationDriver, cloudformation_stack
 
 
 def test_detecting_a_successful_step_function_execution(state_machine_driver: StateMachineDriver,
-                                                        cloudformation_stack_name: str) -> None:
+                                                        cloudformation_test_stack_name: str) -> None:
     execution = state_machine_driver.execute({'input': 'Any input'}, 'StateMachine',
-                                             cloudformation_stack_name)
+                                             cloudformation_test_stack_name)
 
     assert execution.status == 'SUCCEEDED'
 
@@ -82,9 +82,9 @@ def test_detecting_a_successful_step_function_execution(state_machine_driver: St
 
 
 def test_detecting_a_failed_step_function_execution(state_machine_driver: StateMachineDriver,
-                                                    cloudformation_stack_name: str) -> None:
+                                                    cloudformation_test_stack_name: str) -> None:
     execution = state_machine_driver.execute({}, 'StateMachine',
-                                             cloudformation_stack_name)
+                                             cloudformation_test_stack_name)
 
     assert execution.status == 'FAILED'
 
