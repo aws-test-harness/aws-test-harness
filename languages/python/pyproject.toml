@@ -3,7 +3,9 @@ name = "aws-test-harness"
 version = "0.1.0"
 description = "Python package for test-driving real AWS resources from your local machine"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "boto3>=1.36.6",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -12,5 +14,5 @@ build-backend = "hatchling.build"
 [tool.uv]
 dev-dependencies = [
     "boto3-stubs[stepfunctions]>=1.36.2",
-    "boto3>=1.36.2",
+    "pytest>=8.3.4",
 ]

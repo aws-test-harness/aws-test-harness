@@ -19,13 +19,17 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "boto3-stubs", extra = ["stepfunctions"] },
+    { name = "pytest" },
 ]
 
 [package.metadata]
 requires-dist = [{ name = "boto3", specifier = ">=1.36.6" }]
 
 [package.metadata.requires-dev]
-dev = [{ name = "boto3-stubs", extras = ["stepfunctions"], specifier = ">=1.36.2" }]
+dev = [
+    { name = "boto3-stubs", extras = ["stepfunctions"], specifier = ">=1.36.2" },
+    { name = "pytest", specifier = ">=8.3.4" },
+]
 
 [[package]]
 name = "aws-test-harness-project"

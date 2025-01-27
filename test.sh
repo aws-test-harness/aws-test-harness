@@ -2,6 +2,8 @@
 
 set -o nounset -o errexit -o pipefail
 
-echo Running tests...
-uv run pytest languages/python/tests tests
+./languages/python/test.sh
+
+echo Running acceptance tests...
+uv run pytest tests
 echo

@@ -6,8 +6,8 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = []
 
-[dependency-groups]
-dev = [
+[tool.uv]
+dev-dependencies = [
     "aws-test-harness",
     "boto3>=1.36.2",
     "mypy>=1.14.1",

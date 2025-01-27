@@ -25,9 +25,8 @@ class StateMachineDriver:
 
     def __start_execution(self, execution_input: Dict[str, Any], state_machine_logic_id: str,
                           cloudformation_stack_name: str) -> StateMachineExecution:
-        state_machine_arn = self.__cloudformation_resource_registry.get_physical_resource_id(
-            cloudformation_stack_name,
-            state_machine_logic_id)
+        state_machine_arn = self.__cloudformation_resource_registry.get_physical_resource_id(state_machine_logic_id,
+                                                                                             cloudformation_stack_name)
 
         self.__logger.info('Starting state machine execution...')
         start_execution_result = self.__step_functions_client.start_execution(
