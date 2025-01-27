@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from logging import Logger
-from typing import Dict
+from typing import Dict, cast
 
 import pytest
 from boto3 import Session
@@ -13,41 +13,41 @@ from aws_test_harness.state_machine_driver import StateMachineDriver
 
 
 @pytest.fixture(scope="session")
-def logger():
+def logger() -> Logger:
     return logging.getLogger()
 
 
 @pytest.fixture(scope="session")
-def test_configuration():
+def test_configuration() -> Dict[str, str]:
     configuration_file_path = os.path.join(os.path.dirname(__file__), 'config.json')
 
     with open(configuration_file_path, 'r') as f:
-        return json.load(f)
+        return cast(Dict[str, str], json.load(f))
 
 
 @pytest.fixture(scope="session")
-def boto_session(test_configuration: Dict[str, str]):
+def boto_session(test_configuration: Dict[str, str]) -> Session:
     return Session(profile_name=test_configuration['awsProfile'])
 
 
 @pytest.fixture(scope="session")
-def cloudformation_stack_name(test_configuration: Dict[str, str]):
+def cloudformation_stack_name(test_configuration: Dict[str, str]) -> str:
     return test_configuration['cfnStackName']
 
 
 @pytest.fixture(scope="session")
-def cloudformation_driver(boto_session: Session, logger: Logger):
+def cloudformation_driver(boto_session: Session, logger: Logger) -> CloudFormationDriver:
     return CloudFormationDriver(boto_session.client('cloudformation'), logger)
 
 
 @pytest.fixture(scope="session")
-def state_machine_driver(boto_session: Session, logger: Logger):
+def state_machine_driver(boto_session: Session, logger: Logger) -> StateMachineDriver:
     cloudformation_resource_registry = CloudFormationResourceRegistry(boto_session)
     return StateMachineDriver(cloudformation_resource_registry, boto_session, logger)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def before_all(cloudformation_driver: CloudFormationDriver, cloudformation_stack_name: str):
+def before_all(cloudformation_driver: CloudFormationDriver, cloudformation_stack_name: str) -> None:
     state_machine_definition = dict(
         StartAt='SetResult',
         States=dict(
@@ -71,7 +71,7 @@ def before_all(cloudformation_driver: CloudFormationDriver, cloudformation_stack
 
 
 def test_detecting_a_successful_step_function_execution(state_machine_driver: StateMachineDriver,
-                                                        cloudformation_stack_name: str):
+                                                        cloudformation_stack_name: str) -> None:
     execution_result = state_machine_driver.start_execution({'input': 'Any input'}, 'StateMachine',
                                                             cloudformation_stack_name)
 
@@ -82,7 +82,7 @@ def test_detecting_a_successful_step_function_execution(state_machine_driver: St
 
 
 def test_detecting_a_failed_step_function_execution(state_machine_driver: StateMachineDriver,
-                                                    cloudformation_stack_name: str):
+                                                    cloudformation_stack_name: str) -> None:
     execution_result = state_machine_driver.start_execution({}, 'StateMachine',
                                                             cloudformation_stack_name)
 
