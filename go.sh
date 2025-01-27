@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -o nounset -o errexit -o pipefail
+
 echo Initializing virtual environment...
 uv venv --allow-existing --seed
 echo
