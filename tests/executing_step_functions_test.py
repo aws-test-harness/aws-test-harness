@@ -8,8 +8,8 @@ import pytest
 from boto3 import Session
 
 from aws_test_harness_test_support.cloudformation_driver import CloudFormationDriver
-from aws_test_harness.cloudformation_resource_registry import CloudFormationResourceRegistry
-from aws_test_harness.state_machine_driver import StateMachineDriver
+from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
+from aws_test_harness.step_functions.state_machine_driver import StateMachineDriver
 
 
 @pytest.fixture(scope="session")
@@ -42,8 +42,8 @@ def cloudformation_driver(boto_session: Session, logger: Logger) -> CloudFormati
 
 @pytest.fixture(scope="session")
 def state_machine_driver(boto_session: Session, logger: Logger) -> StateMachineDriver:
-    cloudformation_resource_registry = CloudFormationResourceRegistry(boto_session)
-    return StateMachineDriver(cloudformation_resource_registry, boto_session, logger)
+    resource_registry = ResourceRegistry(boto_session)
+    return StateMachineDriver(resource_registry, boto_session, logger)
 
 
 @pytest.fixture(scope="session", autouse=True)
