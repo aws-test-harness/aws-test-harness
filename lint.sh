@@ -7,5 +7,5 @@ uv run mypy
 echo
 
 echo Linting...
-uv run --frozen ruff check .
+uv run ruff check .
 echo
