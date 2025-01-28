@@ -5,12 +5,11 @@ from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFor
 
 
 def test_provides_physical_id_for_resource_specified_by_logical_id(boto_session: Session,
-                                                                   cloudformation_test_stack_name: str,
+                                                                   cfn_test_stack_name: str,
                                                                    test_cloudformation_stack: TestCloudFormationStack) -> None:
     state_machine_arn = test_cloudformation_stack.get_output_value('PassThroughStateMachineArn')
+    resource_registry = ResourceRegistry(cfn_test_stack_name, boto_session)
 
-    resource_registry = ResourceRegistry(boto_session)
-
-    physical_id = resource_registry.get_physical_resource_id('PassThroughStateMachine', cloudformation_test_stack_name)
+    physical_id = resource_registry.get_physical_resource_id('PassThroughStateMachine')
 
     assert physical_id == state_machine_arn

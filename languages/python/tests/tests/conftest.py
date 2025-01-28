@@ -7,16 +7,25 @@ from typing import Dict, cast
 import pytest
 from boto3 import Session
 
-from aws_test_harness_test_support.cloudformation_driver import CloudFormationDriver
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 
 
 @pytest.fixture(scope="session")
 def test_configuration() -> Dict[str, str]:
-    configuration_file_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    configuration_file_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
 
     with open(configuration_file_path, 'r') as f:
         return cast(Dict[str, str], json.load(f))
+
+
+@pytest.fixture(scope="session")
+def aws_profile(test_configuration: Dict[str, str]) -> str:
+    return test_configuration['awsProfile']
+
+
+@pytest.fixture(scope="session")
+def cfn_test_stack_name(test_configuration: Dict[str, str]) -> str:
+    return test_configuration['cfnStackName']
 
 
 @pytest.fixture(scope="session")
@@ -25,29 +34,18 @@ def logger() -> Logger:
 
 
 @pytest.fixture(scope="session")
-def boto_session(test_configuration: Dict[str, str]) -> Session:
-    return Session(profile_name=test_configuration['awsProfile'])
+def boto_session(aws_profile: str) -> Session:
+    return Session(profile_name=aws_profile)
 
 
 @pytest.fixture(scope="session")
-def cloudformation_test_stack_name(test_configuration: Dict[str, str]) -> str:
-    return test_configuration['cfnStackName']
-
-
-@pytest.fixture(scope="session")
-def cloudformation_driver(boto_session: Session, logger: Logger) -> CloudFormationDriver:
-    return CloudFormationDriver(boto_session.client('cloudformation'), logger)
-
-
-@pytest.fixture(scope="session")
-def test_cloudformation_stack(cloudformation_test_stack_name: str,
-                              cloudformation_driver: CloudFormationDriver) -> TestCloudFormationStack:
-    return TestCloudFormationStack(cloudformation_test_stack_name, cloudformation_driver)
+def test_cloudformation_stack(cfn_test_stack_name: str, logger: Logger,
+                              boto_session: Session) -> TestCloudFormationStack:
+    return TestCloudFormationStack(cfn_test_stack_name, logger, boto_session)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def before_all(cloudformation_driver: CloudFormationDriver, cloudformation_test_stack_name: str,
-               test_cloudformation_stack: TestCloudFormationStack) -> None:
+def before_all(test_cloudformation_stack: TestCloudFormationStack) -> None:
     test_cloudformation_stack.ensure_state_is(
         Transform='AWS::Serverless-2016-10-31',
         Resources=dict(

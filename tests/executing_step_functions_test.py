@@ -1,57 +1,10 @@
 import json
-import logging
-import os
 from logging import Logger
-from typing import Dict, cast
 
 import pytest
-from boto3 import Session
 
-from aws_test_harness_test_support.cloudformation_driver import CloudFormationDriver
-from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
-from aws_test_harness.step_functions.state_machine import StateMachine
+from aws_test_harness.step_functions.state_machine_source import StateMachineSource
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
-
-
-@pytest.fixture(scope="session")
-def logger() -> Logger:
-    return logging.getLogger()
-
-
-@pytest.fixture(scope="session")
-def test_configuration() -> Dict[str, str]:
-    configuration_file_path = os.path.join(os.path.dirname(__file__), 'config.json')
-
-    with open(configuration_file_path, 'r') as f:
-        return cast(Dict[str, str], json.load(f))
-
-
-@pytest.fixture(scope="session")
-def boto_session(test_configuration: Dict[str, str]) -> Session:
-    return Session(profile_name=test_configuration['awsProfile'])
-
-
-@pytest.fixture(scope="session")
-def cloudformation_test_stack_name(test_configuration: Dict[str, str]) -> str:
-    return test_configuration['cfnStackName']
-
-
-@pytest.fixture(scope="session")
-def cloudformation_driver(boto_session: Session, logger: Logger) -> CloudFormationDriver:
-    return CloudFormationDriver(boto_session.client('cloudformation'), logger)
-
-
-@pytest.fixture(scope="session")
-def test_cloudformation_stack(cloudformation_test_stack_name: str,
-                              cloudformation_driver: CloudFormationDriver) -> TestCloudFormationStack:
-    return TestCloudFormationStack(cloudformation_test_stack_name, cloudformation_driver)
-
-
-@pytest.fixture(scope="session")
-def state_machine(boto_session: Session, logger: Logger, cloudformation_test_stack_name: str) -> StateMachine:
-    resource_registry = ResourceRegistry(boto_session)
-    state_machine_arn = resource_registry.get_physical_resource_id('StateMachine', cloudformation_test_stack_name)
-    return StateMachine(state_machine_arn, boto_session, logger)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -62,6 +15,7 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack) -> None:
             SetResult=dict(Type='Pass', Parameters={'result.$': '$.input'}, End=True)
         )
     )
+
     test_cloudformation_stack.ensure_state_is(
         AWSTemplateFormatVersion='2010-09-09',
         Transform='AWS::Serverless-2016-10-31',
@@ -74,8 +28,11 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack) -> None:
     )
 
 
-def test_detecting_a_successful_step_function_execution(state_machine: StateMachine,
-                                                        cloudformation_test_stack_name: str) -> None:
+def test_detecting_a_successful_step_function_execution(logger: Logger, aws_profile: str,
+                                                        cfn_test_stack_name: str) -> None:
+    resource_factory = StateMachineSource(cfn_test_stack_name, logger, aws_profile)
+    state_machine = resource_factory.get_state_machine('StateMachine')
+
     execution = state_machine.execute({'input': 'Any input'})
 
     assert execution.status == 'SUCCEEDED'
@@ -84,8 +41,11 @@ def test_detecting_a_successful_step_function_execution(state_machine: StateMach
     assert json.loads(execution.output) == {"result": "Any input"}
 
 
-def test_detecting_a_failed_step_function_execution(state_machine: StateMachine,
-                                                    cloudformation_test_stack_name: str) -> None:
+def test_detecting_a_failed_step_function_execution(aws_profile: str, cfn_test_stack_name: str,
+                                                    logger: Logger) -> None:
+    resource_factory = StateMachineSource(cfn_test_stack_name, logger, aws_profile)
+    state_machine = resource_factory.get_state_machine('StateMachine')
+
     execution = state_machine.execute({})
 
     assert execution.status == 'FAILED'
