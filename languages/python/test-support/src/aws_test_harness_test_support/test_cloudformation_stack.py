@@ -59,13 +59,19 @@ class TestCloudFormationStack:
         create_stack_waiter.wait(StackName=self.__stack_name, WaiterConfig=dict(Delay=3, MaxAttempts=30))
 
     def __update_stack(self, stack_template_data: Dict[str, Any]) -> None:
-        self.__cloudformation_client.update_stack(
-            StackName=self.__stack_name,
-            TemplateBody=json.dumps(stack_template_data),
-            Capabilities=['CAPABILITY_IAM', 'CAPABILITY_AUTO_EXPAND'],
-        )
-        update_stack_waiter = self.__cloudformation_client.get_waiter('stack_update_complete')
-        update_stack_waiter.wait(StackName=self.__stack_name, WaiterConfig=dict(Delay=3, MaxAttempts=30))
+        try:
+            self.__cloudformation_client.update_stack(
+                StackName=self.__stack_name,
+                TemplateBody=json.dumps(stack_template_data),
+                Capabilities=['CAPABILITY_IAM', 'CAPABILITY_AUTO_EXPAND'],
+            )
+            update_stack_waiter = self.__cloudformation_client.get_waiter('stack_update_complete')
+            update_stack_waiter.wait(StackName=self.__stack_name, WaiterConfig=dict(Delay=3, MaxAttempts=30))
+        except ClientError as client_error:
+            # noinspection PyUnresolvedReferences
+            error = client_error.response['Error']
+            if not (error['Code'] == 'ValidationError' and error['Message'] == 'No updates are to be performed.'):
+                raise client_error
 
     # noinspection PyPep8Naming
     @staticmethod
