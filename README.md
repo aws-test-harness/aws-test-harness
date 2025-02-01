@@ -13,6 +13,7 @@ Create a config file at `tests/config.json` and another at `languages/python/tes
 ```json
 {
   "awsProfile": "<your AWS CLI profile>",
+  "awsRegion": "<target AWS region>",
   "cfnStackName": "<chosen name for each test stack>"
 }
 ```

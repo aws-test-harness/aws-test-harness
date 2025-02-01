@@ -22,10 +22,19 @@ def test_configuration() -> Dict[str, str]:
 def aws_profile(test_configuration: Dict[str, str]) -> str:
     return test_configuration['awsProfile']
 
+@pytest.fixture(scope="session")
+def aws_region(test_configuration: Dict[str, str]) -> str:
+    return test_configuration['awsRegion']
+
 
 @pytest.fixture(scope="session")
-def cfn_test_stack_name(test_configuration: Dict[str, str]) -> str:
-    return test_configuration['cfnStackName']
+def test_cfn_stack_name(test_configuration: Dict[str, str]) -> str:
+    return test_configuration['testCfnStackName']
+
+
+@pytest.fixture(scope="session")
+def test_templates_cfn_stack_name(test_configuration: Dict[str, str]) -> str:
+    return test_configuration['testTemplatesCfnStackName']
 
 
 @pytest.fixture(scope="session")
@@ -34,6 +43,17 @@ def logger() -> Logger:
 
 
 @pytest.fixture(scope="session")
-def test_cloudformation_stack(cfn_test_stack_name: str, aws_profile: str, logger: Logger) -> TestCloudFormationStack:
-    boto_session = Session(profile_name=aws_profile)
-    return TestCloudFormationStack(cfn_test_stack_name, logger, boto_session)
+def boto_session(aws_profile: str, aws_region: str) -> Session:
+    return Session(profile_name=aws_profile, region_name=aws_region)
+
+
+@pytest.fixture(scope="session")
+def test_cloudformation_stack(test_cfn_stack_name: str, boto_session: Session,
+                              logger: Logger) -> TestCloudFormationStack:
+    return TestCloudFormationStack(test_cfn_stack_name, logger, boto_session)
+
+
+@pytest.fixture(scope="session")
+def test_templates_cloudformation_stack(test_templates_cfn_stack_name: str, boto_session: Session,
+                                        logger: Logger) -> TestCloudFormationStack:
+    return TestCloudFormationStack(test_templates_cfn_stack_name, logger, boto_session)

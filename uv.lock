@@ -41,6 +41,7 @@ dev = [
     { name = "aws-test-harness" },
     { name = "aws-test-harness-test-support" },
     { name = "boto3" },
+    { name = "boto3-stubs-lite", extra = ["s3"] },
     { name = "mypy" },
     { name = "pytest" },
     { name = "ruff" },
@@ -53,6 +54,7 @@ dev = [
     { name = "aws-test-harness", editable = "languages/python" },
     { name = "aws-test-harness-test-support", editable = "languages/python/test-support" },
     { name = "boto3", specifier = ">=1.36.2" },
+    { name = "boto3-stubs-lite", extras = ["s3"], specifier = ">=1.36.6" },
     { name = "mypy", specifier = ">=1.14.1" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "ruff", specifier = ">=0.9.2" },
@@ -107,6 +109,9 @@ wheels = [
 [package.optional-dependencies]
 cloudformation = [
     { name = "mypy-boto3-cloudformation" },
+]
+s3 = [
+    { name = "mypy-boto3-s3" },
 ]
 stepfunctions = [
     { name = "mypy-boto3-stepfunctions" },
@@ -191,6 +196,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/73/7d/1069133a9fdd527022738ad912154253e69243c91ade0b8fba950d8ce136/mypy_boto3_cloudformation-1.36.0.tar.gz", hash = "sha256:acc2c7ae8920f1167be097f6151685fe5aee99be2f890075edf93e05d298e8b0", size = 54664 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d7/c3/35f97c2c23c325178892c400a16fd22d8d7ef299b7d72244ba779129de2c/mypy_boto3_cloudformation-1.36.0-py3-none-any.whl", hash = "sha256:3f6cd81739aaf9634c4aa2b92579081038a76e4f2dec306d02eaaf558b332ce9", size = 66147 },
+]
+
+[[package]]
+name = "mypy-boto3-s3"
+version = "1.36.9"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/13/7fe1ba959978a5851e8ca5f66a4f3f5080440463ac035227460d9af96d3c/mypy_boto3_s3-1.36.9.tar.gz", hash = "sha256:368c963969eda65bb3a9df61e87510dd8b3247cce59f559c2ec6c43d5796bef5", size = 73088 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/94/14/475107a6acb6ec9f49b58b820763ddb8f40a7beabdaf23b5a5c48597d136/mypy_boto3_s3-1.36.9-py3-none-any.whl", hash = "sha256:506edd56892452dff5b673e3c79a11b6f8935076ce4a9daaac4cda708a176201", size = 79697 },
 ]
 
 [[package]]
