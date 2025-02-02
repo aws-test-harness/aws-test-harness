@@ -8,6 +8,9 @@ from aws_test_harness.s3.s3_bucket import S3Bucket
 
 # TODO: Retrofit test coverage
 class TestDoubleSource:
+    # Tell pytest to treat this class as a normal class
+    __test__ = False
+
     def __init__(self, create_test_double_resource_registry: Callable[[], ResourceRegistry], boto_session: Session):
         self.__create_test_double_resource_registry = create_test_double_resource_registry
         self.__boto_session = boto_session

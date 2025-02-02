@@ -1,21 +1,28 @@
 import json
 from logging import Logger
-from typing import Dict, Any, Union, List, Optional, Sequence, Unpack
+from typing import Dict, Any, Union, List, Optional, Unpack, cast
 
 import yaml
 from boto3 import Session
 from botocore.exceptions import ClientError
 from mypy_boto3_cloudformation.client import CloudFormationClient
-from mypy_boto3_cloudformation.type_defs import ParameterTypeDef, CreateStackInputRequestTypeDef, \
+from mypy_boto3_cloudformation.literals import OnFailureType
+from mypy_boto3_cloudformation.type_defs import CreateStackInputRequestTypeDef, \
     UpdateStackInputRequestTypeDef
-from yaml import Loader
 
 
 class TestCloudFormationStack:
+    # Tell pytest to treat this class as a normal class
+    __test__ = False
+
     def __init__(self, stack_name: str, logger: Logger, boto_session: Session):
         self.__stack_name = stack_name
         self.__logger = logger
         self.__cloudformation_client: CloudFormationClient = boto_session.client('cloudformation')
+
+    @property
+    def name(self) -> str:
+        return self.__stack_name
 
     def get_output_value(self, output_name: str) -> str:
         result = self.__cloudformation_client.describe_stacks(StackName=self.__stack_name)
@@ -41,9 +48,10 @@ class TestCloudFormationStack:
         self.__create_or_update_stack(stack_template_data)
 
     def ensure_state_matches_yaml_template_file(self, template_file_path: str, **parameters: str) -> None:
-        self.__create_or_update_stack(yaml.load(open(template_file_path, 'r'), Loader=Loader), parameters)
+        self.__create_or_update_stack(yaml.load(open(template_file_path, 'r'), Loader=yaml.Loader), parameters)
 
-    def __create_or_update_stack(self, stack_template_data, parameters: Dict[str, str] = None) -> None:
+    def __create_or_update_stack(self, stack_template_data: Dict[str, Any],
+                                 parameters: Optional[Dict[str, str]] = None) -> None:
         self.__logger.info(f'Ensuring CloudFormation stack "{self.__stack_name}" is up-to-date...')
 
         common_upsert_kwargs = dict(
@@ -54,17 +62,18 @@ class TestCloudFormationStack:
         )
 
         try:
-            self.__create_stack(**common_upsert_kwargs)
+            self.__create_stack(**cast(CreateStackInputRequestTypeDef, common_upsert_kwargs))
         except ClientError as client_error:
             # noinspection PyUnresolvedReferences
             if client_error.response['Error']['Code'] != 'AlreadyExistsException':
                 raise client_error
 
-            self.__update_stack(**common_upsert_kwargs)
+            self.__update_stack(**cast(UpdateStackInputRequestTypeDef, common_upsert_kwargs))
         self.__logger.info('CloudFormation stack is up-to-date.')
 
     def __create_stack(self, **common_upsert_kwargs: Unpack[CreateStackInputRequestTypeDef]) -> None:
-        self.__cloudformation_client.create_stack(OnFailure='DELETE', **common_upsert_kwargs)
+        common_upsert_kwargs['OnFailure'] = cast(OnFailureType, "DELETE")
+        self.__cloudformation_client.create_stack(**common_upsert_kwargs)
         create_stack_waiter = self.__cloudformation_client.get_waiter('stack_create_complete')
         create_stack_waiter.wait(StackName=self.__stack_name, WaiterConfig=dict(Delay=3, MaxAttempts=30))
 
