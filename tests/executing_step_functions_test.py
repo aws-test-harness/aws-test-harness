@@ -73,7 +73,7 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack,
                             "GetObject": {
                                 "Type": "Task",
                                 "Parameters": {
-                                    "Bucket": "${MessagesBucketName}",
+                                    "Bucket": "${MessagesS3BucketName}",
                                     "Key.$": "$.s3ObjectKey"
                                 },
                                 "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
@@ -85,10 +85,10 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack,
                         }
                     }),
                     DefinitionSubstitutions=dict(
-                        MessagesBucketName={'Fn::GetAtt': 'TestDoubles.Outputs.MessagesBucketName'}
+                        MessagesS3BucketName={'Fn::GetAtt': 'TestDoubles.Outputs.MessagesS3BucketName'}
                     ),
                     Policies=dict(
-                        S3ReadPolicy=dict(BucketName={'Fn::GetAtt': 'TestDoubles.Outputs.MessagesBucketName'})
+                        S3ReadPolicy=dict(BucketName={'Fn::GetAtt': 'TestDoubles.Outputs.MessagesS3BucketName'})
                     )
                 )
             ),

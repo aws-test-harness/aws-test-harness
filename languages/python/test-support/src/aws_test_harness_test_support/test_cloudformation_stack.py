@@ -33,7 +33,7 @@ class TestCloudFormationStack:
                         Transform: Optional[Union[str, List[str]]] = None,
                         Outputs: Optional[Dict[str, Any]] = None) -> None:
 
-        self.__logger.info('Ensuring CloudFormation stack is up-to-date...')
+        self.__logger.info(f'Ensuring CloudFormation stack "{self.__stack_name}" is up-to-date...')
 
         stack_template_data = self.__create_stack_template_data(AWSTemplateFormatVersion, Transform, Resources, Outputs)
 
