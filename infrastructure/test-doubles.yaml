@@ -7,7 +7,7 @@ Resources:
   # TODO: Replace with custom macro that creates a bucket and output for each S3 bucket name
   'Fn::ForEach::S3Buckets':
     - S3BucketName
-    - !Ref S3BucketNames
+    - Ref: S3BucketNames
     - '${S3BucketName}S3Bucket':
         Type: AWS::S3::Bucket
         Properties:
@@ -30,7 +30,8 @@ Resources:
 Outputs:
   'Fn::ForEach::S3BucketNameOutputs':
     - S3BucketName
-    - !Ref S3BucketNames
+    - Ref: S3BucketNames
     - '${S3BucketName}S3BucketName':
         Value:
-          Ref: !Sub '${S3BucketName}S3Bucket'
+          Ref:
+            'Fn::Sub': '${S3BucketName}S3Bucket'

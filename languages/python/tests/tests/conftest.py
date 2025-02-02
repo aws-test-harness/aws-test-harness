@@ -24,6 +24,11 @@ def aws_profile(test_configuration: Dict[str, str]) -> str:
 
 
 @pytest.fixture(scope="session")
+def cfn_stack_name_prefix(test_configuration: Dict[str, str]) -> str:
+    return test_configuration['cfnStackNamePrefix']
+
+
+@pytest.fixture(scope="session")
 def cfn_test_stack_name(test_configuration: Dict[str, str]) -> str:
     return test_configuration['cfnStackName']
 
@@ -111,3 +116,8 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack) -> None:
             TimingOutStateMachineArn=dict(Value=dict(Ref='TimingOutStateMachine')),
         )
     )
+
+
+@pytest.fixture(scope="session")
+def test_doubles_template_path() -> str:
+    return os.path.join(os.path.dirname(__file__), '../../../../infrastructure/test-doubles.yaml')

@@ -1,10 +1,14 @@
 import json
 from logging import Logger
-from typing import Dict, Any, Union, List, Optional
+from typing import Dict, Any, Union, List, Optional, Sequence, Unpack
 
+import yaml
 from boto3 import Session
 from botocore.exceptions import ClientError
 from mypy_boto3_cloudformation.client import CloudFormationClient
+from mypy_boto3_cloudformation.type_defs import ParameterTypeDef, CreateStackInputRequestTypeDef, \
+    UpdateStackInputRequestTypeDef
+from yaml import Loader
 
 
 class TestCloudFormationStack:
@@ -33,38 +37,40 @@ class TestCloudFormationStack:
                         Transform: Optional[Union[str, List[str]]] = None,
                         Outputs: Optional[Dict[str, Any]] = None) -> None:
 
+        stack_template_data = self.__create_stack_template_data(AWSTemplateFormatVersion, Transform, Resources, Outputs)
+        self.__create_or_update_stack(stack_template_data)
+
+    def ensure_state_matches_yaml_template_file(self, template_file_path: str, **parameters: str) -> None:
+        self.__create_or_update_stack(yaml.load(open(template_file_path, 'r'), Loader=Loader), parameters)
+
+    def __create_or_update_stack(self, stack_template_data, parameters: Dict[str, str] = None) -> None:
         self.__logger.info(f'Ensuring CloudFormation stack "{self.__stack_name}" is up-to-date...')
 
-        stack_template_data = self.__create_stack_template_data(AWSTemplateFormatVersion, Transform, Resources, Outputs)
+        common_upsert_kwargs = dict(
+            StackName=self.__stack_name,
+            TemplateBody=json.dumps(stack_template_data, default=str),
+            Capabilities=['CAPABILITY_IAM', 'CAPABILITY_AUTO_EXPAND'],
+            Parameters=[dict(ParameterKey=key, ParameterValue=value) for key, value in (parameters or {}).items()]
+        )
 
         try:
-            self.__create_stack(stack_template_data)
+            self.__create_stack(**common_upsert_kwargs)
         except ClientError as client_error:
             # noinspection PyUnresolvedReferences
             if client_error.response['Error']['Code'] != 'AlreadyExistsException':
                 raise client_error
 
-            self.__update_stack(stack_template_data)
-
+            self.__update_stack(**common_upsert_kwargs)
         self.__logger.info('CloudFormation stack is up-to-date.')
 
-    def __create_stack(self, stack_template_data: Dict[str, Any]) -> None:
-        self.__cloudformation_client.create_stack(
-            StackName=self.__stack_name,
-            TemplateBody=json.dumps(stack_template_data),
-            Capabilities=['CAPABILITY_IAM', 'CAPABILITY_AUTO_EXPAND'],
-            OnFailure='DELETE'
-        )
+    def __create_stack(self, **common_upsert_kwargs: Unpack[CreateStackInputRequestTypeDef]) -> None:
+        self.__cloudformation_client.create_stack(OnFailure='DELETE', **common_upsert_kwargs)
         create_stack_waiter = self.__cloudformation_client.get_waiter('stack_create_complete')
         create_stack_waiter.wait(StackName=self.__stack_name, WaiterConfig=dict(Delay=3, MaxAttempts=30))
 
-    def __update_stack(self, stack_template_data: Dict[str, Any]) -> None:
+    def __update_stack(self, **common_upsert_kwargs: Unpack[UpdateStackInputRequestTypeDef]) -> None:
         try:
-            self.__cloudformation_client.update_stack(
-                StackName=self.__stack_name,
-                TemplateBody=json.dumps(stack_template_data),
-                Capabilities=['CAPABILITY_IAM', 'CAPABILITY_AUTO_EXPAND'],
-            )
+            self.__cloudformation_client.update_stack(**common_upsert_kwargs)
             update_stack_waiter = self.__cloudformation_client.get_waiter('stack_update_complete')
             update_stack_waiter.wait(StackName=self.__stack_name, WaiterConfig=dict(Delay=3, MaxAttempts=30))
         except ClientError as client_error:
