@@ -13,50 +13,14 @@ from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFor
 
 
 @pytest.fixture(scope="session", autouse=True)
-def before_all(test_cloudformation_stack: TestCloudFormationStack,
-               test_templates_cloudformation_stack: TestCloudFormationStack, boto_session: Session) -> None:
-
-    # TODO: Move into conftest as a detail - just expose the S3 bucket name and regional domain name
-    test_templates_cloudformation_stack.ensure_state_is(
-        AWSTemplateFormatVersion='2010-09-09',
-        Resources=dict(
-            Templates=dict(
-                Type='AWS::S3::Bucket',
-                Properties=dict(
-                    PublicAccessBlockConfiguration=dict(
-                        BlockPublicAcls=True,
-                        BlockPublicPolicy=True,
-                        IgnorePublicAcls=True,
-                        RestrictPublicBuckets=True
-                    ),
-                    BucketEncryption=dict(
-                        ServerSideEncryptionConfiguration=[
-                            dict(
-                                ServerSideEncryptionByDefault=dict(SSEAlgorithm='AES256')
-                            )
-                        ]
-                    )
-                )
-            )
-        ),
-        Outputs=dict(
-            TemplatesBucketName=dict(Value={'Ref': 'Templates'}),
-            # Regional domain name avoids the need to wait for global propagation of the bucket name
-            TemplatesBucketRegionalDomainName=dict(Value={'Fn::GetAtt': 'Templates.RegionalDomainName'})
-        )
-    )
-
-    s3_bucket_name = test_templates_cloudformation_stack.get_output_value('TemplatesBucketName')
-    s3_bucket_regional_domain_name = test_templates_cloudformation_stack.get_output_value(
-        'TemplatesBucketRegionalDomainName'
-    )
-
+def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session: Session,
+               test_templates_s3_bucket_name: str, test_templates_s3_regional_domain_name: str) -> None:
     # TODO: Replace with install script
     s3_client: S3Client = boto_session.client('s3')
     test_doubles_template_s3_key = 'aws-test-harness/templates/test-doubles.yaml'
     s3_client.upload_file(
         Filename=path.join(path.dirname(__file__), '../infrastructure/test-doubles.yaml'),
-        Bucket=s3_bucket_name,
+        Bucket=test_templates_s3_bucket_name,
         Key=test_doubles_template_s3_key
     )
 
@@ -96,7 +60,7 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack,
                 Type='AWS::CloudFormation::Stack',
                 Properties=dict(
                     Parameters=dict(S3BucketNames='Messages'),
-                    TemplateURL=f'https://{s3_bucket_regional_domain_name}/{test_doubles_template_s3_key}'
+                    TemplateURL=f'https://{test_templates_s3_regional_domain_name}/{test_doubles_template_s3_key}'
                 )
             )
         )

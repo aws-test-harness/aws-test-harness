@@ -22,6 +22,7 @@ def test_configuration() -> Dict[str, str]:
 def aws_profile(test_configuration: Dict[str, str]) -> str:
     return test_configuration['awsProfile']
 
+
 @pytest.fixture(scope="session")
 def aws_region(test_configuration: Dict[str, str]) -> str:
     return test_configuration['awsRegion']
@@ -56,4 +57,45 @@ def test_cloudformation_stack(test_cfn_stack_name: str, boto_session: Session,
 @pytest.fixture(scope="session")
 def test_templates_cloudformation_stack(test_templates_cfn_stack_name: str, boto_session: Session,
                                         logger: Logger) -> TestCloudFormationStack:
-    return TestCloudFormationStack(test_templates_cfn_stack_name, logger, boto_session)
+    stack = TestCloudFormationStack(test_templates_cfn_stack_name, logger, boto_session)
+
+    stack.ensure_state_is(
+        AWSTemplateFormatVersion='2010-09-09',
+        Resources=dict(
+            Templates=dict(
+                Type='AWS::S3::Bucket',
+                Properties=dict(
+                    PublicAccessBlockConfiguration=dict(
+                        BlockPublicAcls=True,
+                        BlockPublicPolicy=True,
+                        IgnorePublicAcls=True,
+                        RestrictPublicBuckets=True
+                    ),
+                    BucketEncryption=dict(
+                        ServerSideEncryptionConfiguration=[
+                            dict(
+                                ServerSideEncryptionByDefault=dict(SSEAlgorithm='AES256')
+                            )
+                        ]
+                    )
+                )
+            )
+        ),
+        Outputs=dict(
+            TemplatesBucketName=dict(Value={'Ref': 'Templates'}),
+            # Regional domain name avoids the need to wait for global propagation of the bucket name
+            TemplatesBucketRegionalDomainName=dict(Value={'Fn::GetAtt': 'Templates.RegionalDomainName'})
+        )
+    )
+
+    return stack
+
+
+@pytest.fixture(scope="session")
+def test_templates_s3_bucket_name(test_templates_cloudformation_stack: TestCloudFormationStack) -> str:
+    return test_templates_cloudformation_stack.get_output_value('TemplatesBucketName')
+
+
+@pytest.fixture(scope="session")
+def test_templates_s3_regional_domain_name(test_templates_cloudformation_stack: TestCloudFormationStack) -> str:
+    return test_templates_cloudformation_stack.get_output_value('TemplatesBucketRegionalDomainName')
