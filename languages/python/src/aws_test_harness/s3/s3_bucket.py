@@ -1,11 +1,10 @@
 from typing import Unpack
 
 from boto3 import Session
-from mypy_boto3_s3 import S3ServiceResource
+from mypy_boto3_s3.service_resource import S3ServiceResource
 from mypy_boto3_s3.type_defs import PutObjectRequestBucketPutObjectTypeDef
 
 
-# TODO: Retrofit test coverage
 class S3Bucket:
     def __init__(self, bucket_name: str, boto_session: Session):
         s3_resource: S3ServiceResource = boto_session.resource('s3')

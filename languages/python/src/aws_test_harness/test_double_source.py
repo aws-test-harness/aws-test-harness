@@ -6,7 +6,6 @@ from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
 from aws_test_harness.s3.s3_bucket import S3Bucket
 
 
-# TODO: Retrofit test coverage
 class TestDoubleSource:
     # Tell pytest to treat this class as a normal class
     __test__ = False

@@ -7,6 +7,8 @@ from typing import Dict, cast
 import pytest
 from boto3 import Session
 
+from tests.support.s3_test_client import S3TestClient
+
 
 @pytest.fixture(scope="session")
 def test_configuration() -> Dict[str, str]:
@@ -29,6 +31,11 @@ def logger() -> Logger:
 @pytest.fixture(scope="session")
 def boto_session(test_configuration: Dict[str, str]) -> Session:
     return Session(profile_name=test_configuration['awsProfile'])
+
+
+@pytest.fixture(scope="session")
+def s3_test_client(boto_session: Session) -> S3TestClient:
+    return S3TestClient(boto_session)
 
 
 @pytest.fixture(scope="session")

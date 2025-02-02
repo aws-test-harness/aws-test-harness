@@ -4,11 +4,11 @@ from uuid import uuid4
 
 import pytest
 from boto3 import Session
-from mypy_boto3_s3.client import S3Client
 
 from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
 from aws_test_harness.test_double_source import TestDoubleSource
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
+from tests.support.s3_test_client import S3TestClient
 
 
 @pytest.fixture(scope="module")
@@ -24,8 +24,9 @@ def before_all(test_stack: TestCloudFormationStack, test_doubles_template_path: 
     )
 
 
-def test_provides_object_to_interract_with_test_double_s3_bucket(test_stack: TestCloudFormationStack,
-                                                                 boto_session: Session) -> None:
+def test_provides_object_to_interract_with_test_double_s3_bucket(
+        test_stack: TestCloudFormationStack, boto_session: Session, s3_test_client: S3TestClient
+) -> None:
     def create_test_double_resource_registry() -> ResourceRegistry:
         resource_registry = Mock(spec=ResourceRegistry)
         resource_registry.get_physical_resource_id.side_effect = (
@@ -42,13 +43,4 @@ def test_provides_object_to_interract_with_test_double_s3_bucket(test_stack: Tes
     s3_bucket.put_object(Key=object_key, Body=object_content)
 
     first_s3_bucket_name = test_stack.get_output_value('FirstS3BucketName')
-    assert object_content_at_s3_location(first_s3_bucket_name, object_key, boto_session) == object_content
-
-
-# TODO: Extract test helper
-def object_content_at_s3_location(bucket_name: str, object_key: str, boto_session: Session) -> str:
-    s3_client: S3Client = boto_session.client('s3')
-    get_object_result = s3_client.get_object(Bucket=bucket_name, Key=object_key)
-    streaming_body = get_object_result['Body']
-
-    return streaming_body.read().decode('utf-8')
+    assert object_content == s3_test_client.get_object_content(first_s3_bucket_name, object_key)
