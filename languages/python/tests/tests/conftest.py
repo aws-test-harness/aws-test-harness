@@ -29,8 +29,13 @@ def logger() -> Logger:
 
 
 @pytest.fixture(scope="session")
-def boto_session(test_configuration: Dict[str, str]) -> Session:
-    return Session(profile_name=test_configuration['awsProfile'])
+def aws_profile(test_configuration: Dict[str, str]) -> str:
+    return test_configuration['awsProfile']
+
+
+@pytest.fixture(scope="session")
+def boto_session(aws_profile: str) -> Session:
+    return Session(profile_name=aws_profile)
 
 
 @pytest.fixture(scope="session")
