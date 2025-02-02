@@ -6,10 +6,8 @@ from uuid import uuid4
 import pytest
 from boto3 import Session
 from mypy_boto3_s3.client import S3Client
-from mypy_boto3_s3.service_resource import S3ServiceResource
 
-from aws_test_harness.step_functions.state_machine_source import StateMachineSource
-from aws_test_harness.test_double_registry import TestDoubleRegistry
+from aws_test_harness.test_harness import TestHarness
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 
 
@@ -69,24 +67,19 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session:
 
 
 def test_executing_a_step_function_that_interacts_with_test_doubles(
-        logger: Logger, aws_profile: str, test_cfn_stack_name: str,
-        test_cloudformation_stack: TestCloudFormationStack, boto_session: Session) -> None:
-    test_double_source = TestDoubleRegistry(test_cfn_stack_name, aws_profile)
-    messages_bucket_name = test_double_source.get_s3_bucket_name('Messages')
-
-    s3_resource: S3ServiceResource = boto_session.resource('s3')
-    s3_bucket = s3_resource.Bucket(messages_bucket_name)
+        logger: Logger, aws_profile: str, test_cfn_stack_name: str, boto_session: Session) -> None:
+    test_harness = TestHarness(test_cfn_stack_name, logger, aws_profile)
 
     s3_object_key = str(uuid4())
     s3_object_content = f'Random content: {uuid4()}'
-    s3_bucket.put_object(Key=s3_object_key, Body=s3_object_content)
 
-    state_machine_source = StateMachineSource(test_cfn_stack_name, logger, aws_profile)
-    state_machine = state_machine_source.get_state_machine('StateMachine')
+    messages_bucket = test_harness.test_doubles.s3_bucket('Messages')
+    messages_bucket.put_object(Key=s3_object_key, Body=s3_object_content)
+
+    state_machine = test_harness.state_machine('StateMachine')
 
     execution = state_machine.execute({'s3ObjectKey': s3_object_key})
 
     assert execution.status == 'SUCCEEDED'
-
     assert execution.output is not None
     assert json.loads(execution.output) == {"result": s3_object_content}
