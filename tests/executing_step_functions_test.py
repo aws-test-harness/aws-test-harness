@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 from boto3 import Session
 from mypy_boto3_s3.client import S3Client
+from mypy_boto3_s3.service_resource import S3ServiceResource
 
 from aws_test_harness.step_functions.state_machine_source import StateMachineSource
 from aws_test_harness.test_double_registry import TestDoubleRegistry
@@ -67,17 +68,18 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session:
     )
 
 
-def test_executing_a_step_function_that_interacts_with_test_doubles(logger: Logger, aws_profile: str,
-                                                                    test_cfn_stack_name: str,
-                                                                    test_cloudformation_stack: TestCloudFormationStack) -> None:
+def test_executing_a_step_function_that_interacts_with_test_doubles(
+        logger: Logger, aws_profile: str, test_cfn_stack_name: str,
+        test_cloudformation_stack: TestCloudFormationStack, boto_session: Session) -> None:
     test_double_source = TestDoubleRegistry(test_cfn_stack_name, aws_profile)
     messages_bucket_name = test_double_source.get_s3_bucket_name('Messages')
 
-    # TODO: Move into test support class
-    s3_client: S3Client = Session(profile_name=aws_profile).client('s3')
+    s3_resource: S3ServiceResource = boto_session.resource('s3')
+    s3_bucket = s3_resource.Bucket(messages_bucket_name)
+
     s3_object_key = str(uuid4())
     s3_object_content = f'Random content: {uuid4()}'
-    s3_client.put_object(Bucket=messages_bucket_name, Key=s3_object_key, Body=s3_object_content)
+    s3_bucket.put_object(Key=s3_object_key, Body=s3_object_content)
 
     state_machine_source = StateMachineSource(test_cfn_stack_name, logger, aws_profile)
     state_machine = state_machine_source.get_state_machine('StateMachine')
