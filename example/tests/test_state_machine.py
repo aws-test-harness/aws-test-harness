@@ -88,6 +88,8 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
         }
     })
 
+    assert execution.name.startswith('test-')
+
     execution.wait_for_completion()
     execution.assert_succeeded()
 

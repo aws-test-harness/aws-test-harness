@@ -41,6 +41,10 @@ class StateMachineExecution:
         )
 
     @property
+    def name(self):
+        return self.__sfn_client.describe_execution(executionArn=self.__execution_arn)["name"]
+
+    @property
     def running(self):
         return self.status == StateMachineExecutionState.RUNNING
 
