@@ -116,7 +116,8 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
     input_transformer_function.assert_called_with({'data': {'number': 1}})
     doubler_function.assert_called_with({'number': 2})
 
-    assert first_bucket_key in first_bucket.list_objects()
+    assert first_bucket_key in first_bucket.list_objects(prefix='data/')
+    assert first_bucket.list_objects(prefix='data2/') == []
     assert second_bucket_key in second_bucket.list_objects()
 
 

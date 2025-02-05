@@ -1,3 +1,5 @@
+from typing import Optional, List
+
 from boto3 import Session
 from mypy_boto3_s3.service_resource import S3ServiceResource, Bucket
 
@@ -11,15 +13,15 @@ class S3Bucket:
         s3_resource: S3ServiceResource = session.resource('s3')
         self.__boto_bucket_resource: Bucket = s3_resource.Bucket(name)
 
-    def put_object(self, key, content):
+    def put_object(self, key: str, content: str):
         self.__boto_bucket_resource.put_object(Key=key, Body=content)
 
-    def get_object(self, key):
+    def get_object(self, key: str) -> str:
         return self.__boto_bucket_resource.Object(key).get()['Body'].read().decode('utf-8')
 
-    def list_objects(self):
-        return [x.key for x in self.__boto_bucket_resource.objects.all()]
+    def list_objects(self, prefix: Optional[str] = None) -> List[str]:
+        return [x.key for x in self.__boto_bucket_resource.objects.filter(**(dict(Prefix=prefix) if prefix else {}))]
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.__name
