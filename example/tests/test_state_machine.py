@@ -59,10 +59,14 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
     second_bucket = test_double_driver.get_s3_bucket('Second')
     second_table = test_double_driver.get_dynamodb_table('Second')
 
+    second_bucket_key = None
+
     def doubler_function_handler(event):
+        nonlocal second_bucket_key
+
         number = event["number"]
-        object_key = str(uuid4())
-        second_bucket.put_object(object_key, f'Number passed to doubler function: {number}')
+        second_bucket_key = str(uuid4())
+        second_bucket.put_object(second_bucket_key, f'Number passed to doubler function: {number}')
         record_key = str(uuid4())
         second_table.put_item({
             'ID': record_key,
@@ -70,7 +74,7 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
             'message': f'Number passed to doubler function: {number}',
         })
 
-        return {'number': number * 2, 'objectKey': object_key, 'recordKey': record_key}
+        return {'number': number * 2, 'objectKey': second_bucket_key, 'recordKey': record_key}
 
     doubler_function.side_effect = doubler_function_handler
 
@@ -111,6 +115,9 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
 
     input_transformer_function.assert_called_with({'data': {'number': 1}})
     doubler_function.assert_called_with({'number': 2})
+
+    assert first_bucket_key in first_bucket.list_objects()
+    assert second_bucket_key in second_bucket.list_objects()
 
 
 def test_state_machine_retries_input_transformation_twice(mocking_engine: AWSResourceMockingEngine,

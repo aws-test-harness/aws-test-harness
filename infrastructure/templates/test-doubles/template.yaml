@@ -67,6 +67,10 @@ Resources:
                 - s3:DeleteObject
                 - s3:PutObject
               Resource: !Sub "!SecondSub arn:aws:s3:::@{${S3BucketName}Bucket}/*"
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+              Resource: !Sub "!SecondSub arn:aws:s3:::@{${S3BucketName}Bucket}"
           RoleName: !Ref TestDoubleManagerRole
   'Fn::ForEach::S3Buckets':
     - S3BucketName
