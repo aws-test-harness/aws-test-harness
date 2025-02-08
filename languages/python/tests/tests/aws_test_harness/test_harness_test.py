@@ -1,11 +1,12 @@
+import os.path
 from logging import Logger
 from uuid import uuid4
 
 import pytest
 from boto3 import Session
-from mypy_boto3_s3 import S3Client
 
 from aws_test_harness.test_harness import TestHarness
+from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from tests.support.s3_test_client import S3TestClient
 
@@ -16,9 +17,9 @@ def test_stack(cfn_stack_name_prefix: str, boto_session: Session, logger: Logger
 
 
 @pytest.fixture(scope="module", autouse=True)
-def before_all(test_stack: TestCloudFormationStack, test_doubles_template_path: str, cfn_stack_name_prefix: str,
-               boto_session: Session,
-               logger: Logger) -> None:
+def before_all(test_stack: TestCloudFormationStack, infrastructure_directory_path: str,
+               test_doubles_template_file_name: str, cfn_stack_name_prefix: str,
+               boto_session: Session, logger: Logger, system_command_executor: SystemCommandExecutor) -> None:
     templates_stack = TestCloudFormationStack(f'{cfn_stack_name_prefix}test-harness-test-templates', logger,
                                               boto_session)
 
@@ -51,13 +52,12 @@ def before_all(test_stack: TestCloudFormationStack, test_doubles_template_path: 
         )
     )
 
-    # TODO: Replace with install script
-    s3_client: S3Client = boto_session.client('s3')
-    test_doubles_template_s3_key = 'test-doubles.yaml'
-    s3_client.upload_file(
-        Filename=test_doubles_template_path,
-        Bucket=templates_stack.get_output_value('TemplatesBucketName'),
-        Key=test_doubles_template_s3_key
+    system_command_executor.execute(
+        [
+            os.path.normpath(os.path.join(infrastructure_directory_path, 'scripts/install.sh')),
+            f's3://{templates_stack.get_output_value('TemplatesBucketName')}'
+        ],
+        env_vars=dict(AWS_PROFILE=boto_session.profile_name)
     )
 
     test_stack.ensure_state_is(
@@ -83,7 +83,7 @@ def before_all(test_stack: TestCloudFormationStack, test_doubles_template_path: 
                 Type='AWS::CloudFormation::Stack',
                 Properties=dict(
                     Parameters=dict(S3BucketNames='Messages'),
-                    TemplateURL=f'https://{templates_stack.get_output_value('TemplatesBucketRegionalDomainName')}/{test_doubles_template_s3_key}'
+                    TemplateURL=f'https://{templates_stack.get_output_value('TemplatesBucketRegionalDomainName')}/{test_doubles_template_file_name}'
                 )
             )
         ),

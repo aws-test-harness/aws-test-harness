@@ -7,6 +7,7 @@ from typing import Dict, cast
 import pytest
 from boto3 import Session
 
+from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from tests.support.s3_test_client import S3TestClient
 
 
@@ -39,10 +40,25 @@ def boto_session(aws_profile: str) -> Session:
 
 
 @pytest.fixture(scope="session")
+def system_command_executor(logger: Logger) -> SystemCommandExecutor:
+    return SystemCommandExecutor(logger)
+
+
+@pytest.fixture(scope="session")
 def s3_test_client(boto_session: Session) -> S3TestClient:
     return S3TestClient(boto_session)
 
 
 @pytest.fixture(scope="session")
-def test_doubles_template_path() -> str:
-    return os.path.join(os.path.dirname(__file__), '../../../../infrastructure/test-doubles.yaml')
+def infrastructure_directory_path() -> str:
+    return os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../../infrastructure'))
+
+
+@pytest.fixture(scope="session")
+def test_doubles_template_file_name(infrastructure_directory_path: str) -> str:
+    return 'test-doubles.yaml'
+
+
+@pytest.fixture(scope="session")
+def test_doubles_template_path(infrastructure_directory_path: str, test_doubles_template_file_name: str) -> str:
+    return os.path.normpath(os.path.join(infrastructure_directory_path, f'templates/{test_doubles_template_file_name}'))

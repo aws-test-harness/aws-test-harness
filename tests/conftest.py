@@ -7,6 +7,7 @@ from typing import Dict, cast
 import pytest
 from boto3 import Session
 
+from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 
 
@@ -46,6 +47,12 @@ def logger() -> Logger:
 @pytest.fixture(scope="session")
 def boto_session(aws_profile: str, aws_region: str) -> Session:
     return Session(profile_name=aws_profile, region_name=aws_region)
+
+
+@pytest.fixture(scope="session")
+def system_command_executor(test_cfn_stack_name: str, boto_session: Session,
+                            logger: Logger) -> SystemCommandExecutor:
+    return SystemCommandExecutor(logger)
 
 
 @pytest.fixture(scope="session")
