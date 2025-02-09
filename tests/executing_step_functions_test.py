@@ -1,5 +1,5 @@
 import json
-from logging import Logger, getLogger
+from logging import Logger
 from os import path
 from uuid import uuid4
 
@@ -7,8 +7,8 @@ import pytest
 from boto3 import Session
 
 from aws_test_harness.test_harness import TestHarness
-from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
+from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -87,5 +87,5 @@ def test_executing_a_step_function_that_interacts_with_test_doubles(
     assert json.loads(execution.output) == {"result": s3_object_content}
 
 
-def absolute_path_to(relative_path):
+def absolute_path_to(relative_path: str) -> str:
     return path.normpath(path.join(path.dirname(__file__), relative_path))
