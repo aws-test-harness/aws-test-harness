@@ -14,8 +14,7 @@ Create a config file at `tests/config.json` and another at `languages/python/tes
 {
   "awsProfile": "<your AWS CLI profile>",
   "awsRegion": "<target AWS region>",
-  "testCfnStackName": "<chosen name for test stack>",
-  "testTemplatesCfnStackName": "<chosen name for test templates stack>",
+  "cfnStackNamePrefix": "<prefix for stack names>",
 }
 ```
 

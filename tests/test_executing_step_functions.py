@@ -69,8 +69,9 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session:
 
 
 def test_executing_a_step_function_that_interacts_with_test_doubles(
-        logger: Logger, aws_profile: str, test_cfn_stack_name: str, boto_session: Session) -> None:
-    test_harness = TestHarness(test_cfn_stack_name, logger, aws_profile)
+        logger: Logger, aws_profile: str, test_cloudformation_stack: TestCloudFormationStack,
+        boto_session: Session) -> None:
+    test_harness = TestHarness(test_cloudformation_stack.name, logger, aws_profile)
 
     s3_object_key = str(uuid4())
     s3_object_content = f'Random content: {uuid4()}'

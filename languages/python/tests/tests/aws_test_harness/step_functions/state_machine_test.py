@@ -22,7 +22,7 @@ def step_functions_test_client(boto_session: Session) -> StepFunctionsTestClient
     return StepFunctionsTestClient(boto_session)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="module", autouse=True)
 def before_all(test_stack: TestCloudFormationStack) -> None:
     test_stack.ensure_state_is(
         Transform='AWS::Serverless-2016-10-31',
