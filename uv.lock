@@ -59,7 +59,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "aws-test-harness", editable = "languages/python" },
-    { name = "aws-test-harness-test-support", editable = "languages/python/test-support" },
+    { name = "aws-test-harness-test-support", editable = "test-support" },
     { name = "boto3", specifier = ">=1.36.2" },
     { name = "mypy", specifier = ">=1.14.1" },
     { name = "pytest", specifier = ">=8.3.4" },
@@ -69,7 +69,7 @@ dev = [
 [[package]]
 name = "aws-test-harness-test-support"
 version = "0.1.0"
-source = { editable = "languages/python/test-support" }
+source = { editable = "test-support" }
 dependencies = [
     { name = "boto3" },
 ]
