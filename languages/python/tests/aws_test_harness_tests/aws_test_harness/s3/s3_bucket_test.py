@@ -6,7 +6,7 @@ from boto3 import Session
 
 from aws_test_harness.s3.s3_bucket import S3Bucket
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
-from tests.support.s3_test_client import S3TestClient
+from aws_test_harness_tests.support.s3_test_client import S3TestClient
 
 
 @pytest.fixture(scope="module")

@@ -7,7 +7,7 @@ from boto3 import Session
 
 from aws_test_harness.step_functions.state_machine import StateMachine
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
-from tests.support.step_functions_test_client import StepFunctionsTestClient
+from aws_test_harness_tests.support.step_functions_test_client import StepFunctionsTestClient
 
 ANY_EXECUTION_INPUT: Dict[str, Any] = {}
 

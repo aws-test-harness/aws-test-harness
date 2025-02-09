@@ -8,7 +8,7 @@ from boto3 import Session
 
 from aws_test_harness_test_support import load_test_configuration
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
-from tests.support.s3_test_client import S3TestClient
+from aws_test_harness_tests.support.s3_test_client import S3TestClient
 
 
 @pytest.fixture(scope="session")
