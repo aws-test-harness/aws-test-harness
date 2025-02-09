@@ -24,9 +24,6 @@ Resources:
             Rules:
               - Status: Enabled
                 ExpirationInDays: 1
-                NoncurrentVersionExpiration:
-                  NewerNoncurrentVersions: 1
-                  NoncurrentDays: 1
 Outputs:
   'Fn::ForEach::S3BucketNameOutputs':
     - S3BucketName

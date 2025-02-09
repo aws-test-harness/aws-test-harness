@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 from mypy_boto3_cloudformation.client import CloudFormationClient
 from mypy_boto3_cloudformation.literals import OnFailureType
 from mypy_boto3_cloudformation.type_defs import CreateStackInputRequestTypeDef, \
-    UpdateStackInputRequestTypeDef
+    UpdateStackInputRequestTypeDef, StackResourceDetailTypeDef
 
 
 class TestCloudFormationStack:
@@ -23,6 +23,22 @@ class TestCloudFormationStack:
     @property
     def name(self) -> str:
         return self.__stack_name
+
+    def get_stack_resource(self, logical_id: str) -> Optional[StackResourceDetailTypeDef]:
+        try:
+            result = self.__cloudformation_client.describe_stack_resource(
+                StackName=self.__stack_name,
+                LogicalResourceId=logical_id
+            )
+
+            return result['StackResourceDetail']
+        except ClientError as client_error:
+            error = client_error.response['Error']
+
+            if error['Code'] == 'ValidationError' and 'does not exist' in error['Message']:
+                return None
+
+            raise client_error
 
     def get_output_value(self, output_name: str) -> str:
         result = self.__cloudformation_client.describe_stacks(StackName=self.__stack_name)
