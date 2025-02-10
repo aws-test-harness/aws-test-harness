@@ -7,6 +7,7 @@ from boto3 import Session
 
 from aws_test_harness_test_support import load_test_configuration
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
+from aws_test_harness_test_support.test_s3_bucket_stack import TestS3BucketStack
 
 
 @pytest.fixture(scope="session")
@@ -26,7 +27,7 @@ def aws_region(test_configuration: Dict[str, str]) -> str:
 
 @pytest.fixture(scope="session")
 def cfn_stack_name_prefix(test_configuration: Dict[str, str]) -> str:
-    return test_configuration['cfnStackNamePrefix']
+    return test_configuration['cfnStackNamePrefix'] + 'infrastructure-tests-'
 
 
 @pytest.fixture(scope="session")
@@ -42,3 +43,12 @@ def boto_session(aws_profile: str, aws_region: str) -> Session:
 @pytest.fixture(scope="session")
 def system_command_executor(boto_session: Session, logger: Logger) -> SystemCommandExecutor:
     return SystemCommandExecutor(logger)
+
+
+@pytest.fixture(scope="session")
+def s3_deployment_assets_bucket_name(boto_session: Session, cfn_stack_name_prefix: str, logger: Logger) -> str:
+    stack = TestS3BucketStack(cfn_stack_name_prefix + 'acceptance-infrastructure-code-bucket', logger,
+                                             boto_session)
+    stack.ensure_exists()
+
+    return stack.bucket_name

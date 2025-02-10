@@ -8,6 +8,7 @@ from boto3 import Session
 
 from aws_test_harness_test_support import load_test_configuration
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
+from aws_test_harness_test_support.test_s3_bucket_stack import TestS3BucketStack
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
 
 
@@ -47,15 +48,26 @@ def s3_test_client(boto_session: Session) -> S3TestClient:
 
 
 @pytest.fixture(scope="session")
-def infrastructure_directory_path() -> str:
-    return os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../../infrastructure'))
+def test_double_macro_name(boto_session: Session, system_command_executor: SystemCommandExecutor, logger: Logger,
+                           cfn_stack_name_prefix: str) -> str:
+    deployment_assets_bucket_stack = TestS3BucketStack(
+        f'{cfn_stack_name_prefix}tests-infrastructure-deployment-assets', logger,
+        boto_session
+    )
 
+    deployment_assets_bucket_stack.ensure_exists()
 
-@pytest.fixture(scope="session")
-def test_doubles_template_file_name(infrastructure_directory_path: str) -> str:
-    return 'test-doubles.yaml'
+    macro_name_prefix = 'python-library-tests-'
 
+    system_command_executor.execute(
+        [
+            os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../../infrastructure/scripts/install.sh')),
+            f"{cfn_stack_name_prefix}test-harness-test-infrastructure",
+            deployment_assets_bucket_stack.bucket_name,
+            'aws-test-harness/infrastructure/',
+            macro_name_prefix
+        ],
+        env_vars=dict(AWS_PROFILE=boto_session.profile_name)
+    )
 
-@pytest.fixture(scope="session")
-def test_doubles_template_path(infrastructure_directory_path: str, test_doubles_template_file_name: str) -> str:
-    return os.path.normpath(os.path.join(infrastructure_directory_path, f'templates/{test_doubles_template_file_name}'))
+    return f'{macro_name_prefix}AWSTestHarness-TestDoubles'

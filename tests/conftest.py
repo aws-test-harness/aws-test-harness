@@ -8,6 +8,7 @@ from boto3 import Session
 from aws_test_harness_test_support import load_test_configuration
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
+from aws_test_harness_test_support.test_s3_bucket_stack import TestS3BucketStack
 
 
 @pytest.fixture(scope="session")
@@ -52,47 +53,10 @@ def test_cloudformation_stack(cfn_stack_name_prefix: str, boto_session: Session,
 
 
 @pytest.fixture(scope="session")
-def test_templates_cloudformation_stack(cfn_stack_name_prefix: str, boto_session: Session,
-                                        logger: Logger) -> TestCloudFormationStack:
-    stack = TestCloudFormationStack(cfn_stack_name_prefix + 'acceptance-test-templates', logger, boto_session)
+def s3_deployment_assets_bucket_name(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session) -> str:
+    stack = TestS3BucketStack(cfn_stack_name_prefix + 'acceptance-test-infrastructure-deployment-assets', logger,
+                              boto_session)
 
-    stack.ensure_state_is(
-        AWSTemplateFormatVersion='2010-09-09',
-        Resources=dict(
-            Templates=dict(
-                Type='AWS::S3::Bucket',
-                Properties=dict(
-                    PublicAccessBlockConfiguration=dict(
-                        BlockPublicAcls=True,
-                        BlockPublicPolicy=True,
-                        IgnorePublicAcls=True,
-                        RestrictPublicBuckets=True
-                    ),
-                    BucketEncryption=dict(
-                        ServerSideEncryptionConfiguration=[
-                            dict(
-                                ServerSideEncryptionByDefault=dict(SSEAlgorithm='AES256')
-                            )
-                        ]
-                    )
-                )
-            )
-        ),
-        Outputs=dict(
-            TemplatesBucketName=dict(Value={'Ref': 'Templates'}),
-            # Regional domain name avoids the need to wait for global propagation of the bucket name
-            TemplatesBucketRegionalDomainName=dict(Value={'Fn::GetAtt': 'Templates.RegionalDomainName'})
-        )
-    )
+    stack.ensure_exists()
 
-    return stack
-
-
-@pytest.fixture(scope="session")
-def test_templates_s3_bucket_name(test_templates_cloudformation_stack: TestCloudFormationStack) -> str:
-    return test_templates_cloudformation_stack.get_output_value('TemplatesBucketName')
-
-
-@pytest.fixture(scope="session")
-def test_templates_s3_regional_domain_name(test_templates_cloudformation_stack: TestCloudFormationStack) -> str:
-    return test_templates_cloudformation_stack.get_output_value('TemplatesBucketRegionalDomainName')
+    return stack.bucket_name

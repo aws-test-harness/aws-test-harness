@@ -8,7 +8,7 @@ class SystemCommandExecutor:
         self.__logger = logger
 
     def execute(self, command_args: Sequence[str], env_vars: Optional[Mapping[str, str]] = None,
-                timeout_seconds: int = 10) -> None:
+                timeout_seconds: int = 60) -> None:
         self.__logger.info('Executing command: %s', subprocess.list2cmdline(command_args))
 
         completed_process = subprocess.run(

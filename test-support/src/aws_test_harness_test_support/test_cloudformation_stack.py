@@ -24,6 +24,11 @@ class TestCloudFormationStack:
     def name(self) -> str:
         return self.__stack_name
 
+    def get_stack_resource_physical_id(self, logical_id: str) -> str:
+        resource = self.get_stack_resource(logical_id)
+        assert resource is not None
+        return resource['PhysicalResourceId']
+
     def get_stack_resource(self, logical_id: str) -> Optional[StackResourceDetailTypeDef]:
         try:
             result = self.__cloudformation_client.describe_stack_resource(

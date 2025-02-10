@@ -1,4 +1,3 @@
-import os.path
 from logging import Logger
 from uuid import uuid4
 
@@ -6,7 +5,6 @@ import pytest
 from boto3 import Session
 
 from aws_test_harness.test_harness import TestHarness
-from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
 
@@ -17,51 +15,10 @@ def test_stack(cfn_stack_name_prefix: str, boto_session: Session, logger: Logger
 
 
 @pytest.fixture(scope="module", autouse=True)
-def before_all(test_stack: TestCloudFormationStack, infrastructure_directory_path: str,
-               test_doubles_template_file_name: str, cfn_stack_name_prefix: str,
-               boto_session: Session, logger: Logger, system_command_executor: SystemCommandExecutor) -> None:
-    templates_stack = TestCloudFormationStack(f'{cfn_stack_name_prefix}test-harness-test-templates', logger,
-                                              boto_session)
-
-    templates_stack.ensure_state_is(
-        AWSTemplateFormatVersion='2010-09-09',
-        Resources=dict(
-            Templates=dict(
-                Type='AWS::S3::Bucket',
-                Properties=dict(
-                    PublicAccessBlockConfiguration=dict(
-                        BlockPublicAcls=True,
-                        BlockPublicPolicy=True,
-                        IgnorePublicAcls=True,
-                        RestrictPublicBuckets=True
-                    ),
-                    BucketEncryption=dict(
-                        ServerSideEncryptionConfiguration=[
-                            dict(
-                                ServerSideEncryptionByDefault=dict(SSEAlgorithm='AES256')
-                            )
-                        ]
-                    )
-                )
-            )
-        ),
-        Outputs=dict(
-            TemplatesBucketName=dict(Value={'Ref': 'Templates'}),
-            # Regional domain name avoids the need to wait for global propagation of the bucket name
-            TemplatesBucketRegionalDomainName=dict(Value={'Fn::GetAtt': 'Templates.RegionalDomainName'})
-        )
-    )
-
-    system_command_executor.execute(
-        [
-            os.path.normpath(os.path.join(infrastructure_directory_path, 'scripts/install.sh')),
-            f's3://{templates_stack.get_output_value('TemplatesBucketName')}'
-        ],
-        env_vars=dict(AWS_PROFILE=boto_session.profile_name)
-    )
-
+def before_all(test_stack: TestCloudFormationStack, test_double_macro_name: str) -> None:
     test_stack.ensure_state_is(
-        Transform='AWS::Serverless-2016-10-31',
+        Transform=['AWS::Serverless-2016-10-31', test_double_macro_name],
+        Parameters=dict(AWSTestHarnessS3Buckets=dict(Type='CommaDelimitedList')),
         Resources=dict(
             AddNumbersStateMachine=dict(
                 Type='AWS::Serverless::StateMachine',
@@ -78,19 +35,13 @@ def before_all(test_stack: TestCloudFormationStack, infrastructure_directory_pat
                         )
                     )
                 )
-            ),
-            TestDoubles=dict(
-                Type='AWS::CloudFormation::Stack',
-                Properties=dict(
-                    Parameters=dict(S3BucketNames='Messages'),
-                    TemplateURL=f'https://{templates_stack.get_output_value('TemplatesBucketRegionalDomainName')}/{test_doubles_template_file_name}'
-                )
             )
         ),
         Outputs=dict(
             AddNumbersStateMachineArn=dict(Value=dict(Ref='AddNumbersStateMachine')),
-            MessagesS3BucketName=dict(Value={'Fn::GetAtt': 'TestDoubles.Outputs.MessagesS3BucketName'}),
-        )
+            MessagesS3BucketName=dict(Value={'Ref': 'MessagesAWSTestHarnessS3Bucket'}),
+        ),
+        AWSTestHarnessS3Buckets='Messages'
     )
 
 

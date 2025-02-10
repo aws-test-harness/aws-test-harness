@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  MacroNamePrefix:
+    Type: String
+    Description: Optional prefix for all macro names
+    Default: ""
+  CodeS3Bucket:
+    Type: String
+    Description: Name of S3 bucket containing macro code
+  TestDoublesMacroCodeS3Key:
+    Type: String
+    Description: Name of S3 key containing the test doubles macro code
+Resources:
+  TestDoublesMacro:
+    Type: AWS::CloudFormation::Macro
+    Properties:
+      Name: !Sub ${MacroNamePrefix}AWSTestHarness-TestDoubles
+      Description: Generates test doubles based on template parameter values
+      FunctionName: !Ref TestDoublesMacroFunction
+  TestDoublesMacroFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: !Ref CodeS3Bucket
+        Key: !Ref TestDoublesMacroCodeS3Key
+      Handler: test_doubles.index.handler
+      Runtime: python3.13
+      Timeout: 5
+      LoggingConfig:
+        ApplicationLogLevel: INFO
+        LogFormat: JSON
+        SystemLogLevel: INFO

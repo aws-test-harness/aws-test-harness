@@ -13,21 +13,23 @@ from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFor
 
 @pytest.fixture(scope="session", autouse=True)
 def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session: Session,
-               test_templates_s3_bucket_name: str, test_templates_s3_regional_domain_name: str,
-               system_command_executor: SystemCommandExecutor) -> None:
-    test_doubles_template_s3_prefix = 'aws-test-harness/templates'
-
+               s3_deployment_assets_bucket_name: str, system_command_executor: SystemCommandExecutor,
+               cfn_stack_name_prefix: str) -> None:
     system_command_executor.execute(
         [
             absolute_path_to('../infrastructure/scripts/install.sh'),
-            f's3://{test_templates_s3_bucket_name}/{test_doubles_template_s3_prefix}'
+            f"{cfn_stack_name_prefix}infrastructure",
+            s3_deployment_assets_bucket_name,
+            'aws-test-harness/infrastructure/',
+            'acceptance-tests-'
         ],
         env_vars=dict(AWS_PROFILE=boto_session.profile_name)
     )
 
     test_cloudformation_stack.ensure_state_is(
         AWSTemplateFormatVersion='2010-09-09',
-        Transform='AWS::Serverless-2016-10-31',
+        Transform=['AWS::Serverless-2016-10-31', 'acceptance-tests-AWSTestHarness-TestDoubles'],
+        Parameters=dict(AWSTestHarnessS3Buckets=dict(Type='CommaDelimitedList')),
         Resources=dict(
             StateMachine=dict(
                 Type='AWS::Serverless::StateMachine',
@@ -50,21 +52,15 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session:
                         }
                     }),
                     DefinitionSubstitutions=dict(
-                        MessagesS3BucketName={'Fn::GetAtt': 'TestDoubles.Outputs.MessagesS3BucketName'}
+                        MessagesS3BucketName={'Ref': 'MessagesAWSTestHarnessS3Bucket'}
                     ),
                     Policies=dict(
-                        S3ReadPolicy=dict(BucketName={'Fn::GetAtt': 'TestDoubles.Outputs.MessagesS3BucketName'})
+                        S3ReadPolicy=dict(BucketName={'Ref': 'MessagesAWSTestHarnessS3Bucket'})
                     )
                 )
             ),
-            TestDoubles=dict(
-                Type='AWS::CloudFormation::Stack',
-                Properties=dict(
-                    Parameters=dict(S3BucketNames='Messages'),
-                    TemplateURL=f'https://{test_templates_s3_regional_domain_name}/{test_doubles_template_s3_prefix}/test-doubles.yaml'
-                )
-            )
-        )
+        ),
+        AWSTestHarnessS3Buckets='Messages'
     )
 
 
