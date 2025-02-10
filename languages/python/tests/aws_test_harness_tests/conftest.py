@@ -59,9 +59,13 @@ def test_double_macro_name(boto_session: Session, system_command_executor: Syste
 
     macro_name_prefix = 'python-library-tests-'
 
+    infrastructure_directory_path = '../../../../infrastructure'
+
+    system_command_executor.execute([absolute_path_to(f'{infrastructure_directory_path}/scripts/build.sh')])
+
     system_command_executor.execute(
         [
-            os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../../infrastructure/scripts/install.sh')),
+            absolute_path_to(f'{infrastructure_directory_path}/build/install.sh'),
             f"{cfn_stack_name_prefix}test-harness-test-infrastructure",
             deployment_assets_bucket_stack.bucket_name,
             'aws-test-harness/infrastructure/',
@@ -71,3 +75,7 @@ def test_double_macro_name(boto_session: Session, system_command_executor: Syste
     )
 
     return f'{macro_name_prefix}AWSTestHarness-TestDoubles'
+
+
+def absolute_path_to(relative_file_path: str) -> str:
+    return os.path.normpath(os.path.join(os.path.dirname(__file__), relative_file_path))

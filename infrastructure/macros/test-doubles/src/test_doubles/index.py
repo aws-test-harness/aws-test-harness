@@ -47,7 +47,7 @@ def handler(event: CloudFormationMacroEvent, _: Any) -> CloudFormationMacroRespo
             )
         )
 
-    LOGGER.info("Updated CloudFormation template fragment", extra=dict(fragment=original_fragment))
+    LOGGER.info("Returning updated CloudFormation template fragment", extra=dict(fragment=original_fragment))
 
     return {
         "requestId": event['requestId'],

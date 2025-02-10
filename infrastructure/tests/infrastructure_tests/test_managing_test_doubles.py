@@ -12,9 +12,11 @@ from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFor
 def test_managing_test_double_s3_buckets(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session,
                                          system_command_executor: SystemCommandExecutor,
                                          s3_deployment_assets_bucket_name: str) -> None:
+    system_command_executor.execute([absolute_path_to('../../scripts/build.sh')])
+
     system_command_executor.execute(
         [
-            absolute_path_to('../../scripts/install.sh'),
+            absolute_path_to('../../build/install.sh'),
             f"{cfn_stack_name_prefix}infrastructure",
             s3_deployment_assets_bucket_name,
             'aws-test-harness/infrastructure/',

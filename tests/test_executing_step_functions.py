@@ -15,9 +15,11 @@ from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFor
 def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session: Session,
                s3_deployment_assets_bucket_name: str, system_command_executor: SystemCommandExecutor,
                cfn_stack_name_prefix: str) -> None:
+    system_command_executor.execute([absolute_path_to('../infrastructure/scripts/build.sh')])
+
     system_command_executor.execute(
         [
-            absolute_path_to('../infrastructure/scripts/install.sh'),
+            absolute_path_to('../infrastructure/build/install.sh'),
             f"{cfn_stack_name_prefix}infrastructure",
             s3_deployment_assets_bucket_name,
             'aws-test-harness/infrastructure/',
