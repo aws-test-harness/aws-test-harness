@@ -79,16 +79,19 @@ class TestCloudFormationStack:
     def __create_or_update_stack(self, stack_template_data: Dict[str, Any],
                                  parameter_values: Optional[Dict[str, str]] = None) -> None:
 
-        template_body = json.dumps(stack_template_data, default=str, indent=2)
-
         self.__logger.info(
-            f'Ensuring CloudFormation stack "{self.__stack_name}" matches the following template:'
-            f'\n\n{template_body}'
+            f'Ensuring CloudFormation stack "{self.__stack_name}" matches state defined by the following template:'
+            f'\n\n{yaml.dump(stack_template_data, sort_keys=False)}' +
+            (
+                f'\nand the following template parameter values:\n\n' +
+                '\n'.join(f'{name}: "{value}"' for name, value in parameter_values.items()) + '\n'
+                if parameter_values else ''
+            )
         )
 
         common_upsert_kwargs = dict(
             StackName=self.__stack_name,
-            TemplateBody=template_body,
+            TemplateBody=json.dumps(stack_template_data),
             Capabilities=['CAPABILITY_IAM', 'CAPABILITY_AUTO_EXPAND'],
             Parameters=[dict(ParameterKey=key, ParameterValue=value) for key, value in (parameter_values or {}).items()]
         )
