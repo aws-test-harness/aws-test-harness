@@ -58,23 +58,34 @@ class TestCloudFormationStack:
     def ensure_state_is(self, Resources: Dict[str, Any],
                         AWSTemplateFormatVersion: str = '2010-09-09',
                         Transform: Optional[Union[str, List[str]]] = None,
-                        Outputs: Optional[Dict[str, Any]] = None) -> None:
+                        Outputs: Optional[Dict[str, Any]] = None,
+                        Parameters: Optional[Dict[str, Any]] = None,
+                        **parameter_values: str) -> None:
 
-        stack_template_data = self.__create_stack_template_data(AWSTemplateFormatVersion, Transform, Resources, Outputs)
-        self.__create_or_update_stack(stack_template_data)
+        stack_template_data = self.__create_stack_template_data(
+            AWSTemplateFormatVersion, Transform, Parameters, Resources, Outputs
+        )
 
-    def ensure_state_matches_yaml_template_file(self, template_file_path: str, **parameters: str) -> None:
-        self.__create_or_update_stack(yaml.load(open(template_file_path, 'r'), Loader=yaml.Loader), parameters)
+        self.__create_or_update_stack(stack_template_data, parameter_values)
+
+    def ensure_state_matches_yaml_template_file(self, template_file_path: str, **parameter_values: str) -> None:
+        self.__create_or_update_stack(yaml.load(open(template_file_path, 'r'), Loader=yaml.Loader), parameter_values)
 
     def __create_or_update_stack(self, stack_template_data: Dict[str, Any],
-                                 parameters: Optional[Dict[str, str]] = None) -> None:
-        self.__logger.info(f'Ensuring CloudFormation stack "{self.__stack_name}" is up-to-date...')
+                                 parameter_values: Optional[Dict[str, str]] = None) -> None:
+
+        template_body = json.dumps(stack_template_data, default=str, indent=2)
+
+        self.__logger.info(
+            f'Ensuring CloudFormation stack "{self.__stack_name}" matches the following template:'
+            f'\n\n{template_body}'
+        )
 
         common_upsert_kwargs = dict(
             StackName=self.__stack_name,
-            TemplateBody=json.dumps(stack_template_data, default=str),
+            TemplateBody=template_body,
             Capabilities=['CAPABILITY_IAM', 'CAPABILITY_AUTO_EXPAND'],
-            Parameters=[dict(ParameterKey=key, ParameterValue=value) for key, value in (parameters or {}).items()]
+            Parameters=[dict(ParameterKey=key, ParameterValue=value) for key, value in (parameter_values or {}).items()]
         )
 
         try:
@@ -107,7 +118,8 @@ class TestCloudFormationStack:
     # noinspection PyPep8Naming
     @staticmethod
     def __create_stack_template_data(AWSTemplateFormatVersion: str, Transform: Optional[Union[str, List[str]]],
-                                     Resources: Dict[str, Any], Outputs: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+                                     Parameters: Optional[Dict[str, Any]], Resources: Dict[str, Any],
+                                     Outputs: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         stack_template_data = dict(
             AWSTemplateFormatVersion=AWSTemplateFormatVersion,
             Resources=Resources,
@@ -115,6 +127,9 @@ class TestCloudFormationStack:
 
         if Transform:
             stack_template_data['Transform'] = Transform
+
+        if Parameters:
+            stack_template_data['Parameters'] = Parameters
 
         if Outputs:
             stack_template_data['Outputs'] = Outputs
