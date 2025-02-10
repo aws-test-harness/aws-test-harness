@@ -14,11 +14,11 @@ get_absolute_path() {
   echo "${script_directory_path}/../${relative_path}"
 }
 
-distributable_directory_path="$(get_absolute_path dist)"
+build_directory_path="$(get_absolute_path build)"
 
-get_lambda_function_distributable_directory_path() {
+get_lambda_function_build_directory_path() {
   local lambda_function_directory_relative_path="$1"
-  echo "${distributable_directory_path:?}/${lambda_function_directory_relative_path}"
+  echo "${build_directory_path:?}/${lambda_function_directory_relative_path}"
 }
 
 build_lambda_function_code_bundle() {
@@ -40,17 +40,17 @@ build_lambda_function_code_bundle() {
 
   touch -t 198001010000 "${code_bundle_temp_file_path}"
 
-  local lambda_function_distributable_directory
-  lambda_function_distributable_directory="$(get_lambda_function_distributable_directory_path "${lambda_function_directory_relative_path}")"
-  rm -rf "${lambda_function_distributable_directory}"
-  mkdir -p "${lambda_function_distributable_directory}"
+  local lambda_function_build_directory
+  lambda_function_build_directory="$(get_lambda_function_build_directory_path "${lambda_function_directory_relative_path}")"
+  rm -rf "${lambda_function_build_directory}"
+  mkdir -p "${lambda_function_build_directory}"
 
   local code_bundle_checksum
   code_bundle_checksum="$(cksum "${code_bundle_temp_file_path}" | cut -f 1 -d ' ')"
 
   local code_bundle_file_name
   code_bundle_file_name="${code_bundle_checksum}.zip"
-  mv "${code_bundle_temp_file_path}" "${lambda_function_distributable_directory}/${code_bundle_file_name}"
+  mv "${code_bundle_temp_file_path}" "${lambda_function_build_directory}/${code_bundle_file_name}"
 
   echo "${code_bundle_file_name}"
 }
@@ -61,13 +61,13 @@ upload_lambda_function_code_bundle() {
 
   echo "Uploading Lambda function code bundle for ${lambda_function_directory_relative_path}..." 1>&2
 
-  local lambda_function_distributable_directory
-  lambda_function_distributable_directory="$(get_lambda_function_distributable_directory_path "${lambda_function_directory_relative_path}")"
+  local lambda_function_build_directory
+  lambda_function_build_directory="$(get_lambda_function_build_directory_path "${lambda_function_directory_relative_path}")"
 
   lambda_function_code_s3_key_prefix="${code_s3_key_prefix}${lambda_function_directory_relative_path}/"
 
   aws s3 sync \
-    "${lambda_function_distributable_directory}" \
+    "${lambda_function_build_directory}" \
     "s3://${code_s3_bucket}/${lambda_function_code_s3_key_prefix}" > /dev/null
 
   echo "${lambda_function_code_s3_key_prefix}${lambda_function_code_bundle_file_name}"
@@ -88,8 +88,8 @@ deploy() {
       TestDoublesMacroCodeS3Key="${test_doubles_macro_code_s3_key}"
 }
 
-rm -rf "${distributable_directory_path:?}"
-mkdir -p "${distributable_directory_path}"
+rm -rf "${build_directory_path:?}"
+mkdir -p "${build_directory_path}"
 
 test_doubles_macro_code_bundle_file_name="$(build_lambda_function_code_bundle "macros/test-doubles")"
 test_doubles_macro_code_s3_key="$(upload_lambda_function_code_bundle "macros/test-doubles" "${test_doubles_macro_code_bundle_file_name}")"
