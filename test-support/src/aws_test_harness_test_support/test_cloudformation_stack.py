@@ -71,40 +71,37 @@ class TestCloudFormationStack:
             AWSTemplateFormatVersion, Transform, Parameters, Resources, Outputs
         )
 
-        self.__create_or_update_stack(stack_template_data, parameter_values)
-
-    def ensure_state_matches_yaml_template_file(self, template_file_path: str, **parameter_values: str) -> None:
-        self.__create_or_update_stack(yaml.load(open(template_file_path, 'r'), Loader=yaml.Loader), parameter_values)
-
-    def __create_or_update_stack(self, stack_template_data: Dict[str, Any],
-                                 parameter_values: Optional[Dict[str, str]] = None) -> None:
-
         self.__logger.info(
             f'Ensuring CloudFormation stack "{self.__stack_name}" matches state defined by the following template:'
             f'\n\n{yaml.dump(stack_template_data, sort_keys=False)}' +
             (
-                f'\nand the following template parameter values:\n\n' +
+                '\nand the following template parameter values:\n\n' +
                 '\n'.join(f'{name}: "{value}"' for name, value in parameter_values.items()) + '\n'
                 if parameter_values else ''
             )
         )
 
-        common_upsert_kwargs = dict(
+        common_stack_operation_kwargs: Union[CreateStackInputRequestTypeDef, UpdateStackInputRequestTypeDef] = dict(
             StackName=self.__stack_name,
             TemplateBody=json.dumps(stack_template_data),
             Capabilities=['CAPABILITY_IAM', 'CAPABILITY_AUTO_EXPAND'],
             Parameters=[dict(ParameterKey=key, ParameterValue=value) for key, value in (parameter_values or {}).items()]
         )
 
+        self.__create_or_update_stack(common_stack_operation_kwargs)
+
+        self.__logger.info('CloudFormation stack is up-to-date.')
+
+    def __create_or_update_stack(self, common_stack_operation_kwargs: Union[
+        CreateStackInputRequestTypeDef, UpdateStackInputRequestTypeDef]) -> None:
         try:
-            self.__create_stack(**cast(CreateStackInputRequestTypeDef, common_upsert_kwargs))
+            self.__create_stack(**cast(CreateStackInputRequestTypeDef, common_stack_operation_kwargs))
         except ClientError as client_error:
             # noinspection PyUnresolvedReferences
             if client_error.response['Error']['Code'] != 'AlreadyExistsException':
                 raise client_error
 
-            self.__update_stack(**cast(UpdateStackInputRequestTypeDef, common_upsert_kwargs))
-        self.__logger.info('CloudFormation stack is up-to-date.')
+            self.__update_stack(**cast(UpdateStackInputRequestTypeDef, common_stack_operation_kwargs))
 
     def __create_stack(self, **common_upsert_kwargs: Unpack[CreateStackInputRequestTypeDef]) -> None:
         common_upsert_kwargs['OnFailure'] = cast(OnFailureType, "DELETE")
