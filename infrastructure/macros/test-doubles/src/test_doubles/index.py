@@ -1,5 +1,8 @@
 from logging import getLogger
-from typing import Mapping, Any, TypedDict, Dict, NotRequired
+from typing import Any, TypedDict, Dict, NotRequired
+
+from test_doubles.fragment_generator import FragmentGenerator
+from test_doubles.test_double_resource_factory import TestDoubleResourceFactory
 
 LOGGER = getLogger()
 
@@ -24,30 +27,11 @@ def handler(event: CloudFormationMacroEvent, _: Any) -> CloudFormationMacroRespo
 
     LOGGER.info("Received CloudFormation template fragment", extra=dict(fragment=original_fragment))
 
-    parameter_values: Mapping[str, Any] = event['templateParameterValues']
+    additional_resources = TestDoubleResourceFactory.generate_additional_resources(event['templateParameterValues'])
 
-    for s3_bucket_id in parameter_values['AWSTestHarnessS3Buckets']:
-        original_fragment['Resources'][f'{s3_bucket_id}AWSTestHarnessS3Bucket'] = dict(
-            Type='AWS::S3::Bucket',
-            Properties=dict(
-                PublicAccessBlockConfiguration=dict(
-                    BlockPublicAcls=True,
-                    BlockPublicPolicy=True,
-                    IgnorePublicAcls=True,
-                    RestrictPublicBuckets=True
-                ),
-                BucketEncryption=dict(
-                    ServerSideEncryptionConfiguration=[
-                        dict(
-                            ServerSideEncryptionByDefault=dict(SSEAlgorithm='AES256')
-                        )
-                    ]
-                ),
-                LifecycleConfiguration=dict(Rules=[dict(Status='Enabled', ExpirationInDays=1)])
-            )
-        )
+    updated_fragment = FragmentGenerator.generate_fragment_from(original_fragment, additional_resources)
 
-    LOGGER.info("Returning updated CloudFormation template fragment", extra=dict(fragment=original_fragment))
+    LOGGER.info("Returning updated CloudFormation template fragment", extra=dict(fragment=updated_fragment))
 
     return {
         "requestId": event['requestId'],
