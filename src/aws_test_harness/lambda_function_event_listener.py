@@ -58,6 +58,17 @@ class LambdaFunctionEventListener(Thread):
                         print(f'Message received: {json.dumps(message)}')
 
                         if message['MessageAttributes']['MockingSessionId']['StringValue'] == mocking_session_id:
+                            # Delete message before processing to prevent other consumers from processing it when the visibility timeout expires
+                            # This is necessary in case processing involves a long running operation, e.g. a sleep to control concurrency
+                            try:
+                                receipt_handle = message['ReceiptHandle']
+                                self.__sqs_client.delete_message(
+                                    QueueUrl=self.__test_double_driver.events_queue_url,
+                                    ReceiptHandle=receipt_handle
+                                )
+                            except ClientError as e:
+                                print(f"Failed to delete message: {e}")
+
                             message_consumer_thread = Thread(
                                 daemon=True,
                                 target=self.__consume_message,
@@ -120,12 +131,3 @@ class LambdaFunctionEventListener(Thread):
                 ttl=int((datetime.now() + timedelta(hours=12)).timestamp())
             )
         )
-
-        try:
-            receipt_handle = message['ReceiptHandle']
-            self.__sqs_client.delete_message(
-                QueueUrl=self.__test_double_driver.events_queue_url,
-                ReceiptHandle=receipt_handle
-            )
-        except ClientError as e:
-            print(f"Failed to delete message: {e}")
