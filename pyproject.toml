@@ -1,6 +1,6 @@
 [project]
 name = "aws-test-harness"
-version =   "0.0.1a17"
+version =   "0.0.1a18"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
