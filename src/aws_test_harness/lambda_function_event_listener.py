@@ -34,7 +34,6 @@ class LambdaFunctionEventListener(Thread):
         self.__test_double_driver = test_double_driver
         self.__get_mocking_session_id = get_mocking_session_id
 
-    # TODO: Move some responsibilities into classes that represent Lambda functions or queues, created by test double driver
     def run(self):
         # noinspection PyBroadException
         try:
@@ -56,59 +55,13 @@ class LambdaFunctionEventListener(Thread):
                         print(f'Message received: {json.dumps(message)}')
 
                         if message['MessageAttributes']['MockingSessionId']['StringValue'] == mocking_session_id:
-                            message_payload = json.loads(message['Body'])
-
-                            function_event = json.loads(message_payload['event'])
-                            function_invocation_id = message_payload['invocationId']
-                            function_name = message_payload['functionName']
-                            function_execution_environment_id = message_payload['executionEnvironmentId']
-                            message_group_id = message['Attributes']['MessageGroupId']
-
-                            print(f"{function_name} invocation "
-                                  f"from execution environment {function_execution_environment_id} "
-                                  f"with invocation ID {function_invocation_id} "
-                                  f"received event {function_event}")
-
-                            event_handler = self.__event_handlers[function_name]
-                            function_result = event_handler(function_event)
-
-                            message_payload = dict(
-                                raiseException=False,
-                                invocationId=function_invocation_id,
-                                functionName=function_name,
-                                executionEnvironmentId=function_execution_environment_id
+                            message_consumer_thread = Thread(
+                                daemon=True,
+                                target=self.__consume_message,
+                                args=(message, mocking_session_id)
                             )
 
-                            if isinstance(function_result, AThrownException):
-                                message_payload['raiseException'] = True
-
-                                exception_message = function_result.message
-                                message_payload['exceptionMessage'] = exception_message
-                                print(f'Throwing exception with message "{exception_message}"')
-                            else:
-                                message_payload['result'] = json.dumps(function_result)
-                                print(f'Returning result: {json.dumps(function_result)}')
-
-                            self.__sqs_client.send_message(
-                                QueueUrl=self.__test_double_driver.results_queue_url,
-                                MessageGroupId=message_group_id,
-                                MessageAttributes={
-                                    'MockingSessionId': {
-                                        'DataType': 'String',
-                                        'StringValue': mocking_session_id
-                                    }
-                                },
-                                MessageBody=json.dumps(message_payload)
-                            )
-
-                        try:
-                            receipt_handle = message['ReceiptHandle']
-                            self.__sqs_client.delete_message(
-                                QueueUrl=self.__test_double_driver.events_queue_url,
-                                ReceiptHandle=receipt_handle
-                            )
-                        except ClientError as e:
-                            print(f"Failed to delete message: {e}")
+                            message_consumer_thread.start()
 
                 else:
                     print('No messages received')
@@ -127,3 +80,59 @@ class LambdaFunctionEventListener(Thread):
 
     def register_event_handler(self, function_name: str, event_handler):
         self.__event_handlers[function_name] = event_handler
+
+    def __consume_message(self, message: Dict[str, Any], mocking_session_id: str) -> None:
+        event_message_payload = json.loads(message['Body'])
+
+        function_event = json.loads(event_message_payload['event'])
+        function_invocation_id = event_message_payload['invocationId']
+        function_name = event_message_payload['functionName']
+        function_execution_environment_id = event_message_payload['executionEnvironmentId']
+        message_group_id = message['Attributes']['MessageGroupId']
+
+        print(f"{function_name} invocation "
+              f"from execution environment {function_execution_environment_id} "
+              f"with invocation ID {function_invocation_id} "
+              f"received event {function_event}")
+
+        event_handler = self.__event_handlers[function_name]
+
+        function_result = event_handler(function_event)
+
+        result_message_payload = dict(
+            raiseException=False,
+            invocationId=function_invocation_id,
+            functionName=function_name,
+            executionEnvironmentId=function_execution_environment_id
+        )
+
+        if isinstance(function_result, AThrownException):
+            result_message_payload['raiseException'] = True
+
+            exception_message = function_result.message
+            result_message_payload['exceptionMessage'] = exception_message
+            print(f'Throwing exception with message "{exception_message}"')
+        else:
+            result_message_payload['result'] = json.dumps(function_result)
+            print(f'Returning result: {json.dumps(function_result)}')
+
+        self.__sqs_client.send_message(
+            QueueUrl=self.__test_double_driver.results_queue_url,
+            MessageGroupId=message_group_id,
+            MessageAttributes={
+                'MockingSessionId': {
+                    'DataType': 'String',
+                    'StringValue': mocking_session_id
+                }
+            },
+            MessageBody=json.dumps(result_message_payload)
+        )
+
+        try:
+            receipt_handle = message['ReceiptHandle']
+            self.__sqs_client.delete_message(
+                QueueUrl=self.__test_double_driver.events_queue_url,
+                ReceiptHandle=receipt_handle
+            )
+        except ClientError as e:
+            print(f"Failed to delete message: {e}")
