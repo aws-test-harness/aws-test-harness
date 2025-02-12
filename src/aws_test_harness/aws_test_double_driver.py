@@ -8,7 +8,7 @@ from aws_test_harness.s3_bucket import S3Bucket
 class AWSTestDoubleDriver:
     __test_context_bucket: S3Bucket = None
     __events_queue_url: str = None
-    __results_queue_url: str = None
+    __results_table_name: str = None
 
     def __init__(self, cloudformation_stack: CloudFormationStack, boto_session: Session):
         self.__cloudformation_stack = cloudformation_stack
@@ -39,11 +39,11 @@ class AWSTestDoubleDriver:
         return self.__events_queue_url
 
     @property
-    def results_queue_url(self) -> str:
-        if self.__results_queue_url is None:
-            self.__results_queue_url = self.__cloudformation_stack.get_physical_resource_id_for('ResultsQueue')
+    def results_table_name(self) -> str:
+        if self.__results_table_name is None:
+            self.__results_table_name = self.__cloudformation_stack.get_physical_resource_id_for('ResultsTable')
 
-        return self.__results_queue_url
+        return self.__results_table_name
 
     @property
     def test_context_bucket(self) -> S3Bucket:

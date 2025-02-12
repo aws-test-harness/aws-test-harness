@@ -1,16 +1,17 @@
 import json
 import os
 from logging import getLogger
+from time import sleep
 from uuid import uuid4
 
 import boto3
-from botocore.exceptions import ClientError
 
-lambda_execution_environment_id = os.environ['AWS_LAMBDA_LOG_STREAM_NAME']
 sqs_client = boto3.client('sqs')
 s3_client = boto3.client('s3')
-
+results_table = boto3.resource('dynamodb').Table(os.environ['RESULTS_TABLE_NAME'])
 logger = getLogger()
+
+lambda_function_name = os.environ['AWS_LAMBDA_FUNCTION_NAME']
 
 
 def handler(event, _):
@@ -20,17 +21,11 @@ def handler(event, _):
 
     invocation_context = dict(invocationId=invocation_id, mockingSessionId=mocking_session_id)
 
-    logger.info(
-        f'Test double invocation started',
-        extra=dict(**invocation_context, event=event)
-    )
-
-    lambda_function_name = os.environ['AWS_LAMBDA_FUNCTION_NAME']
+    logger.info(f'Test double invocation started', extra=dict(**invocation_context, event=event))
 
     message_payload = dict(
         event=json.dumps(event),
         functionName=lambda_function_name,
-        executionEnvironmentId=lambda_execution_environment_id,
         invocationId=invocation_id
     )
 
@@ -41,7 +36,7 @@ def handler(event, _):
         }
     }
 
-    message_group_id = lambda_execution_environment_id
+    message_group_id = lambda_function_name
 
     sqs_client.send_message(
         QueueUrl=os.environ['EVENTS_QUEUE_URL'],
@@ -61,104 +56,40 @@ def handler(event, _):
     )
 
     while True:
-        logger.info('Waiting for message...', extra=invocation_context)
-        results_queue_url = os.environ['RESULTS_QUEUE_URL']
+        logger.info('Polling for result...', extra=invocation_context)
 
-        result = sqs_client.receive_message(
-            QueueUrl=results_queue_url,
-            AttributeNames=['All'],
-            MessageAttributeNames=['All'],
-            MaxNumberOfMessages=1,
-            WaitTimeSeconds=20,
+        get_item_result = results_table.get_item(
+            Key={'partitionKey': f'{lambda_function_name}#{invocation_id}'},
+            ProjectionExpression='#result',
+            ExpressionAttributeNames={'#result': 'result'}
         )
 
-        if 'Messages' in result:
-            for message in result['Messages']:
-                logger.info(f'Message received', extra=dict(**invocation_context, receivedMessage=message))
+        if 'Item' in get_item_result:
+            result = get_item_result['Item']['result']
 
-                receipt_handle = message['ReceiptHandle']
+            logger.info('Found result', extra=dict(**invocation_context, result=result))
 
-                if message['MessageAttributes']['MockingSessionId']['StringValue'] == mocking_session_id:
-                    if message['Attributes']['MessageGroupId'] == lambda_execution_environment_id:
-                        result_message_payload = json.loads(message['Body'])
+            raise_exception = result.get('raiseException')
 
-                        if result_message_payload['invocationId'] == invocation_id:
-                            try:
-                                raise_exception = result_message_payload.get('raiseException')
+            if raise_exception:
+                exception_message = result['exceptionMessage']
 
-                                if raise_exception:
-                                    exception_message = result_message_payload['exceptionMessage']
+                logger.info(
+                    f'Result instructs function to throw exception',
+                    extra=dict(**invocation_context, exceptionMessage=exception_message, result=result)
+                )
 
-                                    logger.info(
-                                        f'Received message instructs function to throw exception',
-                                        extra=dict(
-                                            **invocation_context,
-                                            exceptionMessage=exception_message,
-                                            receivedMessage=message)
-                                    )
+                raise Exception(exception_message)
+            else:
+                payload = json.loads(result['payload'])
 
-                                    raise Exception(exception_message)
-                                else:
-                                    lambda_function_result = json.loads(result_message_payload['result'])
+                logger.info(
+                    f'Result instructs function to return payload',
+                    extra=dict(**invocation_context, payload=payload, result=result)
+                )
 
-                                    logger.info(
-                                        f'Received message instructs function to return result',
-                                        extra=dict(
-                                            **invocation_context,
-                                            result=lambda_function_result,
-                                            receivedMessage=message
-                                        )
-                                    )
+                return payload
 
-                                    return lambda_function_result
-                            finally:
-                                logger.info(
-                                    f'Deleting consumed message',
-                                    extra=dict(
-                                        **invocation_context,
-                                        messageToDelete=message
-                                    )
-                                )
-
-                                delete_message(receipt_handle, results_queue_url, invocation_context)
-
-                    logger.info(
-                        "Message received for a different Lambda function, execution environment or invocation. "
-                        "Skipping and making it available to other consumers...",
-                        extra=dict(
-                            **invocation_context,
-                            receivedMessage=message
-                        )
-                    )
-
-                    # Make message immediately available to other consumers
-                    sqs_client.change_message_visibility(
-                        QueueUrl=results_queue_url,
-                        ReceiptHandle=receipt_handle,
-                        VisibilityTimeout=0
-                    )
-                else:
-                    logger.info(
-                        f"Encountered message from another mocking session. Deleting...",
-                        extra=dict(
-                            **invocation_context,
-                            messageToDelete=message
-                        )
-                    )
-                    delete_message(receipt_handle, results_queue_url, invocation_context)
         else:
-            logger.info('No messages received', invocation_context)
-
-
-def delete_message(receipt_handle, results_queue_url, invocation_context):
-    try:
-        sqs_client.delete_message(
-            QueueUrl=results_queue_url,
-            ReceiptHandle=receipt_handle
-        )
-    except ClientError as e:
-        logger.info(
-            f"Failed to delete message",
-            extra=dict(**invocation_context, receiptHandle=receipt_handle),
-            exc_info=e
-        )
+            logger.info('No result found. Sleeping.', invocation_context)
+            sleep(0.2)

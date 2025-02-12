@@ -2,11 +2,13 @@ import json
 import sys
 import threading
 import traceback
+from datetime import datetime, timedelta
 from threading import Thread
 from typing import Dict, Callable, Any
 
 from boto3 import Session
 from botocore.exceptions import ClientError
+from mypy_boto3_dynamodb.service_resource import Table, DynamoDBServiceResource
 from mypy_boto3_sqs import SQSClient
 
 from .a_thrown_exception import AThrownException
@@ -31,6 +33,7 @@ class LambdaFunctionEventListener(Thread):
                  get_mocking_session_id: Callable[[], str]):
         super().__init__(daemon=True)
         self.__sqs_client: SQSClient = boto_session.client('sqs')
+        self.__dynamodb_resource: DynamoDBServiceResource = boto_session.resource('dynamodb')
         self.__test_double_driver = test_double_driver
         self.__get_mocking_session_id = get_mocking_session_id
 
@@ -87,45 +90,35 @@ class LambdaFunctionEventListener(Thread):
         function_event = json.loads(event_message_payload['event'])
         function_invocation_id = event_message_payload['invocationId']
         function_name = event_message_payload['functionName']
-        function_execution_environment_id = event_message_payload['executionEnvironmentId']
-        message_group_id = message['Attributes']['MessageGroupId']
 
-        print(f"{function_name} invocation "
-              f"from execution environment {function_execution_environment_id} "
-              f"with invocation ID {function_invocation_id} "
+        print(f"{function_name} invocation with invocation ID {function_invocation_id} "
               f"received event {function_event}")
 
         event_handler = self.__event_handlers[function_name]
 
         function_result = event_handler(function_event)
 
-        result_message_payload = dict(
-            raiseException=False,
-            invocationId=function_invocation_id,
-            functionName=function_name,
-            executionEnvironmentId=function_execution_environment_id
-        )
+        result = dict(raiseException=False)
 
         if isinstance(function_result, AThrownException):
-            result_message_payload['raiseException'] = True
+            result['raiseException'] = True
 
             exception_message = function_result.message
-            result_message_payload['exceptionMessage'] = exception_message
+            result['exceptionMessage'] = exception_message
             print(f'Throwing exception with message "{exception_message}"')
         else:
-            result_message_payload['result'] = json.dumps(function_result)
+            result['payload'] = json.dumps(function_result)
             print(f'Returning result: {json.dumps(function_result)}')
 
-        self.__sqs_client.send_message(
-            QueueUrl=self.__test_double_driver.results_queue_url,
-            MessageGroupId=message_group_id,
-            MessageAttributes={
-                'MockingSessionId': {
-                    'DataType': 'String',
-                    'StringValue': mocking_session_id
-                }
-            },
-            MessageBody=json.dumps(result_message_payload)
+        self.__dynamodb_resource.Table(self.__test_double_driver.results_table_name).put_item(
+            Item=dict(
+                partitionKey=f'{function_name}#{function_invocation_id}',
+                result=result,
+                functionName=function_name,
+                invocationId=function_invocation_id,
+                functionEvent=function_event,
+                ttl=int((datetime.now() + timedelta(hours=12)).timestamp())
+            )
         )
 
         try:
