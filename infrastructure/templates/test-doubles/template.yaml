@@ -107,6 +107,10 @@ Resources:
           Role: !GetAtt LambdaFunctionExecutionRole.Arn
           Runtime: python3.12
           Timeout: 10
+          LoggingConfig:
+            ApplicationLogLevel: INFO
+            LogFormat: JSON
+            SystemLogLevel: INFO
           Environment:
             Variables:
               EVENTS_QUEUE_URL: !Ref EventsQueue
