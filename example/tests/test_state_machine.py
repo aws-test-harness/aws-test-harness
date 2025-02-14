@@ -32,6 +32,11 @@ def setup_default_mock_behaviour(mocking_engine: AWSResourceMockingEngine,
         lambda event: {'number': event['number'], 'objectKey': 'any-object-key'}
     )
 
+    mocking_engine.mock_a_state_machine(
+        'Multiplier',
+        lambda execution_input: {'number': execution_input['number'] * execution_input['factor']}
+    )
+
     first_bucket = test_double_driver.get_s3_bucket('First')
     first_bucket.put_object('default-message', 'default message')
 
@@ -94,6 +99,17 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
     execution.assert_succeeded()
 
     final_state_output_data = execution.output_json
+
+    multiplier_state_machine = mocking_engine.get_mock_state_machine('Multiplier')
+    multiplier_state_machine.assert_called_once()
+    multiplier_state_machine_input = multiplier_state_machine.call_args[0][0]
+    assert multiplier_state_machine_input['number'] == 4
+    assert multiplier_state_machine_input['factor'] == 3
+
+    assert 'multiply' in final_state_output_data
+    assert 'result' in final_state_output_data['multiply']
+    assert 'number' in final_state_output_data['multiply']['result']
+    assert final_state_output_data['multiply']['result']['number'] == 12
 
     assert 'double' in final_state_output_data
     assert 'result' in final_state_output_data['double']

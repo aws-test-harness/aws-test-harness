@@ -31,6 +31,7 @@ Resources:
                 Name: ID
                 Type: S
         LambdaFunctionNames: InputTransformer, Doubler
+        StateMachineNames: Multiplier
         S3BucketNames: First, Second
       TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/aws-test-harness-templates/test-doubles.yaml
   ExampleStateMachine:
@@ -44,3 +45,4 @@ Resources:
         FirstTableName: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstDynamoDBTableName
         FirstBucketName: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstS3BucketName
         SecondBucketName: !GetAtt AWSTestHarnessTestDoubles.Outputs.SecondS3BucketName
+        MultiplierStateMachineArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.MultiplierStateMachineArn

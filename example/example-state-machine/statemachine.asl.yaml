@@ -50,4 +50,18 @@ States:
       - ErrorEquals:
           - States.TaskFailed
         MaxAttempts: 2
+    Next: Multiply
+  Multiply:
+    Type: Task
+    Resource: arn:aws:states:::states:startExecution.sync:2
+    Parameters:
+      StateMachineArn: ${MultiplierStateMachineArn}
+      Input:
+        number.$: $.double.result.number
+        factor: 3
+        # Associates nested workflow execution with the parent execution (https://docs.aws.amazon.com/step-functions/latest/dg/connect-stepfunctions.html#stepfunctions-iam)
+        AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
+    ResultPath: "$.multiply"
+    ResultSelector:
+      "result.$": "$.Output"
     End: true
