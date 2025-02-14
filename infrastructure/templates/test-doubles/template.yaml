@@ -230,18 +230,31 @@ Resources:
                     "#result": "result"
                 ResultPath: $.lookForResult
               Does Result Exist?:
-                Type: Choice
                 Choices:
                   - Variable: $.lookForResult.Item
                     IsPresent: true
-                    Next: Return Result
+                    Next: Is A Failure Result?
                 Default: Wait
+                Type: Choice
+              Is A Failure Result?:
+                Choices:
+                  - Variable: $.lookForResult.Item.result.M.failExecution.BOOL
+                    BooleanEquals: true
+                    Next: Fail
+                Default: Return Result
+                Type: Choice
               Return Result:
                 Type: Pass
-                End: true
+                Next: Success
                 Parameters:
                   result.$: States.StringToJson($.lookForResult.Item.result.M.payload.S)
                 OutputPath: $.result
+              Success:
+                Type: Succeed
+              Fail:
+                Type: Fail
+                ErrorPath: $.lookForResult.Item.result.M.error.S
+                CausePath: $.lookForResult.Item.result.M.cause.S
           Role: !GetAtt StateMachineRole.Arn
           Type: STANDARD
   StateMachineRole:

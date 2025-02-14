@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource
 from mypy_boto3_sqs import SQSClient
 
+from .a_state_machine_execution_failure import AStateMachineExecutionFailure
 from .a_thrown_exception import AThrownException
 from .aws_test_double_driver import AWSTestDoubleDriver
 
@@ -126,13 +127,11 @@ class MessageListener(Thread):
 
         if isinstance(function_result, AThrownException):
             result['raiseException'] = True
-
-            exception_message = function_result.message
-            result['exceptionMessage'] = exception_message
-            print(f'Throwing exception with message "{exception_message}"')
+            result['exceptionMessage'] = function_result.message
         else:
             result['payload'] = json.dumps(function_result)
-            print(f'Returning result: {json.dumps(function_result)}')
+
+        print(f'Returning result: {json.dumps(result)}')
 
         return dict(
             partitionKey=f'{function_name}#{function_invocation_id}',
@@ -156,8 +155,16 @@ class MessageListener(Thread):
         execution_input_handler = self.__event_handlers[handler_id]
         state_machine_result = execution_input_handler(execution_input)
 
-        result = dict(payload=json.dumps(state_machine_result))
-        print(f'Returning result: {json.dumps(state_machine_result)}')
+        result = dict(failExecution=False)
+
+        if isinstance(state_machine_result, AStateMachineExecutionFailure):
+            result['failExecution'] = True
+            result['error'] = state_machine_result.error
+            result['cause'] = state_machine_result.cause
+        else:
+            result['payload'] = json.dumps(state_machine_result)
+
+        print(f'Returning result: {json.dumps(result)}')
 
         return dict(
             partitionKey=f'{state_machine_arn}#{invocation_id}',
