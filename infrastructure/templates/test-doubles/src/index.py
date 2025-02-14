@@ -15,6 +15,7 @@ lambda_function_name = os.environ['AWS_LAMBDA_FUNCTION_NAME']
 
 
 def handler(event, _):
+    # TODO: Use Lambda function context request ID as invocation ID
     invocation_id = str(uuid4())
     get_object_response = s3_client.get_object(Bucket=os.environ['TEST_CONTEXT_BUCKET_NAME'], Key='test-id')
     mocking_session_id = get_object_response['Body'].read().decode('utf-8')

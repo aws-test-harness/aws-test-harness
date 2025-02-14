@@ -2,12 +2,16 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform:
   - __MACRO_NAMES_PREFIX__AWSTestHarness-TestDoubles
   - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
   - __MACRO_NAMES_PREFIX__AWSTestHarness-SecondSub
 Parameters:
   DynamoDBTables:
     Type: String
     Default: "{}"
   LambdaFunctionNames:
+    Type: CommaDelimitedList
+    Default: ""
+  StateMachineNames:
     Type: CommaDelimitedList
     Default: ""
   S3BucketNames:
@@ -156,6 +160,124 @@ Resources:
                   - s3:GetObject
                 Effect: Allow
                 Resource: !Sub "${TestContextBucket.Arn}/*"
+  'Fn::ForEach::StateMachines':
+    - StateMachineName
+    - !Ref StateMachineNames
+    - '${StateMachineName}StateMachine':
+        Type: AWS::Serverless::StateMachine
+        Properties:
+          DefinitionSubstitutions:
+            AwsAccountId: !Ref AWS::AccountId
+            AwsRegion: !Ref AWS::Region
+            EventsQueueUrl: !Ref EventsQueue
+            ResultsTableName: !Ref ResultsTable
+            TestContextBucketName: !Ref TestContextBucket
+          Definition:
+            TimeoutSeconds: 10
+            StartAt: Namespace Input
+            States:
+              Namespace Input:
+                Type: Pass
+                Next: Get Mocking Session ID
+                Parameters:
+                  input.$: $
+              Get Mocking Session ID:
+                Type: Task
+                Parameters:
+                  Bucket: ${TestContextBucketName}
+                  Key: test-id
+                Resource: arn:aws:states:::aws-sdk:s3:getObject
+                Next: Send Execution Input Message
+                ResultPath: $.getMockingSessionId
+                ResultSelector:
+                  result.$: $.Body
+              Send Execution Input Message:
+                Type: Task
+                # Would prefer ResultPath: null (and no ResultSelector) but property is removed by AWS::LanguageExtensions
+                ResultPath: $.sendExecutionInput
+                ResultSelector: { }
+                Resource: arn:aws:states:::sqs:sendMessage
+                Parameters:
+                  QueueUrl: ${EventsQueueUrl}
+                  MessageGroupId.$: $$.StateMachine.Name
+                  MessageBody:
+                    input.$: $.input
+                    invocationId.$: $$.Execution.Id
+                    stateMachineArn.$: "States.Format('arn:aws:states:${AwsRegion}:${AwsAccountId}:stateMachine:{}', $$.StateMachine.Name)"
+                  MessageAttributes:
+                    MockingSessionId:
+                      DataType: String
+                      StringValue.$: $.getMockingSessionId.result
+                    InvocationType:
+                      DataType: String
+                      StringValue: State Machine Execution
+                Next: Look For Result
+              Wait:
+                Type: Wait
+                Seconds: 1
+                Next: Look For Result
+              Look For Result:
+                Type: Task
+                Next: Does Result Exist?
+                Resource: arn:aws:states:::dynamodb:getItem
+                Parameters:
+                  TableName: ${ResultsTableName}
+                  Key:
+                    partitionKey:
+                      S.$: "States.Format('arn:aws:states:${AwsRegion}:${AwsAccountId}:stateMachine:{}#{}', $$.StateMachine.Name, $$.Execution.Id)"
+                  ProjectionExpression: "#result"
+                  ExpressionAttributeNames:
+                    "#result": "result"
+                ResultPath: $.lookForResult
+              Does Result Exist?:
+                Type: Choice
+                Choices:
+                  - Variable: $.lookForResult.Item
+                    IsPresent: true
+                    Next: Return Result
+                Default: Wait
+              Return Result:
+                Type: Pass
+                End: true
+                Parameters:
+                  result.$: States.StringToJson($.lookForResult.Item.result.M.payload.S)
+                OutputPath: $.result
+          Role: !GetAtt StateMachineRole.Arn
+          Type: STANDARD
+  StateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+      Policies:
+        - PolicyName: SQSInteraction
+          PolicyDocument:
+            Statement:
+              - Action:
+                  - sqs:SendMessage*
+                Effect: Allow
+                Resource: !GetAtt EventsQueue.Arn
+        - PolicyName: DynamoDBInteraction
+          PolicyDocument:
+            Statement:
+              - Action:
+                  - dynamodb:GetItem
+                Effect: Allow
+                Resource: !GetAtt ResultsTable.Arn
+        - PolicyName: S3Interaction
+          PolicyDocument:
+            Statement:
+              - Action:
+                  - s3:GetObject
+                Effect: Allow
+                Resource: !Sub "${TestContextBucket.Arn}/*"
   EventsQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -202,6 +324,12 @@ Outputs:
     - '${LambdaFunctionName}LambdaFunctionName':
         Value:
           Ref: !Sub '${LambdaFunctionName}Function'
+  'Fn::ForEach::StateMachineArnOutputs':
+    - StateMachineName
+    - !Ref StateMachineNames
+    - '${StateMachineName}StateMachineArn':
+        Value:
+          Ref: !Sub '${StateMachineName}StateMachine'
   'Fn::ForEach::S3BucketNameOutputs':
     - S3BucketName
     - !Ref S3BucketNames

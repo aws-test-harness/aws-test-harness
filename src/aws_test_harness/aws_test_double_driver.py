@@ -31,6 +31,9 @@ class AWSTestDoubleDriver:
     def get_lambda_function_name(self, function_id):
         return self.__cloudformation_stack.get_physical_resource_id_for(f'{function_id}Function')
 
+    def get_state_machine_name(self, state_machine_id):
+        return self.__cloudformation_stack.get_physical_resource_id_for(f'{state_machine_id}StateMachine')
+
     @property
     def events_queue_url(self) -> str:
         if self.__events_queue_url is None:
