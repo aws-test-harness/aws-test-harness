@@ -64,4 +64,8 @@ States:
     ResultPath: "$.multiply"
     ResultSelector:
       "result.$": "$.Output"
+    Retry:
+      - ErrorEquals:
+          - States.TaskFailed
+        MaxAttempts: 2
     End: true

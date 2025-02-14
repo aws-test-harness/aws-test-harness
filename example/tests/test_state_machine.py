@@ -1,9 +1,9 @@
+import pytest
 from datetime import datetime, timedelta
 from unittest.mock import call
 from uuid import uuid4
 
-import pytest
-
+from aws_test_harness.a_state_machine_execution_failure import a_state_machine_execution_failure
 from aws_test_harness.a_thrown_exception import an_exception_thrown_with_message
 from aws_test_harness.aws_resource_driver import AWSResourceDriver
 from aws_test_harness.aws_resource_mocking_engine import AWSResourceMockingEngine
@@ -195,3 +195,27 @@ def test_state_machine_retries_doubling_twice(mocking_engine: AWSResourceMocking
         call({'number': 1}),
         call({'number': 1})
     ])
+
+
+def test_state_machine_retries_multiplying_twice(mocking_engine: AWSResourceMockingEngine,
+                                                 resource_driver: AWSResourceDriver):
+    multiplier_state_machine = mocking_engine.get_mock_state_machine('Multiplier')
+    multiplier_state_machine.side_effect = [
+        a_state_machine_execution_failure(error="TheErrorCode", cause="the failure cause"),
+        a_state_machine_execution_failure(error="TheErrorCode", cause="the failure cause"),
+        {'number': 6},
+    ]
+
+    state_machine = resource_driver.get_state_machine("ExampleStateMachine::StateMachine")
+
+    execution = state_machine.execute({
+        'input': {
+            'data': {'number': 1},
+            'firstBucketKey': 'default-message',
+            'firstTableItemKey': 'any key'
+        }
+    })
+
+    execution.assert_succeeded()
+    assert execution.output_json['multiply']['result']['number'] == 6
+    assert multiplier_state_machine.call_count == 3
