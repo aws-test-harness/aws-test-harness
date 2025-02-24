@@ -20,7 +20,7 @@ dev-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["languages/python", "test-support", "infrastructure/acceptance-tests"]
+members = ["languages/python", "test-support", "infrastructure/acceptance-tests", "infrastructure/macros/test-doubles"]
 
 [tool.uv.sources]
 aws-test-harness = { workspace = true }

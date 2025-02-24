@@ -24,7 +24,7 @@ Resources:
       CodeUri:
         Bucket: !Ref CodeS3Bucket
         Key: !Ref TestDoublesMacroCodeS3Key
-      Handler: test_doubles.index.handler
+      Handler: test_doubles_macro.index.handler
       Runtime: python3.13
       Timeout: 5
       LoggingConfig:

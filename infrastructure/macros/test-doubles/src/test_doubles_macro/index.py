@@ -1,8 +1,8 @@
 from logging import getLogger
 from typing import Any, TypedDict, Dict, NotRequired
 
-from test_doubles.fragment_generator import FragmentGenerator
-from test_doubles.test_double_resource_factory import TestDoubleResourceFactory
+from test_doubles_macro.fragment_generator import FragmentGenerator
+from test_doubles_macro.test_double_resource_factory import TestDoubleResourceFactory
 
 LOGGER = getLogger()
 
@@ -36,5 +36,5 @@ def handler(event: CloudFormationMacroEvent, _: Any) -> CloudFormationMacroRespo
     return {
         "requestId": event['requestId'],
         "status": "success",
-        "fragment": original_fragment
+        "fragment": updated_fragment
     }
