@@ -6,7 +6,7 @@ members = [
     "aws-test-harness",
     "aws-test-harness-project",
     "aws-test-harness-test-support",
-    "infrastructure",
+    "infrastructure-acceptance-tests"
 ]
 
 [[package]]
@@ -160,9 +160,9 @@ wheels = [
 ]
 
 [[package]]
-name = "infrastructure"
+name = "infrastructure-acceptance-tests"
 version = "0.1.0"
-source = { virtual = "infrastructure" }
+source = { virtual = "infrastructure/acceptance-tests" }
 
 [package.dev-dependencies]
 dev = [
