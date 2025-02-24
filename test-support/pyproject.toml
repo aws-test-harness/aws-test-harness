@@ -5,6 +5,7 @@ description = "Test utilities for testing the aws-test-harness project"
 requires-python = ">=3.13"
 dependencies = [
     "boto3>=1.36.6",
+    "pyyaml>=6.0.2",
 ]
 
 [build-system]
@@ -14,4 +15,5 @@ build-backend = "hatchling.build"
 [tool.uv]
 dev-dependencies = [
     "boto3-stubs-lite[cloudformation,s3]>=1.36.6",
+    "types-pyyaml>=6.0.12.20241230",
 ]

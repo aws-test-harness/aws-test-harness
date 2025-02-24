@@ -37,10 +37,6 @@ dev = [
 name = "aws-test-harness-project"
 version = "0.1.0"
 source = { virtual = "." }
-dependencies = [
-    { name = "pyyaml" },
-    { name = "types-pyyaml" },
-]
 
 [package.dev-dependencies]
 dev = [
@@ -53,10 +49,6 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "pyyaml", specifier = ">=6.0.2" },
-    { name = "types-pyyaml", specifier = ">=6.0.12.20241230" },
-]
 
 [package.metadata.requires-dev]
 dev = [
@@ -74,18 +66,26 @@ version = "0.1.0"
 source = { editable = "test-support" }
 dependencies = [
     { name = "boto3" },
+    { name = "pyyaml" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "boto3-stubs-lite", extra = ["cloudformation", "s3"] },
+    { name = "types-pyyaml" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "boto3", specifier = ">=1.36.6" }]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.36.6" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
+]
 
 [package.metadata.requires-dev]
-dev = [{ name = "boto3-stubs-lite", extras = ["cloudformation", "s3"], specifier = ">=1.36.6" }]
+dev = [
+    { name = "boto3-stubs-lite", extras = ["cloudformation", "s3"], specifier = ">=1.36.6" },
+    { name = "types-pyyaml", specifier = ">=6.0.12.20241230" },
+]
 
 [[package]]
 name = "boto3"
