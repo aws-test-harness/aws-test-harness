@@ -7,5 +7,5 @@ script_directory_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && 
 "${script_directory_path}/macros/test-doubles/test.sh"
 
 echo Running infrastructure tests...
-uv run pytest "${script_directory_path}/tests"
+uv run --directory "${script_directory_path}" pytest "${script_directory_path}/tests"
 echo
