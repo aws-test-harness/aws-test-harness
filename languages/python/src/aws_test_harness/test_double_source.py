@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 from boto3 import Session
 
 from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
@@ -20,3 +22,6 @@ class TestDoubleSource:
         return self.__test_double_resource_registry.get_physical_resource_id(
             f'{test_double_name}AWSTestHarnessS3Bucket'
         )
+
+    def state_machine(self, test_double_name: str) -> Mock:
+        return Mock()

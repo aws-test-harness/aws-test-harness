@@ -31,12 +31,15 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session:
     test_cloudformation_stack.ensure_state_is(
         AWSTemplateFormatVersion='2010-09-09',
         Transform=['AWS::Serverless-2016-10-31', 'acceptance-tests-AWSTestHarness-TestDoubles'],
-        Parameters=dict(AWSTestHarnessS3Buckets=dict(Type='CommaDelimitedList')),
+        Parameters=dict(
+            AWSTestHarnessS3Buckets=dict(Type='CommaDelimitedList'),
+            AWSTestHarnessStateMachines=dict(Type='CommaDelimitedList'),
+        ),
         Resources=dict(
             StateMachine=dict(
                 Type='AWS::Serverless::StateMachine',
                 Properties=dict(
-                    Definition=({
+                    Definition={
                         "StartAt": "GetObject",
                         "States": {
                             "GetObject": {
@@ -52,7 +55,7 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session:
                                 "End": True
                             }
                         }
-                    }),
+                    },
                     DefinitionSubstitutions=dict(
                         MessagesS3BucketName={'Ref': 'MessagesAWSTestHarnessS3Bucket'}
                     ),
@@ -62,7 +65,8 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session:
                 )
             ),
         ),
-        AWSTestHarnessS3Buckets='Messages'
+        AWSTestHarnessS3Buckets='Messages',
+        AWSTestHarnessStateMachines='RandomString',
     )
 
 
@@ -84,6 +88,37 @@ def test_executing_a_step_function_that_interacts_with_test_doubles(
     assert execution.status == 'SUCCEEDED'
     assert execution.output is not None
     assert json.loads(execution.output) == {"result": s3_object_content}
+
+
+@pytest.mark.skip(reason="In development")
+def test_executing_a_step_function_that_interacts_with_more_test_doubles(
+        logger: Logger, aws_profile: str, test_cloudformation_stack: TestCloudFormationStack,
+        boto_session: Session) -> None:
+    test_harness = TestHarness(test_cloudformation_stack.name, logger, aws_profile)
+
+    s3_object_key = str(uuid4())
+    s3_object_content = f'Random content: {uuid4()}'
+    messages_bucket = test_harness.test_doubles.s3_bucket('Messages')
+    messages_bucket.put_object(Key=s3_object_key, Body=s3_object_content)
+
+    random_string_state_machine = test_harness.test_doubles.state_machine('RandomString')
+    random_string = uuid4()
+    random_string_state_machine.return_value = dict(randomString=random_string)
+
+    state_machine = test_harness.state_machine('StateMachine')
+
+    execution = state_machine.execute({'s3ObjectKey': s3_object_key})
+
+    assert execution.status == 'SUCCEEDED'
+    assert execution.output is not None
+
+    execution_output = json.loads(execution.output)
+
+    assert 'result' in execution_output
+    assert execution_output['result'] == s3_object_content
+
+    assert 'randomString' in execution_output
+    assert execution_output['randomString'] == random_string
 
 
 def absolute_path_to(relative_path: str) -> str:
