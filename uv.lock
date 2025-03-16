@@ -7,6 +7,7 @@ members = [
     "aws-test-harness-project",
     "aws-test-harness-test-support",
     "infrastructure-acceptance-tests",
+    "infrastructure-test-support",
     "test-doubles-macro",
 ]
 
@@ -121,6 +122,9 @@ cloudformation = [
 s3 = [
     { name = "mypy-boto3-s3" },
 ]
+sqs = [
+    { name = "mypy-boto3-sqs" },
+]
 stepfunctions = [
     { name = "mypy-boto3-stepfunctions" },
 ]
@@ -164,6 +168,9 @@ wheels = [
 name = "infrastructure-acceptance-tests"
 version = "0.1.0"
 source = { virtual = "infrastructure/acceptance-tests" }
+dependencies = [
+    { name = "infrastructure-test-support" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -174,6 +181,7 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "infrastructure-test-support", editable = "infrastructure/test-support" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -182,6 +190,21 @@ dev = [
     { name = "boto3-stubs-lite", extras = ["s3"], specifier = ">=1.36.6" },
     { name = "pytest", specifier = ">=8.3.4" },
 ]
+
+[[package]]
+name = "infrastructure-test-support"
+version = "0.1.0"
+source = { editable = "infrastructure/test-support" }
+
+[package.dev-dependencies]
+dev = [
+    { name = "boto3-stubs-lite", extra = ["sqs", "stepfunctions"] },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "boto3-stubs-lite", extras = ["sqs", "stepfunctions"], specifier = ">=1.36.6" }]
 
 [[package]]
 name = "iniconfig"
@@ -236,6 +259,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f3/13/7fe1ba959978a5851e8ca5f66a4f3f5080440463ac035227460d9af96d3c/mypy_boto3_s3-1.36.9.tar.gz", hash = "sha256:368c963969eda65bb3a9df61e87510dd8b3247cce59f559c2ec6c43d5796bef5", size = 73088 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/94/14/475107a6acb6ec9f49b58b820763ddb8f40a7beabdaf23b5a5c48597d136/mypy_boto3_s3-1.36.9-py3-none-any.whl", hash = "sha256:506edd56892452dff5b673e3c79a11b6f8935076ce4a9daaac4cda708a176201", size = 79697 },
+]
+
+[[package]]
+name = "mypy-boto3-sqs"
+version = "1.36.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7b/54/878efe593464cc1331e1b17fd702ed93366a76bcea4d9f7156c1d54ff8bb/mypy_boto3_sqs-1.36.0.tar.gz", hash = "sha256:a7f901db4330d16a49ca113c3154119106e3db34fb27febebee1299786815143", size = 23468 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/d7/78742c13a378d7b6c2c26b8eb6ea2ace63916d7e009b5719fb91bbcb280c/mypy_boto3_sqs-1.36.0-py3-none-any.whl", hash = "sha256:d4eaef736af736fe6979fcc38a5ad70806e62551077a1ec262c907bdd77a0f15", size = 33523 },
 ]
 
 [[package]]
@@ -368,22 +400,26 @@ wheels = [
 name = "test-doubles-macro"
 version = "0.1.0"
 source = { editable = "infrastructure/macros/test-doubles" }
+dependencies = [
+    { name = "infrastructure-test-support" },
+]
 
 [package.dev-dependencies]
 dev = [
     { name = "aws-test-harness-test-support" },
     { name = "boto3" },
-    { name = "boto3-stubs-lite", extra = ["s3"] },
+    { name = "boto3-stubs-lite", extra = ["s3", "sqs", "stepfunctions"] },
     { name = "pytest" },
 ]
 
 [package.metadata]
+requires-dist = [{ name = "infrastructure-test-support", editable = "infrastructure/test-support" }]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "aws-test-harness-test-support", editable = "test-support" },
     { name = "boto3", specifier = ">=1.36.6" },
-    { name = "boto3-stubs-lite", extras = ["s3"], specifier = ">=1.36.6" },
+    { name = "boto3-stubs-lite", extras = ["s3", "stepfunctions", "sqs"], specifier = ">=1.36.6" },
     { name = "pytest", specifier = ">=8.3.4" },
 ]
 

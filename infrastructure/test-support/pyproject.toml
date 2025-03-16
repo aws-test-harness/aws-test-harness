@@ -1,0 +1,14 @@
+[project]
+name = "infrastructure-test-support"
+version = "0.1.0"
+description = "Shared support classes for tests within the infrastructure project and subprojects"
+requires-python = ">=3.13"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "boto3-stubs-lite[sqs,stepfunctions]>=1.36.6",
+]

@@ -1,3 +1,4 @@
+import json
 from logging import Logger
 from typing import cast, Dict, List, Optional
 
@@ -6,7 +7,9 @@ from boto3 import Session
 from mypy_boto3_stepfunctions.client import SFNClient
 
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
+from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
 from test_doubles_macro.test_double_resource_factory import TestDoubleResourceFactory
+from infrastructure_test_support.step_functions_utils import start_state_machine_execution
 
 
 @pytest.fixture(scope="module")
@@ -56,6 +59,30 @@ def test_generates_state_machine_cloudformation_resource_for_each_specified_stat
     assert yellow_s3_bucket_resource['ResourceType'] == 'AWS::StepFunctions::StateMachine'
 
 
+def test_generates_cloudformation_resources_enabling_runtime_control_of_state_machines(
+        test_stack: TestCloudFormationStack, step_functions_client: SFNClient, boto_session: Session) -> None:
+    invocation_queue_url = get_cfn_physical_id(
+        'AWSTestHarnessTestDoubleInvocationQueue', test_stack
+    )
+    blue_state_machine_arn = get_cfn_physical_id('BlueAWSTestHarnessStateMachine', test_stack)
+
+    execution_arn = start_state_machine_execution(
+        blue_state_machine_arn,
+        step_functions_client,
+        execution_input=dict(colour='orange', size='small')
+    )
+
+    execution_invocation_message = wait_for_sqs_message_matching(
+        # TODO: InvocationType and InvocationTarget attributes - test drive at lower level
+        lambda message: message['MessageAttributes']['InvocationId']['StringValue'] == execution_arn,
+        invocation_queue_url,
+        boto_session.client('sqs')
+    )
+
+    message_payload = json.loads(execution_invocation_message['Body'])
+    assert message_payload['event']['executionInput'] == dict(colour='orange', size='small')
+
+
 def test_omits_state_machine_role_cloudformation_resource_if_no_state_machines_specified() -> None:
     desired_test_doubles = create_test_double_parameters_with(AWSTestHarnessStateMachines=[])
 
@@ -64,7 +91,15 @@ def test_omits_state_machine_role_cloudformation_resource_if_no_state_machines_s
     assert 'AWSTestHarnessStateMachineRole' not in resources
 
 
-def test_generates_single_iam_role_cloudformation_resource_for_use_by_all_state_machines(
+def test_omits_test_double_invocation_handling_cloudformation_resources_if_no_state_machines_specified() -> None:
+    desired_test_doubles = create_test_double_parameters_with(AWSTestHarnessStateMachines=[])
+
+    resources = TestDoubleResourceFactory.generate_additional_resources(desired_test_doubles)
+
+    assert 'AWSTestHarnessTestDoubleInvocationHandlerFunction' not in resources
+
+
+def test_generates_single_iam_role_cloudformation_resource_for_use_by_state_machines(
         test_stack: TestCloudFormationStack, step_functions_client: SFNClient) -> None:
     state_machine_role_name = get_cfn_physical_id('AWSTestHarnessStateMachineRole', test_stack)
 

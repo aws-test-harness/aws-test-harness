@@ -1,11 +1,15 @@
+import json
 import os.path
 from logging import Logger
 
 import pytest
 from boto3 import Session
+from mypy_boto3_stepfunctions.client import SFNClient
 
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
+from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
+from infrastructure_test_support.step_functions_utils import start_state_machine_execution
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -54,7 +58,7 @@ def test_managing_test_double_s3_buckets(test_stack: TestCloudFormationStack) ->
     assert green_s3_bucket_resource['ResourceType'] == 'AWS::S3::Bucket'
 
 
-def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack) -> None:
+def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack, boto_session: Session) -> None:
     blue_state_machine_resource = test_stack.get_stack_resource('BlueAWSTestHarnessStateMachine')
     assert blue_state_machine_resource is not None
     assert blue_state_machine_resource['ResourceType'] == 'AWS::StepFunctions::StateMachine'
@@ -62,6 +66,25 @@ def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack
     yellow_state_machine_resource = test_stack.get_stack_resource('YellowAWSTestHarnessStateMachine')
     assert yellow_state_machine_resource is not None
     assert yellow_state_machine_resource['ResourceType'] == 'AWS::StepFunctions::StateMachine'
+
+    invocation_queue_url = test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationQueue')
+    assert invocation_queue_url is not None
+
+    step_functions_client: SFNClient = boto_session.client('stepfunctions')
+
+    execution_arn = start_state_machine_execution(
+        blue_state_machine_resource['PhysicalResourceId'],
+        step_functions_client,
+        execution_input=dict(colour='orange', size='small')
+    )
+
+    sqs_message = wait_for_sqs_message_matching(
+        lambda message: message['MessageAttributes']['InvocationId']['StringValue'] == execution_arn,
+        invocation_queue_url,
+        boto_session.client('sqs')
+    )
+
+    assert json.loads(sqs_message['Body'])['event']['executionInput'] == dict(colour='orange', size='small')
 
 
 def test_omitting_test_double_stack_parameters(cfn_stack_name_prefix: str, logger: Logger,
