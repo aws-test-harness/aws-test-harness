@@ -5,14 +5,10 @@ description = "Python package for test-driving real AWS resources from your loca
 requires-python = ">=3.13"
 dependencies = [
     "boto3>=1.36.6",
+    "boto3-stubs-lite[cloudformation,s3,stepfunctions]>=1.36.6",
+    "pytest>=8.3.4",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.uv]
-dev-dependencies = [
-    "boto3-stubs-lite[cloudformation,s3,stepfunctions]>=1.36.6",
-    "pytest>=8.3.4",
-]
