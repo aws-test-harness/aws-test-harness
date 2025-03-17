@@ -33,7 +33,6 @@ build_lambda_function_code_bundle() {
 
   local lambda_function_build_directory
   lambda_function_build_directory="${assets_directory_path}/${lambda_function_directory_relative_path}"
-  rm -rf "${lambda_function_build_directory:?}"
   mkdir -p "${lambda_function_build_directory}"
 
   local code_bundle_checksum
@@ -52,4 +51,5 @@ cp "$(get_absolute_path src)"/* "${build_directory_path}"
 
 mkdir -p "${assets_directory_path}"
 echo "TEST_DOUBLES_MACRO_CODE_BUNDLE_PATH=$(build_lambda_function_code_bundle "macros/test-doubles")" >> "${build_directory_path}/install.env"
+echo "TEST_DOUBLE_INVOCATION_HANDLER_FUNCTION_CODE_BUNDLE_PATH=$(build_lambda_function_code_bundle "macros/test-doubles/invocation-handler")" >> "${build_directory_path}/install.env"
 

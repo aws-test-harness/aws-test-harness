@@ -26,4 +26,5 @@ aws cloudformation deploy \
   --parameter-overrides \
     MacroNamePrefix="${macro_name_prefix}" \
     CodeS3Bucket="${code_s3_bucket}" \
-    TestDoublesMacroCodeS3Key="${code_s3_key_prefix}${TEST_DOUBLES_MACRO_CODE_BUNDLE_PATH}"
+    TestDoublesMacroCodeS3Key="${code_s3_key_prefix}${TEST_DOUBLES_MACRO_CODE_BUNDLE_PATH}" \
+    TestDoubleInvocationHandlerFunctionCodeS3Key="${code_s3_key_prefix}${TEST_DOUBLE_INVOCATION_HANDLER_FUNCTION_CODE_BUNDLE_PATH}"

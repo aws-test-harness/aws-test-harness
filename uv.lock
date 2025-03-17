@@ -131,16 +131,16 @@ stepfunctions = [
 
 [[package]]
 name = "botocore"
-version = "1.36.6"
+version = "1.36.26"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jmespath" },
     { name = "python-dateutil" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b0/b6/bd1a28becf386a70ca41aa6b76b0d65d03aed81d39fac662d1f97754ffca/botocore-1.36.6.tar.gz", hash = "sha256:4864c53d638da191a34daf3ede3ff1371a3719d952cc0c6bd24ce2836a38dd77", size = 13479626 }
+sdist = { url = "https://files.pythonhosted.org/packages/69/db/caa8778cf98ecbe0ad0efd7fbf673e2d036373386582e15dffff80bf16e1/botocore-1.36.26.tar.gz", hash = "sha256:4a63bcef7ecf6146fd3a61dc4f9b33b7473b49bdaf1770e9aaca6eee0c9eab62", size = 13574958 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e8/ef/a0ac0d749c82fbaba28aa7b87a8ef5760de744e57dcbbfe3b99a0d65cf87/botocore-1.36.6-py3-none-any.whl", hash = "sha256:f77bbbb03fb420e260174650fb5c0cc142ec20a96967734eed2b0ef24334ef34", size = 13308005 },
+    { url = "https://files.pythonhosted.org/packages/dd/0c/a3eeca35b22ac8f441d412881582a5f3b8665de0269baf9fdeb8e86d7f1c/botocore-1.36.26-py3-none-any.whl", hash = "sha256:4e3f19913887a58502e71ef8d696fe7eaa54de7813ff73390cd5883f837dfa6e", size = 13360675 },
 ]
 
 [[package]]

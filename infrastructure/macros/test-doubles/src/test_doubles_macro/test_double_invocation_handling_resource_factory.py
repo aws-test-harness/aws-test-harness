@@ -11,47 +11,34 @@ class TestDoubleInvocationHandlingResourceDescriptions:
 
 # TODO: Retrofit tests
 class TestDoubleInvocationHandlingResourceFactory:
-    @classmethod
-    def generate_resources(cls, invocation_handler_function_role_logical_id: str,
+    def __init__(self, invocation_handler_function_code_s3_bucket='String',
+                 invocation_handler_function_code_s3_key='String'):
+        self.__invocation_handler_function_code_s3_bucket = invocation_handler_function_code_s3_bucket
+        self.__invocation_handler_function_code_s3_key = invocation_handler_function_code_s3_key
+
+    def generate_resources(self, invocation_handler_function_role_logical_id: str,
                            test_double_invocation_queue_logical_id: str) -> TestDoubleInvocationHandlingResourceDescriptions:
         return TestDoubleInvocationHandlingResourceDescriptions(
-            invocation_handler_function=cls.__generate_function_resource(invocation_handler_function_role_logical_id,
-                                                                         test_double_invocation_queue_logical_id),
-            invocation_handler_function_role=cls.__generate_function_role_resource(
+            invocation_handler_function=self.__generate_function_resource(invocation_handler_function_role_logical_id,
+                                                                          test_double_invocation_queue_logical_id),
+            invocation_handler_function_role=self.__generate_function_role_resource(
                 test_double_invocation_queue_logical_id),
-            invocation_queue=cls.__generate_queue_resource()
+            invocation_queue=self.__generate_queue_resource()
         )
 
-    @staticmethod
-    def __generate_function_resource(invocation_handler_function_role_logical_id: str,
+    def __generate_function_resource(self, invocation_handler_function_role_logical_id: str,
                                      test_double_invocation_queue_logical_id: str) -> Dict[str, Any]:
         return dict(
             Type='AWS::Lambda::Function',
             Properties=dict(
                 Runtime='python3.13',
-                Handler='index.handler',
+                Handler='test_double_invocation_handler.index.handler',
                 Environment=dict(
                     Variables=dict(INVOCATION_QUEUE_URL=dict(Ref=test_double_invocation_queue_logical_id))
                 ),
                 Code=dict(
-                    # TODO: Support multi-file python source code from dedicated python project and retrofit tests
-                    ZipFile='''
-import boto3
-import json
-import os
-
-sqs_client = boto3.client('sqs')
-
-
-def handler(event, _):
-    sqs_client.send_message(
-        QueueUrl=os.environ['INVOCATION_QUEUE_URL'],
-        MessageBody=json.dumps(dict(event=event)),
-        MessageAttributes=dict(InvocationId=dict(StringValue=event['invocationId'], DataType='String'))
-    )
-
-    return dict()
-'''
+                    S3Bucket=self.__invocation_handler_function_code_s3_bucket,
+                    S3Key=self.__invocation_handler_function_code_s3_key,
                 ),
                 Role={'Fn::GetAtt': f'{invocation_handler_function_role_logical_id}.Arn'}
             )

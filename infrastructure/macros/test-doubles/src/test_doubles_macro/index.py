@@ -1,3 +1,4 @@
+import os
 from logging import getLogger
 from typing import Any, TypedDict, Dict, NotRequired
 
@@ -22,12 +23,18 @@ class CloudFormationMacroResponse(TypedDict):
     errorMessage: NotRequired[str]
 
 
+test_double_resource_factory = TestDoubleResourceFactory(
+    os.environ['INVOCATION_HANDLER_FUNCTION_CODE_S3_BUCKET'],
+    os.environ['INVOCATION_HANDLER_FUNCTION_CODE_S3_KEY']
+)
+
+
 def handler(event: CloudFormationMacroEvent, _: Any) -> CloudFormationMacroResponse:
     original_fragment = event['fragment']
 
     LOGGER.info("Received CloudFormation template fragment", extra=dict(fragment=original_fragment))
 
-    additional_resources = TestDoubleResourceFactory.generate_additional_resources(event['templateParameterValues'])
+    additional_resources = test_double_resource_factory.generate_additional_resources(event['templateParameterValues'])
 
     updated_fragment = FragmentGenerator.generate_fragment_from(original_fragment, additional_resources)
 

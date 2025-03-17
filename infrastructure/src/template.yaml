@@ -8,6 +8,9 @@ Parameters:
   CodeS3Bucket:
     Type: String
     Description: Name of S3 bucket containing macro code
+  TestDoubleInvocationHandlerFunctionCodeS3Key:
+    Type: String
+    Description: Name of S3 key containing the test double invocation handler function code
   TestDoublesMacroCodeS3Key:
     Type: String
     Description: Name of S3 key containing the test doubles macro code
@@ -27,6 +30,10 @@ Resources:
       Handler: test_doubles_macro.index.handler
       Runtime: python3.13
       Timeout: 5
+      Environment:
+        Variables:
+          INVOCATION_HANDLER_FUNCTION_CODE_S3_BUCKET: !Ref CodeS3Bucket
+          INVOCATION_HANDLER_FUNCTION_CODE_S3_KEY: !Ref TestDoubleInvocationHandlerFunctionCodeS3Key
       LoggingConfig:
         ApplicationLogLevel: INFO
         LogFormat: JSON
