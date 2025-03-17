@@ -15,6 +15,7 @@ from aws_test_harness_test_support.test_s3_bucket_stack import TestS3BucketStack
 from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
 from infrastructure_test_support.step_functions_utils import start_state_machine_execution
 from test_doubles_macro.test_double_resource_factory import TestDoubleResourceFactory
+from aws_test_harness_test_support.file_utils import absolute_path_relative_to
 
 ANY_S3_BUCKET_NAME = 'any-s3-bucket'
 ANY_S3_KEY = 'any/s3/key'
@@ -28,7 +29,7 @@ def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session
     assets_bucket_stack = TestS3BucketStack(f'{test_stack_name}-test-assets-bucket', logger, boto_session)
     assets_bucket_stack.ensure_exists()
 
-    invocation_handler_project_path = absolute_path_to('..', '..', '..', '..', 'invocation-handler')
+    invocation_handler_project_path = absolute_path_relative_to(__file__, '..', '..', '..', '..', 'invocation-handler')
     system_command_executor.execute([os.path.join(invocation_handler_project_path, 'build.sh')])
 
     invocation_handler_function_code_s3_key = 'code.zip'
@@ -174,13 +175,6 @@ def create_test_double_parameters_with(AWSTestHarnessS3Buckets: Optional[List[st
         AWSTestHarnessS3Buckets=AWSTestHarnessS3Buckets or [],
         AWSTestHarnessStateMachines=AWSTestHarnessStateMachines or []
     )
-
-
-# TODO: Remove duplication
-def absolute_path_to(*relative_file_path_parts: str) -> str:
-    test_double_template_file_path = os.path.normpath(
-        os.path.join(os.path.dirname(__file__), *relative_file_path_parts))
-    return test_double_template_file_path
 
 
 def sync_file_to_s3(code_bundle_path: str, bucket_name: str, key: str, s3_client: S3Client) -> None:

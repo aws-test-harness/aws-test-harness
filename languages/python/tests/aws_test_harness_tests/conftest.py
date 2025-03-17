@@ -1,5 +1,4 @@
 import logging
-import os
 from logging import Logger
 from typing import Dict
 
@@ -10,6 +9,7 @@ from aws_test_harness_test_support import load_test_configuration
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_s3_bucket_stack import TestS3BucketStack
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
+from aws_test_harness_test_support.file_utils import absolute_path_relative_to
 
 
 @pytest.fixture(scope="session")
@@ -61,11 +61,13 @@ def test_double_macro_name(boto_session: Session, system_command_executor: Syste
 
     infrastructure_directory_path = '../../../../infrastructure'
 
-    system_command_executor.execute([absolute_path_to(f'{infrastructure_directory_path}/scripts/build.sh')])
+    system_command_executor.execute([
+        absolute_path_relative_to(__file__, infrastructure_directory_path, 'scripts', 'build.sh')
+    ])
 
     system_command_executor.execute(
         [
-            absolute_path_to(f'{infrastructure_directory_path}/build/install.sh'),
+            absolute_path_relative_to(__file__, infrastructure_directory_path, 'build', 'install.sh'),
             f"{cfn_stack_name_prefix}test-harness-test-infrastructure",
             deployment_assets_bucket_stack.bucket_name,
             'aws-test-harness/infrastructure/',
@@ -75,7 +77,3 @@ def test_double_macro_name(boto_session: Session, system_command_executor: Syste
     )
 
     return f'{macro_name_prefix}AWSTestHarness-TestDoubles'
-
-
-def absolute_path_to(relative_file_path: str) -> str:
-    return os.path.normpath(os.path.join(os.path.dirname(__file__), relative_file_path))
