@@ -27,13 +27,15 @@ def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session
     assets_bucket_stack = TestS3BucketStack(f'{test_stack_name}-test-assets-bucket', logger, boto_session)
     assets_bucket_stack.ensure_exists()
 
-    system_command_executor.execute([absolute_path_to('../../invocation-handler/scripts/build.sh')])
+    invocation_handler_project_path = absolute_path_to('..', '..', '..', '..', 'invocation-handler')
+    system_command_executor.execute([os.path.join(invocation_handler_project_path, 'scripts', 'build.sh')])
 
     invocation_handler_function_code_s3_key = 'code.zip'
 
+    # TODO: Don't upload if file contents match - use ETag?
     s3_client: S3Client = boto_session.client('s3')
     s3_client.upload_file(
-        Filename=absolute_path_to('../../invocation-handler/build/code.zip'),
+        Filename=os.path.join(invocation_handler_project_path, 'build', 'code.zip'),
         Bucket=assets_bucket_stack.bucket_name,
         Key=invocation_handler_function_code_s3_key
     )
@@ -175,6 +177,7 @@ def create_test_double_parameters_with(AWSTestHarnessS3Buckets: Optional[List[st
 
 
 # TODO: Remove duplication
-def absolute_path_to(relative_file_path: str) -> str:
-    test_double_template_file_path = os.path.normpath(os.path.join(os.path.dirname(__file__), relative_file_path))
+def absolute_path_to(*relative_file_path_parts: str) -> str:
+    test_double_template_file_path = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), *relative_file_path_parts))
     return test_double_template_file_path
