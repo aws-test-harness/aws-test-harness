@@ -13,7 +13,10 @@ def handler(event: Dict[str, Any], _: Any) -> Dict[str, Any]:
     sqs_client.send_message(
         QueueUrl=os.environ['INVOCATION_QUEUE_URL'],
         MessageBody=json.dumps(dict(event=event)),
-        MessageAttributes=dict(InvocationId=dict(StringValue=event['invocationId'], DataType='String'))
+        MessageAttributes=dict(
+            InvocationId=dict(StringValue=event.get('invocationId', 'Unknown'), DataType='String'),
+            InvocationTarget=dict(StringValue=os.environ['AWS_LAMBDA_FUNCTION_NAME'], DataType='String')
+        )
     )
 
     return dict()
