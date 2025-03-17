@@ -7,8 +7,8 @@ from boto3 import Session
 from botocore.exceptions import ClientError
 from mypy_boto3_cloudformation.client import CloudFormationClient
 from mypy_boto3_cloudformation.literals import OnFailureType
-from mypy_boto3_cloudformation.type_defs import CreateStackInputRequestTypeDef, \
-    UpdateStackInputRequestTypeDef, StackResourceDetailTypeDef
+from mypy_boto3_cloudformation.type_defs import StackResourceDetailTypeDef, CreateStackInputTypeDef, \
+    UpdateStackInputTypeDef
 
 
 class TestCloudFormationStack:
@@ -81,7 +81,7 @@ class TestCloudFormationStack:
             )
         )
 
-        common_stack_operation_kwargs: Union[CreateStackInputRequestTypeDef, UpdateStackInputRequestTypeDef] = dict(
+        common_stack_operation_kwargs: Union[CreateStackInputTypeDef, UpdateStackInputTypeDef] = dict(
             StackName=self.__stack_name,
             TemplateBody=json.dumps(stack_template_data),
             Capabilities=['CAPABILITY_IAM', 'CAPABILITY_AUTO_EXPAND'],
@@ -93,23 +93,23 @@ class TestCloudFormationStack:
         self.__logger.info('CloudFormation stack is up-to-date.')
 
     def __create_or_update_stack(self, common_stack_operation_kwargs: Union[
-        CreateStackInputRequestTypeDef, UpdateStackInputRequestTypeDef]) -> None:
+        CreateStackInputTypeDef, UpdateStackInputTypeDef]) -> None:
         try:
-            self.__create_stack(**cast(CreateStackInputRequestTypeDef, common_stack_operation_kwargs))
+            self.__create_stack(**cast(CreateStackInputTypeDef, common_stack_operation_kwargs))
         except ClientError as client_error:
             # noinspection PyUnresolvedReferences
             if client_error.response['Error']['Code'] != 'AlreadyExistsException':
                 raise client_error
 
-            self.__update_stack(**cast(UpdateStackInputRequestTypeDef, common_stack_operation_kwargs))
+            self.__update_stack(**cast(UpdateStackInputTypeDef, common_stack_operation_kwargs))
 
-    def __create_stack(self, **common_upsert_kwargs: Unpack[CreateStackInputRequestTypeDef]) -> None:
+    def __create_stack(self, **common_upsert_kwargs: Unpack[CreateStackInputTypeDef]) -> None:
         common_upsert_kwargs['OnFailure'] = cast(OnFailureType, "DELETE")
         self.__cloudformation_client.create_stack(**common_upsert_kwargs)
         create_stack_waiter = self.__cloudformation_client.get_waiter('stack_create_complete')
         create_stack_waiter.wait(StackName=self.__stack_name, WaiterConfig=dict(Delay=3, MaxAttempts=30))
 
-    def __update_stack(self, **common_upsert_kwargs: Unpack[UpdateStackInputRequestTypeDef]) -> None:
+    def __update_stack(self, **common_upsert_kwargs: Unpack[UpdateStackInputTypeDef]) -> None:
         try:
             self.__cloudformation_client.update_stack(**common_upsert_kwargs)
             update_stack_waiter = self.__cloudformation_client.get_waiter('stack_update_complete')
