@@ -13,7 +13,7 @@ source "${script_directory_path}/install.env"
 
 echo "Uploading assets..."
 
-aws s3 sync --delete \
+aws s3 sync \
   "${script_directory_path}/assets" \
   "s3://${code_s3_bucket}/${code_s3_key_prefix}"
 
@@ -28,3 +28,8 @@ aws cloudformation deploy \
     CodeS3Bucket="${code_s3_bucket}" \
     TestDoublesMacroCodeS3Key="${code_s3_key_prefix}${TEST_DOUBLES_MACRO_CODE_BUNDLE_PATH}" \
     TestDoubleInvocationHandlerFunctionCodeS3Key="${code_s3_key_prefix}${TEST_DOUBLE_INVOCATION_HANDLER_FUNCTION_CODE_BUNDLE_PATH}"
+
+# Remove old assets once we know that stack isn't going to need them during a rollback
+aws s3 sync --delete \
+  "${script_directory_path}/assets" \
+  "s3://${code_s3_bucket}/${code_s3_key_prefix}"
