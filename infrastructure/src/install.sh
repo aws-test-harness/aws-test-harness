@@ -13,7 +13,7 @@ source "${script_directory_path}/install.env"
 
 echo "Uploading assets..."
 
-aws s3 sync \
+aws s3 sync --delete \
   "${script_directory_path}/assets" \
   "s3://${code_s3_bucket}/${code_s3_key_prefix}"
 
