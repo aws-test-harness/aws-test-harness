@@ -7,7 +7,7 @@ from test_doubles_macro.test_double_state_machine_resource_factory import TestDo
 
 
 class TestDoubleResourceFactory:
-    def __init__(self, invocation_handler_function_code_s3_bucket, invocation_handler_function_code_s3_key):
+    def __init__(self, invocation_handler_function_code_s3_bucket: str, invocation_handler_function_code_s3_key: str):
         self.__invocation_handling_resource_factory = TestDoubleInvocationHandlingResourceFactory(
             invocation_handler_function_code_s3_bucket,
             invocation_handler_function_code_s3_key)

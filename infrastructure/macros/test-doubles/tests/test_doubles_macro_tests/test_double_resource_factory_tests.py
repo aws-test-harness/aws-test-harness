@@ -5,6 +5,7 @@ from typing import cast, Dict, List, Optional
 
 import pytest
 from boto3 import Session
+from botocore.exceptions import ClientError
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_stepfunctions.client import SFNClient
 
@@ -28,16 +29,15 @@ def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session
     assets_bucket_stack.ensure_exists()
 
     invocation_handler_project_path = absolute_path_to('..', '..', '..', '..', 'invocation-handler')
-    system_command_executor.execute([os.path.join(invocation_handler_project_path, 'scripts', 'build.sh')])
+    system_command_executor.execute([os.path.join(invocation_handler_project_path, 'build.sh')])
 
     invocation_handler_function_code_s3_key = 'code.zip'
 
-    # TODO: Don't upload if file contents match - use ETag?
-    s3_client: S3Client = boto_session.client('s3')
-    s3_client.upload_file(
-        Filename=os.path.join(invocation_handler_project_path, 'build', 'code.zip'),
-        Bucket=assets_bucket_stack.bucket_name,
-        Key=invocation_handler_function_code_s3_key
+    sync_file_to_s3(
+        os.path.join(invocation_handler_project_path, 'build', 'code.zip'),
+        assets_bucket_stack.bucket_name,
+        invocation_handler_function_code_s3_key,
+        boto_session.client('s3')
     )
 
     test_double_resource_factory = TestDoubleResourceFactory(
@@ -181,3 +181,33 @@ def absolute_path_to(*relative_file_path_parts: str) -> str:
     test_double_template_file_path = os.path.normpath(
         os.path.join(os.path.dirname(__file__), *relative_file_path_parts))
     return test_double_template_file_path
+
+
+def sync_file_to_s3(code_bundle_path: str, bucket_name: str, key: str, s3_client: S3Client) -> None:
+    if is_s3_key_stale(bucket_name, key, code_bundle_path, s3_client):
+        s3_client.upload_file(Filename=code_bundle_path, Bucket=bucket_name, Key=key)
+
+
+# Like the AWS CLI 's3 sync' command, use file size and timestamp to determine staleness.
+# ETags can't be used because the SDK uses multi-part uploads which generate a composite ETag.
+def is_s3_key_stale(bucket_name: str, s3_key: str, local_file_path: str, s3_client: S3Client) -> bool:
+    try:
+        head_object_result = s3_client.head_object(
+            Bucket=bucket_name,
+            Key=s3_key
+        )
+    except ClientError as client_error:
+        error = client_error.response['Error']
+
+        if error['Code'] == '404':
+            return True
+
+        raise client_error
+
+    if os.path.getsize(local_file_path) != head_object_result['ContentLength']:
+        return True
+
+    if os.path.getmtime(local_file_path) > head_object_result['LastModified'].timestamp():
+        return True
+
+    return False

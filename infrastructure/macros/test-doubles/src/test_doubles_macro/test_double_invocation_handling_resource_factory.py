@@ -11,8 +11,8 @@ class TestDoubleInvocationHandlingResourceDescriptions:
 
 # TODO: Retrofit tests
 class TestDoubleInvocationHandlingResourceFactory:
-    def __init__(self, invocation_handler_function_code_s3_bucket='String',
-                 invocation_handler_function_code_s3_key='String'):
+    def __init__(self, invocation_handler_function_code_s3_bucket: str,
+                 invocation_handler_function_code_s3_key: str):
         self.__invocation_handler_function_code_s3_bucket = invocation_handler_function_code_s3_bucket
         self.__invocation_handler_function_code_s3_key = invocation_handler_function_code_s3_key
 

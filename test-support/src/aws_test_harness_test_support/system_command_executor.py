@@ -13,7 +13,10 @@ class SystemCommandExecutor:
 
         completed_process = subprocess.run(
             command_args,
-            capture_output=True, timeout=timeout_seconds, env=env_vars if env_vars else {}, encoding='utf-8'
+            capture_output=True,
+            timeout=timeout_seconds,
+            env=env_vars if env_vars else {},
+            encoding='utf-8'
         )
 
         if completed_process.stdout:

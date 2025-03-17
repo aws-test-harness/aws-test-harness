@@ -386,26 +386,24 @@ wheels = [
 name = "test-doubles-macro"
 version = "0.1.0"
 source = { editable = "infrastructure/macros/test-doubles" }
-dependencies = [
-    { name = "infrastructure-test-support" },
-]
 
 [package.dev-dependencies]
 dev = [
     { name = "aws-test-harness-test-support" },
     { name = "boto3" },
     { name = "boto3-stubs-lite", extra = ["s3", "sqs", "stepfunctions"] },
+    { name = "infrastructure-test-support" },
     { name = "pytest" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "infrastructure-test-support", editable = "infrastructure/test-support" }]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "aws-test-harness-test-support", editable = "test-support" },
     { name = "boto3", specifier = ">=1.36.6" },
     { name = "boto3-stubs-lite", extras = ["s3", "stepfunctions", "sqs"], specifier = ">=1.36.6" },
+    { name = "infrastructure-test-support", editable = "infrastructure/test-support" },
     { name = "pytest", specifier = ">=8.3.4" },
 ]
 
