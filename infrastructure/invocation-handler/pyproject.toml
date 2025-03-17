@@ -13,4 +13,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = []
+dev = [
+    "aws-test-harness-test-support",
+    "pytest>=8.3.4",
+]

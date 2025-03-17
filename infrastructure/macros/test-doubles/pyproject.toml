@@ -18,9 +18,5 @@ dev = [
     "pytest>=8.3.4",
 ]
 
-[tool.uv.sources]
-aws-test-harness-test-support = { workspace = true }
-infrastructure-test-support = { workspace = true }
-
 [[tool.uv.index]]
 url = "https://pypi.org/simple"
