@@ -5,13 +5,12 @@ from typing import cast, Dict, List, Optional
 
 import pytest
 from boto3 import Session
-from botocore.exceptions import ClientError
-from mypy_boto3_s3.client import S3Client
 from mypy_boto3_stepfunctions.client import SFNClient
 
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_test_support.test_s3_bucket_stack import TestS3BucketStack
+from infrastructure_test_support.s3_utils import sync_file_to_s3
 from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
 from infrastructure_test_support.step_functions_utils import start_state_machine_execution
 from test_doubles_macro.test_double_resource_factory import TestDoubleResourceFactory
@@ -175,33 +174,3 @@ def create_test_double_parameters_with(AWSTestHarnessS3Buckets: Optional[List[st
         AWSTestHarnessS3Buckets=AWSTestHarnessS3Buckets or [],
         AWSTestHarnessStateMachines=AWSTestHarnessStateMachines or []
     )
-
-
-def sync_file_to_s3(code_bundle_path: str, bucket_name: str, key: str, s3_client: S3Client) -> None:
-    if is_s3_key_stale(bucket_name, key, code_bundle_path, s3_client):
-        s3_client.upload_file(Filename=code_bundle_path, Bucket=bucket_name, Key=key)
-
-
-# Like the AWS CLI 's3 sync' command, use file size and timestamp to determine staleness.
-# ETags can't be used because the SDK uses multi-part uploads which generate a composite ETag.
-def is_s3_key_stale(bucket_name: str, s3_key: str, local_file_path: str, s3_client: S3Client) -> bool:
-    try:
-        head_object_result = s3_client.head_object(
-            Bucket=bucket_name,
-            Key=s3_key
-        )
-    except ClientError as client_error:
-        error = client_error.response['Error']
-
-        if error['Code'] == '404':
-            return True
-
-        raise client_error
-
-    if os.path.getsize(local_file_path) != head_object_result['ContentLength']:
-        return True
-
-    if os.path.getmtime(local_file_path) > head_object_result['LastModified'].timestamp():
-        return True
-
-    return False
