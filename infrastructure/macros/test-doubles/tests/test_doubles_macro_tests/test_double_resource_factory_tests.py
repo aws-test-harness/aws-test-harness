@@ -10,7 +10,8 @@ from mypy_boto3_stepfunctions.client import SFNClient
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_test_support.test_s3_bucket_stack import TestS3BucketStack
-from infrastructure_test_support.s3_utils import sync_file_to_s3
+from infrastructure_test_support.digest_utils import calculate_md5
+from infrastructure_test_support.s3_utils import sync_file_to_s3, ensure_bucket_only_contains_key
 from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
 from infrastructure_test_support.step_functions_utils import start_state_machine_execution
 from test_doubles_macro.test_double_resource_factory import TestDoubleResourceFactory
@@ -28,21 +29,26 @@ def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session
     assets_bucket_stack = TestS3BucketStack(f'{test_stack_name}-test-assets-bucket', logger, boto_session)
     assets_bucket_stack.ensure_exists()
 
-    invocation_handler_project_path = absolute_path_relative_to(__file__, '..', '..', '..', '..', 'invocation-handler')
-    system_command_executor.execute([os.path.join(invocation_handler_project_path, 'build.sh')])
+    project_path = absolute_path_relative_to(__file__, '..', '..', '..', '..', 'invocation-handler')
 
-    invocation_handler_function_code_s3_key = 'code.zip'
+    system_command_executor.execute([os.path.join(project_path, 'build.sh')])
+
+    code_bundle_path = os.path.join(project_path, 'build', 'code.zip')
+
+    function_code_s3_key = calculate_md5(code_bundle_path) + '.zip'
+
+    assets_bucket_name = assets_bucket_stack.bucket_name
 
     sync_file_to_s3(
-        os.path.join(invocation_handler_project_path, 'build', 'code.zip'),
-        assets_bucket_stack.bucket_name,
-        invocation_handler_function_code_s3_key,
+        code_bundle_path,
+        assets_bucket_name,
+        function_code_s3_key,
         boto_session.client('s3')
     )
 
     test_double_resource_factory = TestDoubleResourceFactory(
-        assets_bucket_stack.bucket_name,
-        invocation_handler_function_code_s3_key
+        assets_bucket_name,
+        function_code_s3_key
     )
 
     desired_test_doubles = create_test_double_parameters_with(
