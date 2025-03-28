@@ -11,7 +11,7 @@ from aws_test_harness_test_support.system_command_executor import SystemCommandE
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_test_support.test_s3_bucket_stack import TestS3BucketStack
 from infrastructure_test_support.digest_utils import calculate_md5
-from infrastructure_test_support.s3_utils import sync_file_to_s3, ensure_bucket_only_contains_key
+from infrastructure_test_support.s3_utils import sync_file_to_s3
 from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
 from infrastructure_test_support.step_functions_utils import start_state_machine_execution
 from test_doubles_macro.test_double_resource_factory import TestDoubleResourceFactory
@@ -114,11 +114,13 @@ def test_generates_cloudformation_resources_enabling_runtime_control_of_state_ma
 
     execution_invocation_message = wait_for_sqs_message_matching(
         # TODO: InvocationType and InvocationTarget attributes - test drive at lower level
-        lambda message: message['MessageAttributes']['InvocationId']['StringValue'] == execution_arn,
+        lambda message: message is not None
+                        and message['MessageAttributes']['InvocationId']['StringValue'] == execution_arn,
         invocation_queue_url,
         boto_session.client('sqs')
     )
 
+    assert execution_invocation_message is not None
     message_payload = json.loads(execution_invocation_message['Body'])
     assert message_payload['event']['executionInput'] == dict(colour='orange', size='small')
 

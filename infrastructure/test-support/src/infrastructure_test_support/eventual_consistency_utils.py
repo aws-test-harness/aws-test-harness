@@ -3,8 +3,8 @@ from typing import Callable, Optional
 
 
 def wait_for_value_matching[T](try_get_value: Callable[[], Optional[T]], value_description: str,
-                               predicate: Callable[[T], bool],
-                               timeout_millis: int = 5 * 1000) -> T:
+                               predicate: Callable[[Optional[T]], bool],
+                               timeout_millis: int = 5 * 1000) -> Optional[T]:
     milliseconds_since_epoch = get_epoch_milliseconds()
 
     expiry_time = milliseconds_since_epoch + timeout_millis

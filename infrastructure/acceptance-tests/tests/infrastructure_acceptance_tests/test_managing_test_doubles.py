@@ -81,11 +81,13 @@ def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack
     )
 
     sqs_message = wait_for_sqs_message_matching(
-        lambda message: message['MessageAttributes']['InvocationId']['StringValue'] == execution_arn,
+        lambda message: message is not None and
+                        message['MessageAttributes']['InvocationId']['StringValue'] == execution_arn,
         invocation_queue_url,
         boto_session.client('sqs')
     )
 
+    assert sqs_message is not None
     assert json.loads(sqs_message['Body'])['event']['executionInput'] == dict(colour='orange', size='small')
 
 
