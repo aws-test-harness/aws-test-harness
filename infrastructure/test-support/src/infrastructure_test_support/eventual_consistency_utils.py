@@ -10,11 +10,15 @@ def wait_for_value_matching[T](try_get_value: Callable[[], Optional[T]], value_d
     expiry_time = milliseconds_since_epoch + timeout_millis
 
     value: Optional[T] = None
+    last_non_none_value: Optional[T] = None
 
     condition_satisfied = False
 
     while not condition_satisfied and get_epoch_milliseconds() < expiry_time:
         value = try_get_value()
+
+        if value is not None:
+            last_non_none_value = value
 
         # noinspection PyBroadException
         try:
@@ -22,7 +26,14 @@ def wait_for_value_matching[T](try_get_value: Callable[[], Optional[T]], value_d
         except BaseException:
             pass
 
-    assert condition_satisfied, f'Timed out waiting for {value_description}. Latest retrieved value was {value}'
+    assert condition_satisfied, (
+            f'Timed out waiting for {value_description}' +
+            (
+                f'\n\nLatest value is None but previously it was {last_non_none_value}'
+                if value is None and last_non_none_value is not None
+                else '\n\nValue retrieved was None at all times'
+            )
+    )
 
     return value
 
