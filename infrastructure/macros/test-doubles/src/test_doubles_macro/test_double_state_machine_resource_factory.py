@@ -39,6 +39,7 @@ class TestDoubleStateMachineResourceFactory:
                         Parameters=dict(
                             Payload={
                                 'invocationId.$': '$$.Execution.Id',
+                                'invocationTarget.$': '$$.StateMachine.Id',
                                 'executionInput.$': '$$.Execution.Input',
                             },
                             FunctionName='${InvocationHandlerFunctionName}'

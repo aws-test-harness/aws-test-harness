@@ -13,7 +13,10 @@ def handler(event: Dict[str, Any], _: Any) -> Dict[str, Any]:
     sqs_client.send_message(
         QueueUrl=os.environ['INVOCATION_QUEUE_URL'],
         MessageBody=json.dumps(dict(event=event)),
-        MessageAttributes=dict(InvocationId=dict(StringValue=event['invocationId'], DataType='String'))
+        MessageAttributes=dict(
+            InvocationTarget=dict(StringValue=event['invocationTarget'], DataType='String'),
+            InvocationId=dict(StringValue=event['invocationId'], DataType='String'),
+        )
     )
 
     return dict()
