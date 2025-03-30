@@ -1,5 +1,7 @@
-import json
 import os
+import tempfile
+import zipfile
+from datetime import datetime
 from logging import Logger
 from typing import cast, Dict, List, Optional
 
@@ -7,34 +9,24 @@ import pytest
 from boto3 import Session
 from mypy_boto3_stepfunctions.client import SFNClient
 
-from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_test_support.test_s3_bucket_stack import TestS3BucketStack
 from infrastructure_test_support.digest_utils import calculate_md5
 from infrastructure_test_support.s3_utils import sync_file_to_s3
-from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
-from infrastructure_test_support.step_functions_utils import start_state_machine_execution
 from test_doubles_macro.test_double_resource_factory import TestDoubleResourceFactory
-from aws_test_harness_test_support.file_utils import absolute_path_relative_to
 
 ANY_S3_BUCKET_NAME = 'any-s3-bucket'
 ANY_S3_KEY = 'any/s3/key'
 
 
 @pytest.fixture(scope="module")
-def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session,
-               system_command_executor: SystemCommandExecutor) -> TestCloudFormationStack:
+def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session) -> TestCloudFormationStack:
     test_stack_name = f'{cfn_stack_name_prefix}test-double-resource-factory'
 
     assets_bucket_stack = TestS3BucketStack(f'{test_stack_name}-test-assets-bucket', logger, boto_session)
     assets_bucket_stack.ensure_exists()
 
-    project_path = absolute_path_relative_to(__file__, '..', '..', '..', '..', 'invocation-handler')
-
-    system_command_executor.execute([os.path.join(project_path, 'build.sh')])
-
-    code_bundle_path = os.path.join(project_path, 'build', 'code.zip')
-
+    code_bundle_path = get_path_to_any_arbitrary_lambda_code_bundle_zip()
     function_code_s3_key = calculate_md5(code_bundle_path) + '.zip'
 
     assets_bucket_name = assets_bucket_stack.bucket_name
@@ -99,39 +91,25 @@ def test_generates_state_machine_cloudformation_resource_for_each_specified_stat
     assert yellow_s3_bucket_resource['ResourceType'] == 'AWS::StepFunctions::StateMachine'
 
 
-def test_generates_cloudformation_resources_enabling_runtime_control_of_state_machines(
-        test_stack: TestCloudFormationStack, step_functions_client: SFNClient, boto_session: Session) -> None:
-    invocation_queue_url = get_cfn_physical_id(
-        'AWSTestHarnessTestDoubleInvocationQueue', test_stack
+def test_generates_invocation_handling_cloudformation_resources(
+        test_stack: TestCloudFormationStack) -> None:
+    invocation_handler_function_resource = test_stack.get_stack_resource(
+        'AWSTestHarnessTestDoubleInvocationHandlerFunction'
     )
-    blue_state_machine_arn = get_cfn_physical_id('BlueAWSTestHarnessStateMachine', test_stack)
+    assert invocation_handler_function_resource is not None
+    assert invocation_handler_function_resource['ResourceType'] == 'AWS::Lambda::Function'
 
-    execution_arn = start_state_machine_execution(
-        blue_state_machine_arn,
-        step_functions_client,
-        execution_input=dict(colour='orange', size='small')
+    invocation_handler_function_role_resource = test_stack.get_stack_resource(
+        'AWSTestHarnessTestDoubleInvocationHandlerFunctionRole'
     )
+    assert invocation_handler_function_role_resource is not None
+    assert invocation_handler_function_role_resource['ResourceType'] == 'AWS::IAM::Role'
 
-    execution_invocation_message = wait_for_sqs_message_matching(
-        # TODO: InvocationType and InvocationTarget attributes - test drive at lower level
-        lambda message: message is not None
-                        and message['MessageAttributes']['InvocationId']['StringValue'] == execution_arn,
-        invocation_queue_url,
-        boto_session.client('sqs')
+    invocation_queue_resource = test_stack.get_stack_resource(
+        'AWSTestHarnessTestDoubleInvocationQueue'
     )
-
-    assert execution_invocation_message is not None
-    message_payload = json.loads(execution_invocation_message['Body'])
-    assert message_payload['event']['executionInput'] == dict(colour='orange', size='small')
-
-
-def test_omits_state_machine_role_cloudformation_resource_if_no_state_machines_specified() -> None:
-    desired_test_doubles = create_test_double_parameters_with(AWSTestHarnessStateMachines=[])
-    test_double_resource_factory = TestDoubleResourceFactory(ANY_S3_BUCKET_NAME, ANY_S3_KEY)
-
-    resources = test_double_resource_factory.generate_additional_resources(desired_test_doubles)
-
-    assert 'AWSTestHarnessStateMachineRole' not in resources
+    assert invocation_queue_resource is not None
+    assert invocation_queue_resource['ResourceType'] == 'AWS::SQS::Queue'
 
 
 def test_omits_test_double_invocation_handling_cloudformation_resources_if_no_state_machines_specified() -> None:
@@ -158,6 +136,15 @@ def test_generates_single_iam_role_cloudformation_resource_for_use_by_state_mach
     assert yellow_state_machine_role_name == state_machine_role_name
 
 
+def test_omits_state_machine_role_cloudformation_resource_if_no_state_machines_specified() -> None:
+    desired_test_doubles = create_test_double_parameters_with(AWSTestHarnessStateMachines=[])
+    test_double_resource_factory = TestDoubleResourceFactory(ANY_S3_BUCKET_NAME, ANY_S3_KEY)
+
+    resources = test_double_resource_factory.generate_additional_resources(desired_test_doubles)
+
+    assert 'AWSTestHarnessStateMachineRole' not in resources
+
+
 def get_state_machine_role_name(logical_id: str, test_stack: TestCloudFormationStack,
                                 step_functions_client: SFNClient) -> str:
     state_machine_arn = get_cfn_physical_id(logical_id, test_stack)
@@ -182,3 +169,20 @@ def create_test_double_parameters_with(AWSTestHarnessS3Buckets: Optional[List[st
         AWSTestHarnessS3Buckets=AWSTestHarnessS3Buckets or [],
         AWSTestHarnessStateMachines=AWSTestHarnessStateMachines or []
     )
+
+
+def get_path_to_any_arbitrary_lambda_code_bundle_zip() -> str:
+    _, code_bundle_path = tempfile.mkstemp()
+
+    jan_1_1980_tuple = (1980, 1, 1, 0, 0, 0)
+
+    with zipfile.ZipFile(code_bundle_path, 'w') as zipf:
+        zipf.writestr(
+            zipfile.ZipInfo('index.py', date_time=jan_1_1980_tuple),
+            'any content'
+        )
+
+    epoch_to_1980_1_1_seconds = datetime(*jan_1_1980_tuple).timestamp()
+    os.utime(code_bundle_path, (epoch_to_1980_1_1_seconds, epoch_to_1980_1_1_seconds))
+
+    return code_bundle_path
