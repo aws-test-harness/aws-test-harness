@@ -14,7 +14,7 @@ function __lambda__build_function_code_asset() {
   HOME=~
   # Ensure uv is on path
   . $HOME/.cargo/env
-  uv export --frozen --no-emit-project --no-dev > "${working_directory_path}/requirements.txt"
+  uv export --no-header --no-hashes --frozen --no-emit-project --no-dev > "${working_directory_path}/requirements.txt"
   uv pip install --target "${working_directory_path}" --requirements "${working_directory_path}/requirements.txt" > /dev/null
   rm "${working_directory_path}/requirements.txt" "${working_directory_path}/.lock"
   # shellcheck disable=SC2164
