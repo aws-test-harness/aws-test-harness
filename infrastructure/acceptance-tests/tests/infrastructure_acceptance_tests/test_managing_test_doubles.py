@@ -1,15 +1,19 @@
 import json
+from datetime import datetime, timedelta
 from logging import Logger
+from uuid import uuid4
 
 import pytest
 from boto3 import Session
+from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource
 from mypy_boto3_stepfunctions.client import SFNClient
 
+from aws_test_harness_test_support.file_utils import absolute_path_relative_to
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
-from aws_test_harness_test_support.file_utils import absolute_path_relative_to
 from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
-from infrastructure_test_support.step_functions_utils import start_state_machine_execution
+from infrastructure_test_support.step_functions_utils import start_state_machine_execution, \
+    wait_for_state_machine_execution_completion
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -69,26 +73,37 @@ def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack
     assert yellow_state_machine_resource is not None
     assert yellow_state_machine_resource['ResourceType'] == 'AWS::StepFunctions::StateMachine'
 
-    invocation_queue_url = test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationQueue')
-    assert invocation_queue_url is not None
-
     step_functions_client: SFNClient = boto_session.client('stepfunctions')
 
+    random_input_string = str(uuid4())
     execution_arn = start_state_machine_execution(
         blue_state_machine_resource['PhysicalResourceId'],
         step_functions_client,
-        execution_input=dict(colour='orange', size='small')
+        execution_input=dict(randomString=random_input_string)
     )
 
     sqs_message = wait_for_sqs_message_matching(
         lambda message: message is not None and
                         message['MessageAttributes']['InvocationId']['StringValue'] == execution_arn,
-        invocation_queue_url,
+        test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationQueue'),
         boto_session.client('sqs')
     )
-
     assert sqs_message is not None
-    assert json.loads(sqs_message['Body'])['event']['executionInput'] == dict(colour='orange', size='small')
+    assert json.loads(sqs_message['Body'])['event']['executionInput'] == dict(randomString=random_input_string)
+
+    random_output_string = str(uuid4())
+    dynamodb_resource: DynamoDBServiceResource = boto_session.resource('dynamodb')
+    invocation_table = dynamodb_resource.Table(
+        test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationTable'))
+    invocation_table.put_item(Item=dict(
+        id=execution_arn,
+        ttl=int((datetime.now() + timedelta(days=1)).timestamp()),
+        result=dict(value=dict(randomString=random_output_string))
+    ))
+
+    execution_description = wait_for_state_machine_execution_completion(execution_arn, step_functions_client)
+    assert execution_description['status'] == 'SUCCEEDED'
+    assert json.loads(execution_description['output']) == dict(randomString=random_output_string)
 
 
 def test_omitting_test_double_stack_parameters(cfn_stack_name_prefix: str, logger: Logger,

@@ -5,7 +5,7 @@ description = "Code for Test Double Invocation Handler Lambda function"
 requires-python = ">=3.13"
 dependencies = [
     "boto3>=1.37.13",
-    "boto3-stubs-lite[lambda,sqs]>=1.37.13",
+    "boto3-stubs-lite[dynamodb,sqs]>=1.37.13",
 ]
 
 [build-system]
@@ -15,6 +15,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "aws-test-harness-test-support",
+    "boto3-stubs-lite[lambda]>=1.37.13",
     "infrastructure-test-support",
     "pytest>=8.3.4",
 ]

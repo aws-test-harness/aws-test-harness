@@ -1,10 +1,13 @@
 import json
 import os
+from datetime import datetime, timedelta
 from logging import Logger
+from typing import cast
 from uuid import uuid4
 
 import pytest
 from boto3 import Session
+from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource
 from mypy_boto3_lambda import LambdaClient
 
 from aws_test_harness_test_support.file_utils import absolute_path_relative_to
@@ -53,27 +56,32 @@ def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session
 
     resources = test_double_invocation_handling_resource_factory.generate_resources(
         'FunctionRole',
-        'Queue'
+        'Queue',
+        'Table',
     )
 
     stack = TestCloudFormationStack(test_stack_name, logger, boto_session)
     stack.ensure_state_is(Resources=dict(
         Function=resources.invocation_handler_function,
         FunctionRole=resources.invocation_handler_function_role,
-        Queue=resources.invocation_queue
+        Queue=resources.invocation_queue,
+        Table=resources.invocation_table
     ))
 
     return stack
 
 
-def test_generates_cloudformation_resources_that_enable_interception_lambda_function_invocation_events(
-        test_stack: TestCloudFormationStack, boto_session: Session) -> None:
-    lambda_client: LambdaClient = boto_session.client('lambda')
+@pytest.fixture(scope="module")
+def lambda_client(boto_session: Session) -> LambdaClient:
+    return cast(LambdaClient, boto_session.client('lambda'))
 
+
+def test_generates_cloudformation_resources_that_enable_intercepting_lambda_function_invocation_events(
+        test_stack: TestCloudFormationStack, boto_session: Session, lambda_client: LambdaClient) -> None:
     event = dict(invocationTarget=str(uuid4()), invocationId=str(uuid4()), randomString=str(uuid4()))
 
     lambda_client.invoke(
-        FunctionName=get_cfn_physical_id('Function', test_stack),
+        FunctionName=test_stack.get_stack_resource_physical_id('Function'),
         InvocationType='RequestResponse',
         Payload=json.dumps(event)
     )
@@ -81,7 +89,7 @@ def test_generates_cloudformation_resources_that_enable_interception_lambda_func
     invocation_message = wait_for_sqs_message_matching(
         lambda message: message is not None and message['MessageAttributes']['InvocationId']['StringValue'] == \
                         event['invocationId'],
-        get_cfn_physical_id('Queue', test_stack),
+        test_stack.get_stack_resource_physical_id('Queue'),
         boto_session.client('sqs')
     )
 
@@ -90,8 +98,25 @@ def test_generates_cloudformation_resources_that_enable_interception_lambda_func
     assert json.loads(invocation_message['Body'])['event'] == event
 
 
-def get_cfn_physical_id(logical_id: str, test_stack: TestCloudFormationStack) -> str:
-    cloudformation_resource = test_stack.get_stack_resource(logical_id)
-    assert cloudformation_resource is not None
+def test_generates_cloudformation_resources_that_enable_controlling_lambda_function_invocation_result_value(
+        test_stack: TestCloudFormationStack, boto_session: Session, lambda_client: LambdaClient) -> None:
+    invocation_id = str(uuid4())
+    event = dict(invocationTarget='any-invocation-target', invocationId=invocation_id)
+    random_string = str(uuid4())
 
-    return cloudformation_resource['PhysicalResourceId']
+    dynamodb_resource: DynamoDBServiceResource = boto_session.resource('dynamodb')
+    invocation_table = dynamodb_resource.Table(test_stack.get_stack_resource_physical_id('Table'))
+    invocation_table.put_item(Item=dict(
+        id=invocation_id,
+        ttl=int((datetime.now() + timedelta(days=1)).timestamp()),
+        result=dict(value=dict(randomString=random_string))
+    ))
+
+    invocation_response = lambda_client.invoke(
+        FunctionName=test_stack.get_stack_resource_physical_id('Function'),
+        InvocationType='RequestResponse',
+        Payload=json.dumps(event)
+    )
+
+    lambda_invocation_result_data = json.loads(invocation_response['Payload'].read().decode('utf-8'))
+    assert lambda_invocation_result_data == dict(randomString=random_string)

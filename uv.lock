@@ -116,6 +116,9 @@ wheels = [
 cloudformation = [
     { name = "mypy-boto3-cloudformation" },
 ]
+dynamodb = [
+    { name = "mypy-boto3-dynamodb" },
+]
 lambda = [
     { name = "mypy-boto3-lambda" },
 ]
@@ -173,7 +176,7 @@ source = { virtual = "infrastructure/acceptance-tests" }
 dev = [
     { name = "aws-test-harness-test-support" },
     { name = "boto3" },
-    { name = "boto3-stubs-lite", extra = ["s3", "sqs", "stepfunctions"] },
+    { name = "boto3-stubs-lite", extra = ["dynamodb", "s3", "sqs", "stepfunctions"] },
     { name = "infrastructure-test-support" },
     { name = "pytest" },
 ]
@@ -184,7 +187,7 @@ dev = [
 dev = [
     { name = "aws-test-harness-test-support", editable = "test-support" },
     { name = "boto3", specifier = ">=1.36.6" },
-    { name = "boto3-stubs-lite", extras = ["s3", "stepfunctions", "sqs"], specifier = ">=1.36.6" },
+    { name = "boto3-stubs-lite", extras = ["dynamodb", "s3", "sqs", "stepfunctions"], specifier = ">=1.36.6" },
     { name = "infrastructure-test-support", editable = "infrastructure/test-support" },
     { name = "pytest", specifier = ">=8.3.4" },
 ]
@@ -248,6 +251,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/68/be/4e6ffe06fcb4e3f10b85b9a1a5f123872082b2cfa2ae1830b5b2891cd3bc/mypy_boto3_cloudformation-1.37.0.tar.gz", hash = "sha256:bfc74ba8614671406e11f284609674167533eda220dd635c2fb824cb6023baed", size = 57450 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6e/ea/4c8c91747e1c4df4f6ae4809a4e48f602117fe3745d68dae78d5e1e38385/mypy_boto3_cloudformation-1.37.0-py3-none-any.whl", hash = "sha256:8e2eee79b431bc47e94b4cdf3c38cc61ec90aca38a153874038b04f17f69a3c8", size = 69343 },
+]
+
+[[package]]
+name = "mypy-boto3-dynamodb"
+version = "1.37.12"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/58/fc/95068ae41a63c19e43e0774dcbeec70523dcf35f948ad66f3375a887c614/mypy_boto3_dynamodb-1.37.12.tar.gz", hash = "sha256:0e4d7a16fb9dba7aab7ac9ba8ff3721f9696a8484b1eed693b7949164b7805ba", size = 47470 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/17/2f/21716b7a6ffed0a4347b28ec06107b626f92c096c06ea5653f2bf27f8807/mypy_boto3_dynamodb-1.37.12-py3-none-any.whl", hash = "sha256:a4b2770ec1f8d6096b5e6d863800f3ff742c86a17dfa5e6b012ed7f7ccd28921", size = 56374 },
 ]
 
 [[package]]
@@ -409,12 +421,13 @@ version = "0.1.0"
 source = { editable = "infrastructure/invocation-handler" }
 dependencies = [
     { name = "boto3" },
-    { name = "boto3-stubs-lite", extra = ["lambda", "sqs"] },
+    { name = "boto3-stubs-lite", extra = ["dynamodb", "sqs"] },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "aws-test-harness-test-support" },
+    { name = "boto3-stubs-lite", extra = ["lambda"] },
     { name = "infrastructure-test-support" },
     { name = "pytest" },
 ]
@@ -422,12 +435,13 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.37.13" },
-    { name = "boto3-stubs-lite", extras = ["lambda", "sqs"], specifier = ">=1.37.13" },
+    { name = "boto3-stubs-lite", extras = ["dynamodb", "sqs"], specifier = ">=1.37.13" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "aws-test-harness-test-support", editable = "test-support" },
+    { name = "boto3-stubs-lite", extras = ["lambda"], specifier = ">=1.37.13" },
     { name = "infrastructure-test-support", editable = "infrastructure/test-support" },
     { name = "pytest", specifier = ">=8.3.4" },
 ]
@@ -441,7 +455,7 @@ source = { editable = "infrastructure/macros/test-doubles" }
 dev = [
     { name = "aws-test-harness-test-support" },
     { name = "boto3" },
-    { name = "boto3-stubs-lite", extra = ["lambda", "s3", "sqs", "stepfunctions"] },
+    { name = "boto3-stubs-lite", extra = ["dynamodb", "lambda", "s3", "sqs", "stepfunctions"] },
     { name = "infrastructure-test-support" },
     { name = "pytest" },
 ]
@@ -452,7 +466,7 @@ dev = [
 dev = [
     { name = "aws-test-harness-test-support", editable = "test-support" },
     { name = "boto3", specifier = ">=1.36.6" },
-    { name = "boto3-stubs-lite", extras = ["lambda", "s3", "sqs", "stepfunctions"], specifier = ">=1.36.6" },
+    { name = "boto3-stubs-lite", extras = ["dynamodb", "lambda", "s3", "sqs", "stepfunctions"], specifier = ">=1.36.6" },
     { name = "infrastructure-test-support", editable = "infrastructure/test-support" },
     { name = "pytest", specifier = ">=8.3.4" },
 ]
