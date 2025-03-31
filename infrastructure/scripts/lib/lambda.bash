@@ -2,6 +2,11 @@ function __lambda__build_function_code_asset() {
   local lambda_function_directory_path="$1"
   local target_directory_path="$2"
 
+  function find_uv_workspace_root_directory() {
+    # shellcheck disable=SC2016
+    uv lock --dry-run --verbose 2>&1 | grep 'Found workspace root' | head -1 | sed -E 's/.*Found workspace root: `(.+)`.*/\1/'
+  }
+
   echo "Building code asset for lambda function at ${lambda_function_directory_path}..." >&2
 
   local working_directory_path
