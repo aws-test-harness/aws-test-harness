@@ -16,7 +16,7 @@ class TestHarness:
         self.__boto_session = Session(profile_name=aws_profile)
         self.__logger = logger
         self.__test_resource_registry = ResourceRegistry(test_stack_name, self.__boto_session)
-        self.__test_double_source = TestDoubleSource(self.__test_resource_registry, self.__boto_session)
+        self.__test_double_source = TestDoubleSource(self.__test_resource_registry, self.__boto_session, logger)
 
     @property
     def test_doubles(self) -> TestDoubleSource:

@@ -18,7 +18,7 @@ version = "0.1.0"
 source = { editable = "languages/python" }
 dependencies = [
     { name = "boto3" },
-    { name = "boto3-stubs-lite", extra = ["cloudformation", "s3", "stepfunctions"] },
+    { name = "boto3-stubs-lite", extra = ["cloudformation", "dynamodb", "s3", "sqs", "stepfunctions"] },
 ]
 
 [package.dev-dependencies]
@@ -30,7 +30,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.36.6" },
-    { name = "boto3-stubs-lite", extras = ["cloudformation", "s3", "stepfunctions"], specifier = ">=1.36.6" },
+    { name = "boto3-stubs-lite", extras = ["cloudformation", "dynamodb", "s3", "sqs", "stepfunctions"], specifier = ">=1.36.6" },
 ]
 
 [package.metadata.requires-dev]

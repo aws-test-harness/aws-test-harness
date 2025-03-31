@@ -31,14 +31,14 @@ def before_all(test_stack: TestCloudFormationStack, test_double_macro_name: str)
 
 
 def test_provides_object_to_interract_with_test_double_s3_bucket(
-        test_stack: TestCloudFormationStack, boto_session: Session, s3_test_client: S3TestClient
+        test_stack: TestCloudFormationStack, boto_session: Session, s3_test_client: S3TestClient, logger: Logger
 ) -> None:
     resource_registry = Mock(spec=ResourceRegistry)
     resource_registry.get_physical_resource_id.side_effect = (
         lambda logical_id: test_stack.get_output_value(f'{logical_id}Name')
     )
 
-    test_double_source = TestDoubleSource(resource_registry, boto_session)
+    test_double_source = TestDoubleSource(resource_registry, boto_session, logger)
 
     s3_bucket = test_double_source.s3_bucket('First')
 
