@@ -57,13 +57,14 @@ class TestDoubleResourceFactory:
                                                             additional_resources: Dict[str, Dict[str, Any]]) -> None:
         function_role_logical_id = 'AWSTestHarnessTestDoubleInvocationHandlerFunctionRole'
         queue_logical_id = 'AWSTestHarnessTestDoubleInvocationQueue'
+        invocation_table_logical_id = 'AWSTestHarnessTestDoubleInvocationTable'
 
         resource_descriptions = self.__invocation_handling_resource_factory.generate_resources(
-            function_role_logical_id,
-            queue_logical_id
+            function_role_logical_id, queue_logical_id, invocation_table_logical_id
         )
 
         additional_resources[queue_logical_id] = resource_descriptions.invocation_queue
+        additional_resources[invocation_table_logical_id] = resource_descriptions.invocation_table
         additional_resources[function_role_logical_id] = resource_descriptions.invocation_handler_function_role
         additional_resources[function_logical_id] = resource_descriptions.invocation_handler_function
 

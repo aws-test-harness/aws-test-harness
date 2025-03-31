@@ -111,6 +111,12 @@ def test_generates_invocation_handling_cloudformation_resources(
     assert invocation_queue_resource is not None
     assert invocation_queue_resource['ResourceType'] == 'AWS::SQS::Queue'
 
+    invocation_table_resource = test_stack.get_stack_resource(
+        'AWSTestHarnessTestDoubleInvocationTable'
+    )
+    assert invocation_table_resource is not None
+    assert invocation_table_resource['ResourceType'] == 'AWS::DynamoDB::Table'
+
 
 def test_omits_test_double_invocation_handling_cloudformation_resources_if_no_state_machines_specified() -> None:
     desired_test_doubles = create_test_double_parameters_with(AWSTestHarnessStateMachines=[])
