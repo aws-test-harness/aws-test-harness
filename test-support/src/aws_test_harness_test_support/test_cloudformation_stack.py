@@ -1,10 +1,11 @@
 import json
+from datetime import datetime
 from logging import Logger
-from typing import Dict, Any, Union, List, Optional, Unpack, cast
+from typing import Dict, Any, Union, List, Optional, Unpack, cast, Callable
 
 import yaml
 from boto3 import Session
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, WaiterError
 from mypy_boto3_cloudformation.client import CloudFormationClient
 from mypy_boto3_cloudformation.literals import OnFailureType
 from mypy_boto3_cloudformation.type_defs import StackResourceDetailTypeDef, CreateStackInputTypeDef, \
@@ -106,14 +107,26 @@ class TestCloudFormationStack:
     def __create_stack(self, **common_upsert_kwargs: Unpack[CreateStackInputTypeDef]) -> None:
         common_upsert_kwargs['OnFailure'] = cast(OnFailureType, "DELETE")
         self.__cloudformation_client.create_stack(**common_upsert_kwargs)
+
         create_stack_waiter = self.__cloudformation_client.get_waiter('stack_create_complete')
-        create_stack_waiter.wait(StackName=self.__stack_name, WaiterConfig=dict(Delay=3, MaxAttempts=30))
+        self.__with_stack_change_failure_reason_on_waiter_error(
+            lambda: create_stack_waiter.wait(StackName=self.__stack_name, WaiterConfig=dict(Delay=3, MaxAttempts=30)),
+            self.__stack_name,
+            'create'
+        )
 
     def __update_stack(self, **common_upsert_kwargs: Unpack[UpdateStackInputTypeDef]) -> None:
         try:
             self.__cloudformation_client.update_stack(**common_upsert_kwargs)
             update_stack_waiter = self.__cloudformation_client.get_waiter('stack_update_complete')
-            update_stack_waiter.wait(StackName=self.__stack_name, WaiterConfig=dict(Delay=3, MaxAttempts=30))
+            self.__with_stack_change_failure_reason_on_waiter_error(
+                lambda: update_stack_waiter.wait(
+                    StackName=self.__stack_name,
+                    WaiterConfig=dict(Delay=3, MaxAttempts=30)
+                ),
+                self.__stack_name,
+                'update'
+            )
         except ClientError as client_error:
             # noinspection PyUnresolvedReferences
             error = client_error.response['Error']
@@ -140,3 +153,46 @@ class TestCloudFormationStack:
             stack_template_data['Outputs'] = Outputs
 
         return stack_template_data
+
+    def __with_stack_change_failure_reason_on_waiter_error(self, wait: Callable[[], None], stack_name: str,
+                                                           stack_change_type: str) -> None:
+        try:
+            wait()
+        except WaiterError as waiter_error:
+            describe_stacks_result = self.__cloudformation_client.describe_stacks(StackName=stack_name)
+            stack_description = describe_stacks_result['Stacks'][0]
+            stack_change_start_time = stack_description.get('LastUpdatedTime')
+
+            likely_stack_change_failure_reason: Optional[str] = None
+
+            if stack_change_start_time:
+                likely_stack_change_failure_reason = self.__get_likely_stack_change_failure_reason(
+                    stack_name, stack_change_start_time
+                )
+
+            exception_message = (
+                    f'Exception thrown whilst waiting for stack to {stack_change_type}. ' +
+                    (
+                        f'The likely reason for the failure was: "{likely_stack_change_failure_reason}"'
+                        if likely_stack_change_failure_reason
+                        else 'Unable to determine the reason for the failure.'
+                    )
+            )
+
+            raise Exception(exception_message) from waiter_error
+
+    def __get_likely_stack_change_failure_reason(self, stack_name: str, stack_change_start_time: datetime) -> Optional[
+        str]:
+        describe_stack_events_paginator = self.__cloudformation_client.get_paginator('describe_stack_events')
+
+        for page in describe_stack_events_paginator.paginate(StackName=stack_name):
+            for event in page['StackEvents']:
+                status_reason = event.get('ResourceStatusReason')
+
+                if status_reason:
+                    return status_reason
+
+                if event['Timestamp'] < stack_change_start_time:
+                    return None
+
+        return None
