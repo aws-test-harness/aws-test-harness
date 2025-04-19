@@ -4,6 +4,7 @@ from typing import Optional
 from boto3 import Session
 
 from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
+from aws_test_harness.infrastructure.sqs_message_invocation_listener import SqsMessageInvocationListener
 from aws_test_harness.step_functions.state_machine import StateMachine
 from aws_test_harness.test_double_source import TestDoubleSource
 
@@ -16,7 +17,16 @@ class TestHarness:
         self.__boto_session = Session(profile_name=aws_profile)
         self.__logger = logger
         self.__test_resource_registry = ResourceRegistry(test_stack_name, self.__boto_session)
-        self.__test_double_source = TestDoubleSource(self.__test_resource_registry, self.__boto_session, logger)
+        self.__test_double_source = TestDoubleSource(
+            self.__test_resource_registry,
+            self.__boto_session,
+            logger,
+            lambda: SqsMessageInvocationListener(
+                self.__test_resource_registry.get_physical_resource_id('AWSTestHarnessTestDoubleInvocationQueue'),
+                self.__boto_session,
+                logger
+            )
+        )
 
     @property
     def test_doubles(self) -> TestDoubleSource:

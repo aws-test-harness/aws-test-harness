@@ -7,6 +7,7 @@ import pytest
 from boto3 import Session
 
 from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
+from aws_test_harness.infrastructure.sqs_message_invocation_listener import SqsMessageInvocationListener
 from aws_test_harness.test_double_source import TestDoubleSource
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
@@ -21,12 +22,12 @@ def test_stack(cfn_stack_name_prefix: str, boto_session: Session, logger: Logger
 @pytest.fixture(scope="module", autouse=True)
 def before_all(test_stack: TestCloudFormationStack, test_double_macro_name: str) -> None:
     test_stack.ensure_state_is(
-        Transform=['AWS::Serverless-2016-10-31', test_double_macro_name],
+        Transform=[test_double_macro_name],
         Parameters=dict(
             AWSTestHarnessS3Buckets=dict(Type='CommaDelimitedList'),
             AWSTestHarnessStateMachines=dict(Type='CommaDelimitedList'),
         ),
-        Resources=dict(Bucket=dict(Type='AWS::S3::Bucket', Properties={})),
+        Resources=dict(),
         AWSTestHarnessS3Buckets='Red',
         AWSTestHarnessStateMachines='Orange,Blue',
     )
@@ -39,7 +40,13 @@ def test_double_source(test_stack: TestCloudFormationStack, boto_session: Sessio
         lambda logical_id: test_stack.get_stack_resource_physical_id(logical_id)
     )
 
-    return TestDoubleSource(resource_registry, boto_session, logger)
+    return TestDoubleSource(
+        resource_registry, boto_session, logger, lambda: SqsMessageInvocationListener(
+            test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationQueue'),
+            boto_session,
+            logger
+        )
+    )
 
 
 def test_provides_object_to_interract_with_test_double_s3_bucket(
