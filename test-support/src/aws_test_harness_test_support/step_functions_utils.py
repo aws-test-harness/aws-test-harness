@@ -4,7 +4,7 @@ from typing import Dict, Any
 from mypy_boto3_stepfunctions.client import SFNClient
 from mypy_boto3_stepfunctions.type_defs import DescribeExecutionOutputTypeDef
 
-from infrastructure_test_support.eventual_consistency_utils import wait_for_value_matching
+from aws_test_harness_test_support.eventual_consistency_utils import wait_for_value_matching
 
 
 def start_state_machine_execution(example_state_machine_arn: str, step_functions_client: SFNClient,

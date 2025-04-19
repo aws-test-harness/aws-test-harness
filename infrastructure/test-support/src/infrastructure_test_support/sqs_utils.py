@@ -3,7 +3,7 @@ from typing import Callable, Optional
 from mypy_boto3_sqs import SQSClient
 from mypy_boto3_sqs.type_defs import MessageTypeDef
 
-from infrastructure_test_support.eventual_consistency_utils import wait_for_value_matching
+from aws_test_harness_test_support.eventual_consistency_utils import wait_for_value_matching
 
 
 def wait_for_sqs_message_matching(message_predicate: Callable[[Optional[MessageTypeDef]], bool], queue_url: str,

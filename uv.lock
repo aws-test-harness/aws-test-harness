@@ -196,6 +196,9 @@ dev = [
 name = "infrastructure-test-support"
 version = "0.1.0"
 source = { editable = "infrastructure/test-support" }
+dependencies = [
+    { name = "aws-test-harness-test-support" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -203,6 +206,7 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "aws-test-harness-test-support", editable = "test-support" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "boto3-stubs-lite", extras = ["sqs", "stepfunctions"], specifier = ">=1.36.6" }]

@@ -9,7 +9,7 @@ from mypy_boto3_stepfunctions.client import SFNClient
 
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from test_doubles_macro.test_double_state_machine_resource_factory import TestDoubleStateMachineResourceFactory
-from infrastructure_test_support.step_functions_utils import execute_state_machine
+from aws_test_harness_test_support.step_functions_utils import execute_state_machine
 
 
 @pytest.fixture(scope="module")

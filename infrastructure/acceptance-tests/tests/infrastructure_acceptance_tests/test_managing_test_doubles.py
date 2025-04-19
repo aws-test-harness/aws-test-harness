@@ -12,7 +12,7 @@ from aws_test_harness_test_support.file_utils import absolute_path_relative_to
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
-from infrastructure_test_support.step_functions_utils import start_state_machine_execution, \
+from aws_test_harness_test_support.step_functions_utils import start_state_machine_execution, \
     wait_for_state_machine_execution_completion
 
 
