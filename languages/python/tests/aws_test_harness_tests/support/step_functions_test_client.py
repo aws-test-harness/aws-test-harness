@@ -1,8 +1,10 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from boto3 import Session
 from mypy_boto3_stepfunctions import SFNClient
 from mypy_boto3_stepfunctions.type_defs import DescribeExecutionOutputTypeDef
+
+from aws_test_harness_test_support.step_functions_utils import execute_state_machine
 
 
 class StepFunctionsTestClient:
@@ -31,3 +33,7 @@ class StepFunctionsTestClient:
         return self.__sfn_client.describe_execution(
             executionArn=state_machine_execution_arn
         )
+
+    def execute_state_machine(self, state_machine_arn: str,
+                              execution_input: Dict[str, Any]) -> DescribeExecutionOutputTypeDef:
+        return execute_state_machine(state_machine_arn, self.__sfn_client, execution_input)

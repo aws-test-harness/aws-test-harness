@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from logging import Logger
 from threading import Thread
+from typing import Dict
 from unittest.mock import Mock
 
 from boto3 import Session
@@ -14,6 +15,10 @@ from aws_test_harness.s3.s3_bucket import S3Bucket
 class TestDoubleSource:
     # Tell pytest to treat this class as a normal class
     __test__ = False
+
+    __test_double_mocks: Dict[str, Mock] = dict()
+
+    __listening_for_invocations: bool = False
 
     def __init__(self, test_double_resource_registry: ResourceRegistry, boto_session: Session, logger: Logger):
         self.__logger = logger
@@ -37,27 +42,44 @@ class TestDoubleSource:
         invocation_table = dynamodb_resource.Table(invocation_table_name)
 
         mock = Mock()
+        state_machine_arn = self.__test_double_resource_registry.get_physical_resource_id(
+            f'{test_double_name}AWSTestHarnessStateMachine'
+        )
 
-        def handle_invocation() -> None:
-            try:
-                messages = invocation_queue.receive_messages(
-                    # TODO: Shorten wait time
-                    MessageAttributeNames=['All'], MaxNumberOfMessages=1, WaitTimeSeconds=10
-                )
-                messages[0].delete()
-                # TODO: Filter for invocation target
-                # TODO: Pass invocation input to mock
-                result = mock()
-                invocation_table.put_item(Item=dict(
-                    id=messages[0].message_attributes['InvocationId']['StringValue'],
-                    result=dict(value=result),
-                    ttl=int((datetime.now() + timedelta(days=1)).timestamp())
-                ))
-            except BaseException as e:
-                self.__logger.exception('Uncaught exception in invocation-handling thread', exc_info=e)
+        self.__test_double_mocks[state_machine_arn] = mock
 
-        thread = Thread(target=handle_invocation, daemon=True)
-        thread.start()
+        if not self.__listening_for_invocations:
+            def handle_invocation() -> None:
+                while True:
+                    try:
+                        messages = invocation_queue.receive_messages(
+                            MessageAttributeNames=['All'],
+                            MaxNumberOfMessages=1,
+                            WaitTimeSeconds=1
+                        )
+
+                        if messages:
+                            message = messages[0]
+                            message.delete()
+
+                            invocation_target = message.message_attributes['InvocationTarget']['StringValue']
+
+                            # TODO: Handle unknown invocation target
+                            matching_mock = self.__test_double_mocks[invocation_target]
+
+                            # TODO: Pass invocation input to mock
+                            result = matching_mock()
+                            invocation_table.put_item(Item=dict(
+                                id=message.message_attributes['InvocationId']['StringValue'],
+                                result=dict(value=result),
+                                ttl=int((datetime.now() + timedelta(days=1)).timestamp())
+                            ))
+                    except BaseException as e:
+                        self.__logger.exception('Uncaught exception in invocation-handling thread', exc_info=e)
+
+            thread = Thread(target=handle_invocation, daemon=True)
+            thread.start()
+            self.__listening_for_invocations = True
 
         return mock
 

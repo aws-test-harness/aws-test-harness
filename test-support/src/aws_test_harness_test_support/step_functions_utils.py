@@ -30,14 +30,15 @@ def wait_for_state_machine_execution_completion(state_machine_execution_arn: str
 
 
 # TODO: Replace with published version of aws-test-harness under an alias?
-def execute_state_machine(example_state_machine_arn: str, step_functions_client: SFNClient,
+def execute_state_machine(state_machine_arn: str, step_functions_client: SFNClient,
                           execution_input: Dict[str, Any]) -> DescribeExecutionOutputTypeDef:
-    state_machine_execution_arn = start_state_machine_execution(example_state_machine_arn, step_functions_client,
+    state_machine_execution_arn = start_state_machine_execution(state_machine_arn, step_functions_client,
                                                                 execution_input)
 
     describe_execution_result = wait_for_state_machine_execution_completion(state_machine_execution_arn, step_functions_client)
 
-    assert describe_execution_result.get('cause') is None
+    failure_cause = describe_execution_result.get('cause')
+    assert failure_cause is None, f"State machine execution failed with cause: {failure_cause}"
     assert describe_execution_result['status'] == 'SUCCEEDED'
 
     return describe_execution_result
