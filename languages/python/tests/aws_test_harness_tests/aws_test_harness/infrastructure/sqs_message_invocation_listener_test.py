@@ -1,55 +1,33 @@
+import sys
 from logging import Logger
 from time import sleep
-from typing import cast
+from unittest.mock import Mock
 from uuid import uuid4
 
 import pytest
-from boto3 import Session
-from mypy_boto3_sqs.client import SQSClient
 
+from aws_test_harness.domain.invocation import Invocation
+from aws_test_harness.domain.invocation_post_office import InvocationPostOffice
 from aws_test_harness.infrastructure.sqs_message_invocation_listener import SqsMessageInvocationListener
 from aws_test_harness_test_support.eventual_consistency_utils import wait_for_value_matching
-from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 
 ANY_INVOCATION_TARGET = 'ANY_INVOCATION_TARGET'
+ANY_INVOCATION_ID = 'ANY_INVOCATION_ID'
 ANY_MESSAGE_BODY = '{}'
 
 
-@pytest.fixture(scope="module")
-def test_stack(cfn_stack_name_prefix: str, boto_session: Session, logger: Logger) -> TestCloudFormationStack:
-    return TestCloudFormationStack(f'{cfn_stack_name_prefix}sqs-message-invocation-listener-test', logger, boto_session)
+def test_listens_for_invocations_arriving_at_post_office(logger: Logger) -> None:
+    invocation_post_office = Mock(spec=InvocationPostOffice)
+    the_invocation_target = str(uuid4())
+    the_invocation_id = str(uuid4())
 
-
-@pytest.fixture(scope="module")
-def sqs_client(boto_session: Session) -> SQSClient:
-    return cast(SQSClient, boto_session.client('sqs'))
-
-
-@pytest.fixture(scope="module")
-def sqs_queue_url(test_stack: TestCloudFormationStack) -> str:
-    test_stack.ensure_state_is(
-        Resources=dict(
-            Queue=dict(
-                Type='AWS::SQS::Queue',
-                Properties=dict(MessageRetentionPeriod=60)
-            )
-        )
+    # Generator expression that provides None indefinitely after yielding inital Invocation
+    invocation_post_office.maybe_collect_invocation.side_effect = (
+        Invocation(target=the_invocation_target, id=the_invocation_id) if i == 0 else None
+        for i in range(sys.maxsize)
     )
+    invocation_listener = SqsMessageInvocationListener(invocation_post_office, logger)
 
-    return test_stack.get_stack_resource_physical_id('Queue')
-
-
-@pytest.fixture(scope="function")
-def invocation_listener(sqs_queue_url: str, boto_session: Session, logger: Logger) -> SqsMessageInvocationListener:
-    listener = SqsMessageInvocationListener(sqs_queue_url, boto_session, logger)
-
-    yield listener
-
-    listener.stop()
-
-
-def test_listens_for_invocation_message_on_queue(invocation_listener: SqsMessageInvocationListener,
-                                                 sqs_client: SQSClient, sqs_queue_url: str) -> None:
     received_invocations = []
 
     def handle_invocation(invocation_target: str, invocation_id: str) -> None:
@@ -59,15 +37,6 @@ def test_listens_for_invocation_message_on_queue(invocation_listener: SqsMessage
         ))
 
     invocation_listener.listen(handle_invocation)
-
-    the_invocation_target = str(uuid4())
-    the_invocation_id = str(uuid4())
-
-    sqs_client.send_message(
-        QueueUrl=sqs_queue_url,
-        MessageBody=ANY_MESSAGE_BODY,
-        MessageAttributes=sqs_message_attributes_for(the_invocation_id, the_invocation_target)
-    )
 
     wait_for_value_matching(
         lambda: received_invocations,
@@ -81,23 +50,26 @@ def test_listens_for_invocation_message_on_queue(invocation_listener: SqsMessage
     )
 
 
-def test_continues_listening_for_additional_invocation_messages_on_queue(
-        invocation_listener: SqsMessageInvocationListener,
-        sqs_client: SQSClient, sqs_queue_url: str) -> None:
+def test_continues_listening_for_additional_invocation_messages_on_queue(logger: Logger) -> None:
+    invocation_post_office = Mock(spec=InvocationPostOffice)
+    first_invocation_id = str(uuid4())
+    second_invocation_id = str(uuid4())
+
+    # Generator expression that provides None indefinitely after yielding Invocations
+    invocation_post_office.maybe_collect_invocation.side_effect = (
+        Invocation(target=ANY_INVOCATION_TARGET, id=first_invocation_id) if i == 0
+        else Invocation(target=ANY_INVOCATION_TARGET, id=second_invocation_id) if i == 1
+        else None
+        for i in range(sys.maxsize)
+    )
+    invocation_listener = SqsMessageInvocationListener(invocation_post_office, logger)
+
     received_invocations = []
 
     def handle_invocation(_: str, invocation_id: str) -> None:
         received_invocations.append(dict(invocationId=invocation_id))
 
     invocation_listener.listen(handle_invocation)
-
-    first_invocation_id = str(uuid4())
-
-    sqs_client.send_message(
-        QueueUrl=sqs_queue_url,
-        MessageBody=ANY_MESSAGE_BODY,
-        MessageAttributes=sqs_message_attributes_for(first_invocation_id, ANY_INVOCATION_TARGET)
-    )
 
     wait_for_value_matching(
         lambda: received_invocations,
@@ -105,29 +77,50 @@ def test_continues_listening_for_additional_invocation_messages_on_queue(
         f'invocationId "{first_invocation_id}"',
         lambda invocations: any(
             invocation for invocation in invocations if invocation['invocationId'] == first_invocation_id
+        ) and any(
+            invocation for invocation in invocations if invocation['invocationId'] == second_invocation_id
         ),
     )
 
-    second_invocation_id = str(uuid4())
 
-    sqs_client.send_message(
-        QueueUrl=sqs_queue_url,
-        MessageBody=ANY_MESSAGE_BODY,
-        MessageAttributes=sqs_message_attributes_for(second_invocation_id, ANY_INVOCATION_TARGET)
+def test_only_listens_once(logger: Logger) -> None:
+    invocation_post_office = Mock(spec=InvocationPostOffice)
+
+    invocation_post_office.maybe_collect_invocation.return_value = Invocation(
+        target=ANY_INVOCATION_TARGET,
+        id=ANY_INVOCATION_ID
     )
+    invocation_listener = SqsMessageInvocationListener(invocation_post_office, logger)
+
+    first_listener_received_invocations = []
+    second_listener_received_invocations = []
+
+    def first_listener_invocation_handler(_: str, invocation_id: str) -> None:
+        first_listener_received_invocations.append(dict(invocationId=invocation_id))
+
+    def second_listener_invocation_handler(_: str, invocation_id: str) -> None:
+        second_listener_received_invocations.append(dict(invocationId=invocation_id))
+
+    invocation_listener.listen(first_listener_invocation_handler)
+
+    with pytest.raises(RuntimeError, match='Task is already scheduled'):
+        invocation_listener.listen(second_listener_invocation_handler)
 
     wait_for_value_matching(
-        lambda: received_invocations,
-        f'received invocations to include invocation with '
-        f'invocationId "{second_invocation_id}"',
-        lambda invocations: any(
-            invocation for invocation in invocations if invocation['invocationId'] == first_invocation_id
-        )
+        lambda: first_listener_received_invocations,
+        'received invocations',
+        lambda invocations: len(invocations) > 0,
     )
 
+    assert len(second_listener_received_invocations) == 0
 
-def test_stops_listening_when_instructed(invocation_listener: SqsMessageInvocationListener,
-                                         sqs_client: SQSClient, sqs_queue_url: str) -> None:
+
+def test_stops_listening_when_instructed(logger: Logger) -> None:
+    invocation_post_office = Mock(spec=InvocationPostOffice)
+    pending_invocations = []
+    invocation_post_office.maybe_collect_invocation.side_effect = lambda: pending_invocations.pop() if pending_invocations else None
+    invocation_listener = SqsMessageInvocationListener(invocation_post_office, logger)
+
     received_invocations = []
 
     def handle_invocation(_: str, invocation_id: str) -> None:
@@ -137,11 +130,7 @@ def test_stops_listening_when_instructed(invocation_listener: SqsMessageInvocati
 
     first_invocation_id = str(uuid4())
 
-    sqs_client.send_message(
-        QueueUrl=sqs_queue_url,
-        MessageBody=ANY_MESSAGE_BODY,
-        MessageAttributes=sqs_message_attributes_for(first_invocation_id, ANY_INVOCATION_TARGET),
-    )
+    pending_invocations.append(Invocation(target=ANY_INVOCATION_TARGET, id=first_invocation_id))
 
     wait_for_value_matching(
         lambda: received_invocations,
@@ -155,11 +144,7 @@ def test_stops_listening_when_instructed(invocation_listener: SqsMessageInvocati
 
     second_invocation_id = str(uuid4())
 
-    sqs_client.send_message(
-        QueueUrl=sqs_queue_url,
-        MessageBody=ANY_MESSAGE_BODY,
-        MessageAttributes=sqs_message_attributes_for(second_invocation_id, ANY_INVOCATION_TARGET),
-    )
+    pending_invocations.append(Invocation(target=ANY_INVOCATION_TARGET, id=second_invocation_id))
 
     sleep(0.5)
 
@@ -168,8 +153,12 @@ def test_stops_listening_when_instructed(invocation_listener: SqsMessageInvocati
     ) is False, f'Did not expect to receive second invocation'
 
 
-def test_can_restart_listening_after_stopping(invocation_listener: SqsMessageInvocationListener,
-                                              sqs_client: SQSClient, sqs_queue_url: str) -> None:
+def test_can_restart_listening_after_stopping(logger: Logger) -> None:
+    invocation_post_office = Mock(spec=InvocationPostOffice)
+    pending_invocations = []
+    invocation_post_office.maybe_collect_invocation.side_effect = lambda: pending_invocations.pop() if pending_invocations else None
+    invocation_listener = SqsMessageInvocationListener(invocation_post_office, logger)
+
     received_invocations = []
 
     def handle_invocation(_: str, invocation_id: str) -> None:
@@ -182,11 +171,7 @@ def test_can_restart_listening_after_stopping(invocation_listener: SqsMessageInv
 
     the_invocation_id = str(uuid4())
 
-    sqs_client.send_message(
-        QueueUrl=sqs_queue_url,
-        MessageBody=ANY_MESSAGE_BODY,
-        MessageAttributes=sqs_message_attributes_for(the_invocation_id, ANY_INVOCATION_TARGET),
-    )
+    pending_invocations.append(Invocation(target=ANY_INVOCATION_TARGET, id=the_invocation_id))
 
     wait_for_value_matching(
         lambda: received_invocations,
@@ -197,9 +182,23 @@ def test_can_restart_listening_after_stopping(invocation_listener: SqsMessageInv
     )
 
 
-def test_continues_listening_after_encountering_an_erroneous_message(
-        invocation_listener: SqsMessageInvocationListener,
-        sqs_client: SQSClient, sqs_queue_url: str) -> None:
+def test_continues_listening_after_exception_thrown_whilst_collecting_invocation(logger: Logger) -> None:
+    invocation_post_office = Mock(spec=InvocationPostOffice)
+    pending_invocations = []
+    raise_exception = False
+
+    def maybe_collect_invocation():
+        nonlocal raise_exception
+
+        if raise_exception:
+            raise_exception = False
+            raise Exception('Simulated exception')
+
+        return pending_invocations.pop() if pending_invocations else None
+
+    invocation_post_office.maybe_collect_invocation.side_effect = maybe_collect_invocation
+    invocation_listener = SqsMessageInvocationListener(invocation_post_office, logger)
+
     received_invocations = []
 
     def handle_invocation(_: str, invocation_id: str) -> None:
@@ -207,21 +206,11 @@ def test_continues_listening_after_encountering_an_erroneous_message(
 
     invocation_listener.listen(handle_invocation)
 
-    sqs_client.send_message(
-        QueueUrl=sqs_queue_url,
-        MessageBody=ANY_MESSAGE_BODY,
-        MessageAttributes=dict(
-            UnexpectedAttribute=dict(DataType='String', StringValue='any value'),
-        )
-    )
+    raise_exception = True
 
     the_invocation_id = str(uuid4())
 
-    sqs_client.send_message(
-        QueueUrl=sqs_queue_url,
-        MessageBody=ANY_MESSAGE_BODY,
-        MessageAttributes=sqs_message_attributes_for(the_invocation_id, ANY_INVOCATION_TARGET)
-    )
+    pending_invocations.append(Invocation(target=ANY_INVOCATION_TARGET, id=the_invocation_id))
 
     wait_for_value_matching(
         lambda: received_invocations,

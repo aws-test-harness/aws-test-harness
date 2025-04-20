@@ -7,7 +7,8 @@ import pytest
 from boto3 import Session
 
 from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
-from aws_test_harness.infrastructure.sqs_message_invocation_listener import SqsMessageInvocationListener
+from aws_test_harness.infrastructure.serverless_invocation_post_office import ServerlessInvocationPostOffice
+from aws_test_harness.infrastructure.thread_based_repeating_task_scheduler import ThreadBasedRepeatingTaskScheduler
 from aws_test_harness.test_double_source import TestDoubleSource
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
@@ -15,13 +16,11 @@ from aws_test_harness_tests.support.step_functions_test_client import StepFuncti
 
 
 @pytest.fixture(scope="module")
-def test_stack(cfn_stack_name_prefix: str, boto_session: Session, logger: Logger) -> TestCloudFormationStack:
-    return TestCloudFormationStack(f'{cfn_stack_name_prefix}test-double-source-test', logger, boto_session)
+def test_stack(cfn_stack_name_prefix: str, boto_session: Session, logger: Logger,
+               test_double_macro_name: str) -> TestCloudFormationStack:
+    stack = TestCloudFormationStack(f'{cfn_stack_name_prefix}test-double-source-test', logger, boto_session)
 
-
-@pytest.fixture(scope="module", autouse=True)
-def before_all(test_stack: TestCloudFormationStack, test_double_macro_name: str) -> None:
-    test_stack.ensure_state_is(
+    stack.ensure_state_is(
         Transform=[test_double_macro_name],
         Parameters=dict(
             AWSTestHarnessS3Buckets=dict(Type='CommaDelimitedList'),
@@ -32,26 +31,30 @@ def before_all(test_stack: TestCloudFormationStack, test_double_macro_name: str)
         AWSTestHarnessStateMachines='Orange,Blue',
     )
 
+    return stack
+
 
 @pytest.fixture(scope='function')
-def test_double_source(test_stack: TestCloudFormationStack, boto_session: Session, logger: Logger) -> TestDoubleSource:
-    resource_registry = Mock(spec=ResourceRegistry)
-    resource_registry.get_physical_resource_id.side_effect = (
+def resource_registry(test_stack: TestCloudFormationStack, boto_session: Session, logger: Logger) -> TestDoubleSource:
+    resource_registry_mock = Mock(spec=ResourceRegistry)
+    resource_registry_mock.get_physical_resource_id.side_effect = (
         lambda logical_id: test_stack.get_stack_resource_physical_id(logical_id)
     )
-
-    return TestDoubleSource(
-        resource_registry, boto_session, logger, lambda: SqsMessageInvocationListener(
-            test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationQueue'),
-            boto_session,
-            logger
-        )
-    )
+    return resource_registry_mock
 
 
 def test_provides_object_to_interract_with_test_double_s3_bucket(
-        test_double_source: TestDoubleSource, test_stack: TestCloudFormationStack, s3_test_client: S3TestClient
+        resource_registry: ResourceRegistry, boto_session: Session, logger: Logger, test_stack: TestCloudFormationStack,
+        s3_test_client: S3TestClient
 ) -> None:
+    test_double_source = TestDoubleSource(resource_registry, boto_session, logger,
+                                          ServerlessInvocationPostOffice(
+                                              resource_registry.get_physical_resource_id(
+                                                  'AWSTestHarnessTestDoubleInvocationQueue'),
+                                              resource_registry.get_physical_resource_id(
+                                                  'AWSTestHarnessTestDoubleInvocationTable'), boto_session, logger),
+                                          ThreadBasedRepeatingTaskScheduler(logger))
+
     s3_bucket = test_double_source.s3_bucket('Red')
 
     object_key = str(uuid4())
@@ -63,9 +66,17 @@ def test_provides_object_to_interract_with_test_double_s3_bucket(
 
 
 def test_provides_mocks_to_control_test_double_state_machines(
-        test_double_source: TestDoubleSource, test_stack: TestCloudFormationStack,
+        resource_registry: ResourceRegistry, boto_session: Session, logger: Logger, test_stack: TestCloudFormationStack,
         step_functions_test_client: StepFunctionsTestClient,
 ) -> None:
+    test_double_source = TestDoubleSource(resource_registry, boto_session, logger,
+                                          ServerlessInvocationPostOffice(
+                                              resource_registry.get_physical_resource_id(
+                                                  'AWSTestHarnessTestDoubleInvocationQueue'),
+                                              resource_registry.get_physical_resource_id(
+                                                  'AWSTestHarnessTestDoubleInvocationTable'), boto_session, logger),
+                                          ThreadBasedRepeatingTaskScheduler(logger))
+
     orange_test_double_state_machine = test_double_source.state_machine('Orange')
     expected_orange_result = dict(randomString=str(uuid4()))
     orange_test_double_state_machine.return_value = expected_orange_result
@@ -85,3 +96,13 @@ def test_provides_mocks_to_control_test_double_state_machines(
         {}
     )
     assert json.loads(blue_execution['output']) == expected_blue_result
+
+# def test_uses_same_invocation_listener_for_all_test_doubles(boto_session: Session, logger: Logger) -> None:
+#     invocation_listener: Mock = Mock(spec=InvocationListener)
+#     resource_registry = Mock(spec=ResourceRegistry)
+#     test_double_source = TestDoubleSource(resource_registry, boto_session, logger, lambda: invocation_listener)
+#
+#     test_double_source.state_machine('Orange')
+#     test_double_source.state_machine('Blue')
+#
+#     invocation_listener.listen.assert_called_once()

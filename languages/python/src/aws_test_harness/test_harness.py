@@ -4,7 +4,8 @@ from typing import Optional
 from boto3 import Session
 
 from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
-from aws_test_harness.infrastructure.sqs_message_invocation_listener import SqsMessageInvocationListener
+from aws_test_harness.infrastructure.serverless_invocation_post_office import ServerlessInvocationPostOffice
+from aws_test_harness.infrastructure.thread_based_repeating_task_scheduler import ThreadBasedRepeatingTaskScheduler
 from aws_test_harness.step_functions.state_machine import StateMachine
 from aws_test_harness.test_double_source import TestDoubleSource
 
@@ -21,11 +22,12 @@ class TestHarness:
             self.__test_resource_registry,
             self.__boto_session,
             logger,
-            lambda: SqsMessageInvocationListener(
+            ServerlessInvocationPostOffice(
                 self.__test_resource_registry.get_physical_resource_id('AWSTestHarnessTestDoubleInvocationQueue'),
-                self.__boto_session,
-                logger
-            )
+                self.__test_resource_registry.get_physical_resource_id('AWSTestHarnessTestDoubleInvocationTable'),
+                self.__boto_session, logger
+            ),
+            ThreadBasedRepeatingTaskScheduler(self.__logger)
         )
 
     @property

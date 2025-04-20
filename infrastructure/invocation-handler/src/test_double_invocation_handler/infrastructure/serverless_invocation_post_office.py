@@ -18,6 +18,7 @@ class ServerlessInvocationPostOffice(InvocationPostOffice):
         self.__invocation_table: Table = dynamodb_resource.Table(invocation_table_name)
 
     def post_invocation(self, invocation_target: str, invocation_id: str, event: Dict[str, Any]) -> None:
+        print(f'Sending message to queue {self.__invocation_queue_url}. invocation_target: {invocation_target}; invocation_id: {invocation_id}')
         self.__sqs_client.send_message(
             QueueUrl=self.__invocation_queue_url,
             MessageBody=json.dumps(dict(event=event)),
