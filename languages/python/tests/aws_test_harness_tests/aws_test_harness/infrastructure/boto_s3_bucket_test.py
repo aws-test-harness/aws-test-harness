@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from boto3 import Session
 
-from aws_test_harness.s3.s3_bucket import S3Bucket
+from aws_test_harness.infrastructure.boto_s3_bucket import BotoS3Bucket
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
 
@@ -26,7 +26,7 @@ def test_saves_content_to_specified_object(test_stack: TestCloudFormationStack, 
                                            s3_test_client: S3TestClient) -> None:
     bucket_name = test_stack.get_output_value('BucketName')
 
-    s3_bucket = S3Bucket(bucket_name, boto_session)
+    s3_bucket = BotoS3Bucket(bucket_name, boto_session)
     object_key = str(uuid4())
     object_content = f'Random content: {uuid4()}'
 

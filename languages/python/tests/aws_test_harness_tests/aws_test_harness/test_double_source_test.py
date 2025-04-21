@@ -1,80 +1,89 @@
-import json
-from logging import Logger
 from unittest.mock import Mock
-from uuid import uuid4
 
 import pytest
-from boto3 import Session
 
-from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
+from aws_test_harness.domain.aws_resource_factory import AwsResourceFactory
+from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
+from aws_test_harness.domain.invocation import Invocation
+from aws_test_harness.domain.invocation_post_office import InvocationPostOffice
+from aws_test_harness.domain.repeating_task_scheduler import RepeatingTaskScheduler
+from aws_test_harness.domain.s3_bucket import S3Bucket
 from aws_test_harness.test_double_source import TestDoubleSource
-from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
-from aws_test_harness_tests.support.s3_test_client import S3TestClient
-from aws_test_harness_tests.support.step_functions_test_client import StepFunctionsTestClient
-
-
-@pytest.fixture(scope="module")
-def test_stack(cfn_stack_name_prefix: str, boto_session: Session, logger: Logger) -> TestCloudFormationStack:
-    return TestCloudFormationStack(f'{cfn_stack_name_prefix}test-double-source-test', logger, boto_session)
-
-
-@pytest.fixture(scope="module", autouse=True)
-def before_all(test_stack: TestCloudFormationStack, test_double_macro_name: str) -> None:
-    test_stack.ensure_state_is(
-        Transform=['AWS::Serverless-2016-10-31', test_double_macro_name],
-        Parameters=dict(
-            AWSTestHarnessS3Buckets=dict(Type='CommaDelimitedList'),
-            AWSTestHarnessStateMachines=dict(Type='CommaDelimitedList'),
-        ),
-        Resources=dict(Bucket=dict(Type='AWS::S3::Bucket', Properties={})),
-        AWSTestHarnessS3Buckets='Red',
-        AWSTestHarnessStateMachines='Orange,Blue',
-    )
+from aws_test_harness_tests.support.mocking import mock_class, when_calling, verify, inspect
 
 
 @pytest.fixture(scope='function')
-def test_double_source(test_stack: TestCloudFormationStack, boto_session: Session, logger: Logger) -> TestDoubleSource:
-    resource_registry = Mock(spec=ResourceRegistry)
-    resource_registry.get_physical_resource_id.side_effect = (
-        lambda logical_id: test_stack.get_stack_resource_physical_id(logical_id)
+def aws_resource_registry() -> AwsResourceRegistry:
+    return mock_class(AwsResourceRegistry)
+
+
+@pytest.fixture(scope='function')
+def aws_resource_factory() -> AwsResourceFactory:
+    return mock_class(AwsResourceFactory)
+
+
+@pytest.fixture(scope='function')
+def invocation_handler_repeating_task_scheduler() -> RepeatingTaskScheduler:
+    return Mock(RepeatingTaskScheduler)
+
+
+@pytest.fixture(scope='function')
+def invocation_post_office() -> InvocationPostOffice:
+    return Mock(InvocationPostOffice)
+
+
+@pytest.fixture(scope='function')
+def test_double_source(aws_resource_registry: AwsResourceRegistry, invocation_post_office: InvocationPostOffice,
+                       invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
+                       aws_resource_factory: AwsResourceFactory) -> TestDoubleSource:
+    return TestDoubleSource(aws_resource_registry, invocation_post_office, invocation_handler_repeating_task_scheduler,
+                            aws_resource_factory)
+
+
+def test_provides_object_to_interact_with_test_double_s3_bucket(test_double_source: TestDoubleSource,
+                                                                aws_resource_factory: AwsResourceFactory) -> None:
+    the_s3_bucket = mock_class(S3Bucket)
+    when_calling(aws_resource_factory.get_s3_bucket).invoke(
+        lambda name: the_s3_bucket if name == 'MyBucketAWSTestHarnessS3Bucket' else None
     )
 
-    return TestDoubleSource(resource_registry, boto_session, logger)
+    provided_s3_bucket = test_double_source.s3_bucket('MyBucket')
+
+    assert provided_s3_bucket == the_s3_bucket
 
 
-def test_provides_object_to_interract_with_test_double_s3_bucket(
-        test_double_source: TestDoubleSource, test_stack: TestCloudFormationStack, s3_test_client: S3TestClient
+def test_provides_mock_to_control_test_double_state_machine(
+        test_double_source: TestDoubleSource, aws_resource_registry: AwsResourceRegistry,
+        invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
+        invocation_post_office: InvocationPostOffice
 ) -> None:
-    s3_bucket = test_double_source.s3_bucket('Red')
+    when_calling(aws_resource_registry.get_resource_arn).invoke(lambda resource_id: resource_id + 'ARN')
+    when_calling(invocation_handler_repeating_task_scheduler.scheduled).always_return(False)
+    when_calling(invocation_post_office.maybe_collect_invocation).always_return(Invocation(
+        target='OrangeAWSTestHarnessStateMachineARN',
+        id='123456789'
+    ))
 
-    object_key = str(uuid4())
-    object_content = f'Random content: {uuid4()}'
-    s3_bucket.put_object(Key=object_key, Body=object_content)
+    test_double_state_machine = test_double_source.state_machine('Orange')
+    test_double_state_machine.return_value = dict(message='result message')
 
-    first_s3_bucket_name = test_stack.get_stack_resource_physical_id('RedAWSTestHarnessS3Bucket')
-    assert object_content == s3_test_client.get_object_content(first_s3_bucket_name, object_key)
+    verify(invocation_handler_repeating_task_scheduler.schedule).was_called()
+    scheduled_task = inspect(invocation_handler_repeating_task_scheduler.schedule).call_args[0][0]
+    scheduled_task()
 
-
-def test_provides_mocks_to_control_test_double_state_machines(
-        test_double_source: TestDoubleSource, test_stack: TestCloudFormationStack,
-        step_functions_test_client: StepFunctionsTestClient,
-) -> None:
-    orange_test_double_state_machine = test_double_source.state_machine('Orange')
-    expected_orange_result = dict(randomString=str(uuid4()))
-    orange_test_double_state_machine.return_value = expected_orange_result
-
-    blue_test_double_state_machine = test_double_source.state_machine('Blue')
-    expected_blue_result = dict(randomString=str(uuid4()))
-    blue_test_double_state_machine.return_value = expected_blue_result
-
-    orange_execution = step_functions_test_client.execute_state_machine(
-        test_stack.get_stack_resource_physical_id('OrangeAWSTestHarnessStateMachine'),
-        {}
+    verify(invocation_post_office.post_result).was_called_once_with(
+        '123456789',
+        dict(value=dict(message='result message'))
     )
-    assert json.loads(orange_execution['output']) == expected_orange_result
 
-    blue_execution = step_functions_test_client.execute_state_machine(
-        test_stack.get_stack_resource_physical_id('BlueAWSTestHarnessStateMachine'),
-        {}
-    )
-    assert json.loads(blue_execution['output']) == expected_blue_result
+
+def test_does_not_schedule_invocation_handler_repeating_task_if_already_scheduled(
+        test_double_source: TestDoubleSource, aws_resource_registry: AwsResourceRegistry,
+        invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
+        invocation_post_office: InvocationPostOffice) -> None:
+    when_calling(aws_resource_registry.get_resource_arn).invoke(lambda resource_id: 'any-arn')
+    when_calling(invocation_handler_repeating_task_scheduler.scheduled).always_return(True)
+
+    test_double_source.state_machine('any identifier')
+
+    verify(invocation_handler_repeating_task_scheduler.schedule).was_not_called()
