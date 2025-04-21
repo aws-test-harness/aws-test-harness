@@ -1,4 +1,4 @@
-from time import time
+from time import time, sleep
 from typing import Callable, Optional
 
 
@@ -25,6 +25,9 @@ def wait_for_value_matching[T](try_get_value: Callable[[], Optional[T]], value_d
             condition_satisfied = predicate(value)
         except BaseException:
             pass
+
+        if not condition_satisfied:
+            sleep(0.05)
 
     assert condition_satisfied, (
             f'Timed out waiting for {value_description}' +
