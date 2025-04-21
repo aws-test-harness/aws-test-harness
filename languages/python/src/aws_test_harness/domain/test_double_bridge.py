@@ -1,16 +1,23 @@
 from typing import Dict
 from unittest.mock import Mock
 
+from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
+from aws_test_harness.domain.invocation import Invocation
+
 
 class TestDoubleBridge:
     __test_double_mocks: Dict[str, Mock] = dict()
 
-    def get_mock_for(self, invocation_target):
+    def __init__(self, aws_resource_registry: AwsResourceRegistry):
+        self.__aws_resource_registry = aws_resource_registry
+
+    def get_mock_for(self, resource_id: str):
         mock = Mock()
-        self.__test_double_mocks[invocation_target] = mock
+        resource_arn = self.__aws_resource_registry.get_resource_arn(resource_id)
+        self.__test_double_mocks[resource_arn] = mock
         return mock
 
-    def get_result_for(self, invocation):
+    def get_result_for(self, invocation: Invocation):
         # TODO: Handle unknown invocation target
         matching_mock = self.__test_double_mocks[invocation.target]
         # TODO: Pass invocation input to mock

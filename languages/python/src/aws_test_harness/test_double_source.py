@@ -1,9 +1,7 @@
 from unittest.mock import Mock
 
-from boto3 import Session
-
-from aws_test_harness.cloudformation.cloudformation_resource_registry import CloudFormationResourceRegistry
 from aws_test_harness.domain.aws_resource_factory import AwsResourceFactory
+from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
 from aws_test_harness.domain.invocation_handler import InvocationHandler
 from aws_test_harness.domain.invocation_post_office import InvocationPostOffice
 from aws_test_harness.domain.repeating_task_scheduler import RepeatingTaskScheduler
@@ -17,12 +15,13 @@ class TestDoubleSource:
 
     __invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler
 
-    def __init__(self, resource_registry: CloudFormationResourceRegistry, invocation_post_office: InvocationPostOffice,
+    def __init__(self, aws_resource_registry: AwsResourceRegistry, invocation_post_office: InvocationPostOffice,
                  invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
                  aws_resource_factory: AwsResourceFactory):
         self.__aws_resource_factory = aws_resource_factory
-        self.__resource_registry = resource_registry
-        self.__test_double_bridge = TestDoubleBridge()
+        self.__aws_resource_registry = aws_resource_registry
+        # TODO: Decide whether to extract this as a dependency, to avoid passing in the resource registry and to make the tests more isolated
+        self.__test_double_bridge = TestDoubleBridge(self.__aws_resource_registry)
         self.__invocation_handler = InvocationHandler(invocation_post_office, self.__test_double_bridge.get_result_for)
         self.__invocation_handler_repeating_task_scheduler = invocation_handler_repeating_task_scheduler
 
@@ -34,8 +33,4 @@ class TestDoubleSource:
             self.__invocation_handler_repeating_task_scheduler.schedule(
                 self.__invocation_handler.handle_pending_invocation)
 
-        state_machine_arn = self.__resource_registry.get_physical_resource_id(
-            f'{test_double_name}AWSTestHarnessStateMachine'
-        )
-
-        return self.__test_double_bridge.get_mock_for(state_machine_arn)
+        return self.__test_double_bridge.get_mock_for(f'{test_double_name}AWSTestHarnessStateMachine')

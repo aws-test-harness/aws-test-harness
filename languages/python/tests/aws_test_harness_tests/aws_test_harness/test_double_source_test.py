@@ -2,8 +2,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from aws_test_harness.cloudformation.cloudformation_resource_registry import CloudFormationResourceRegistry
 from aws_test_harness.domain.aws_resource_factory import AwsResourceFactory
+from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
 from aws_test_harness.domain.invocation import Invocation
 from aws_test_harness.domain.invocation_post_office import InvocationPostOffice
 from aws_test_harness.domain.repeating_task_scheduler import RepeatingTaskScheduler
@@ -13,8 +13,8 @@ from aws_test_harness_tests.support.mocking import mock_class, when_calling, ver
 
 
 @pytest.fixture(scope='function')
-def resource_registry() -> CloudFormationResourceRegistry:
-    return mock_class(CloudFormationResourceRegistry)
+def resource_registry() -> AwsResourceRegistry:
+    return mock_class(AwsResourceRegistry)
 
 
 @pytest.fixture(scope='function')
@@ -52,11 +52,11 @@ def test_provides_object_to_interract_with_test_double_s3_bucket(test_double_sou
 
 
 def test_provides_mock_to_control_test_double_state_machine(
-        test_double_source: TestDoubleSource, resource_registry: CloudFormationResourceRegistry,
+        test_double_source: TestDoubleSource, resource_registry: AwsResourceRegistry,
         invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
         invocation_post_office: InvocationPostOffice
 ) -> None:
-    when_calling(resource_registry.get_physical_resource_id).invoke(lambda logical_id: logical_id + 'Arn')
+    when_calling(resource_registry.get_resource_arn).invoke(lambda logical_id: logical_id + 'Arn')
     when_calling(invocation_handler_repeating_task_scheduler.scheduled).always_return(False)
     when_calling(invocation_post_office.maybe_collect_invocation).always_return(Invocation(
         target='OrangeAWSTestHarnessStateMachineArn',
@@ -77,10 +77,10 @@ def test_provides_mock_to_control_test_double_state_machine(
 
 
 def test_does_not_schedule_invocation_handler_repeating_task_if_already_scheduled(
-        test_double_source: TestDoubleSource, resource_registry: CloudFormationResourceRegistry,
+        test_double_source: TestDoubleSource, resource_registry: AwsResourceRegistry,
         invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
         invocation_post_office: InvocationPostOffice) -> None:
-    when_calling(resource_registry.get_physical_resource_id).invoke(lambda logical_id: 'any arn')
+    when_calling(resource_registry.get_resource_arn).invoke(lambda logical_id: 'any arn')
     when_calling(invocation_handler_repeating_task_scheduler.scheduled).always_return(True)
 
     test_double_source.state_machine('any identifier')

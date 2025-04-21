@@ -4,9 +4,10 @@ from uuid import uuid4
 import pytest
 from boto3 import Session
 
-from aws_test_harness.cloudformation.cloudformation_resource_registry import CloudFormationResourceRegistry
+from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
 from aws_test_harness.infrastructure.boto_aws_resource_factory import BotoAwsResourceFactory
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
+from aws_test_harness_tests.support.mocking import mock_class, when_calling
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
 
 
@@ -40,12 +41,19 @@ def before_all(test_stack: TestCloudFormationStack) -> None:
     )
 
 
-def test_provides_object_for_interacting_with_specified_s3_bucket_in_cfn_stack(
+def test_provides_object_for_interacting_with_s3_bucket_in_cfn_stack(
         test_stack: TestCloudFormationStack, boto_session: Session, s3_test_client: S3TestClient
 ):
+    bucket_name = test_stack.get_stack_resource_physical_id('Bucket')
+
+    aws_resource_registry = mock_class(AwsResourceRegistry)
+    when_calling(aws_resource_registry.get_resource_arn).invoke(
+        lambda resource_id: f'arn:aws:s3:::{bucket_name}' if resource_id == 'Bucket' else None
+    )
+
     aws_resource_factory = BotoAwsResourceFactory(
         boto_session,
-        CloudFormationResourceRegistry(test_stack.name, boto_session)
+        aws_resource_registry
     )
 
     s3_bucket = aws_resource_factory.get_s3_bucket('Bucket')
@@ -54,6 +62,5 @@ def test_provides_object_for_interacting_with_specified_s3_bucket_in_cfn_stack(
     object_body = str(uuid4())
     s3_bucket.put_object(Key=s3_key, Body=object_body)
 
-    bucket_name = test_stack.get_stack_resource_physical_id('Bucket')
     content_at_key = s3_test_client.get_object_content(bucket_name, s3_key)
     assert content_at_key == object_body
