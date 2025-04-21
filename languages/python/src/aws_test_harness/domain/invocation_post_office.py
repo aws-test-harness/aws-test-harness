@@ -1,11 +1,14 @@
 from abc import ABCMeta, abstractmethod
+from typing import Any
+
+from aws_test_harness.domain.invocation import Invocation
 
 
 class InvocationPostOffice(metaclass=ABCMeta):
     @abstractmethod
-    def maybe_collect_invocation(self):
+    def maybe_collect_invocation(self) -> Invocation:
         pass
 
     @abstractmethod
-    def post_result(self, invocation_id, result):
+    def post_result(self, invocation_id: str, result: Any) -> None:
         pass
