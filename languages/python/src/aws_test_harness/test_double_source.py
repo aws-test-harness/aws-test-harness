@@ -19,11 +19,9 @@ class TestDoubleSource:
                  invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
                  aws_resource_factory: AwsResourceFactory):
         self.__aws_resource_factory = aws_resource_factory
-        self.__aws_resource_registry = aws_resource_registry
-        # TODO: Decide whether to extract this as a dependency, to avoid passing in the resource registry and to make the tests more isolated
-        self.__test_double_bridge = TestDoubleBridge(self.__aws_resource_registry)
-        self.__invocation_handler = InvocationHandler(invocation_post_office, self.__test_double_bridge.get_result_for)
         self.__invocation_handler_repeating_task_scheduler = invocation_handler_repeating_task_scheduler
+        self.__test_double_bridge = TestDoubleBridge(aws_resource_registry)
+        self.__invocation_handler = InvocationHandler(invocation_post_office, self.__test_double_bridge.get_result_for)
 
     def s3_bucket(self, test_double_name: str) -> BotoS3Bucket:
         return self.__aws_resource_factory.get_s3_bucket(f'{test_double_name}AWSTestHarnessS3Bucket')
@@ -31,6 +29,7 @@ class TestDoubleSource:
     def state_machine(self, test_double_name: str) -> Mock:
         if not self.__invocation_handler_repeating_task_scheduler.scheduled():
             self.__invocation_handler_repeating_task_scheduler.schedule(
-                self.__invocation_handler.handle_pending_invocation)
+                self.__invocation_handler.handle_pending_invocation
+            )
 
         return self.__test_double_bridge.get_mock_for(f'{test_double_name}AWSTestHarnessStateMachine')

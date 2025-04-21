@@ -7,7 +7,7 @@ from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
 from aws_test_harness.domain.invocation import Invocation
 from aws_test_harness.domain.invocation_post_office import InvocationPostOffice
 from aws_test_harness.domain.repeating_task_scheduler import RepeatingTaskScheduler
-from aws_test_harness.s3.s3_bucket import S3Bucket
+from aws_test_harness.domain.s3_bucket import S3Bucket
 from aws_test_harness.test_double_source import TestDoubleSource
 from aws_test_harness_tests.support.mocking import mock_class, when_calling, verify, inspect
 
@@ -39,7 +39,7 @@ def test_double_source(resource_registry, invocation_post_office, invocation_han
                             aws_resource_factory)
 
 
-def test_provides_object_to_interract_with_test_double_s3_bucket(test_double_source: TestDoubleSource,
+def test_provides_object_to_interact_with_test_double_s3_bucket(test_double_source: TestDoubleSource,
                                                                  aws_resource_factory: AwsResourceFactory) -> None:
     the_s3_bucket = mock_class(S3Bucket)
     when_calling(aws_resource_factory.get_s3_bucket).invoke(
@@ -56,10 +56,10 @@ def test_provides_mock_to_control_test_double_state_machine(
         invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
         invocation_post_office: InvocationPostOffice
 ) -> None:
-    when_calling(resource_registry.get_resource_arn).invoke(lambda logical_id: logical_id + 'Arn')
+    when_calling(resource_registry.get_resource_arn).invoke(lambda resource_id: resource_id + 'ARN')
     when_calling(invocation_handler_repeating_task_scheduler.scheduled).always_return(False)
     when_calling(invocation_post_office.maybe_collect_invocation).always_return(Invocation(
-        target='OrangeAWSTestHarnessStateMachineArn',
+        target='OrangeAWSTestHarnessStateMachineARN',
         id='123456789'
     ))
 
@@ -80,7 +80,7 @@ def test_does_not_schedule_invocation_handler_repeating_task_if_already_schedule
         test_double_source: TestDoubleSource, resource_registry: AwsResourceRegistry,
         invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
         invocation_post_office: InvocationPostOffice) -> None:
-    when_calling(resource_registry.get_resource_arn).invoke(lambda logical_id: 'any arn')
+    when_calling(resource_registry.get_resource_arn).invoke(lambda resource_id: 'any-arn')
     when_calling(invocation_handler_repeating_task_scheduler.scheduled).always_return(True)
 
     test_double_source.state_machine('any identifier')

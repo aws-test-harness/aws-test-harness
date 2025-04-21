@@ -19,11 +19,17 @@ class TestHarness:
         self.__boto_session = Session(profile_name=aws_profile)
         self.__logger = logger
         self.__aws_resource_registry = CloudFormationAwsResourceRegistry(test_stack_name, self.__boto_session)
-        self.__test_double_source = TestDoubleSource(self.__aws_resource_registry, ServerlessInvocationPostOffice(
-            self.__aws_resource_registry.get_resource_arn('AWSTestHarnessTestDoubleInvocationQueue'),
-            self.__aws_resource_registry.get_resource_arn('AWSTestHarnessTestDoubleInvocationTable'),
-            self.__boto_session, logger
-        ), ThreadBasedRepeatingTaskScheduler(self.__logger), BotoAwsResourceFactory(self.__boto_session, self.__aws_resource_registry))
+        self.__test_double_source = TestDoubleSource(
+            self.__aws_resource_registry,
+            ServerlessInvocationPostOffice(
+                self.__aws_resource_registry.get_resource_arn('AWSTestHarnessTestDoubleInvocationQueue'),
+                self.__aws_resource_registry.get_resource_arn('AWSTestHarnessTestDoubleInvocationTable'),
+                self.__boto_session,
+                logger
+            ),
+            ThreadBasedRepeatingTaskScheduler(self.__logger),
+            BotoAwsResourceFactory(self.__boto_session, self.__aws_resource_registry)
+        )
 
     @property
     def test_doubles(self) -> TestDoubleSource:

@@ -4,7 +4,7 @@ from boto3 import Session
 from mypy_boto3_s3 import S3ServiceResource
 from mypy_boto3_s3.type_defs import PutObjectRequestBucketPutObjectTypeDef
 
-from aws_test_harness.s3.s3_bucket import S3Bucket
+from aws_test_harness.domain.s3_bucket import S3Bucket
 
 
 class BotoS3Bucket(S3Bucket):
