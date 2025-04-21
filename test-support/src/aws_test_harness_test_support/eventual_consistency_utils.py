@@ -29,10 +29,12 @@ def wait_for_value_matching[T](try_get_value: Callable[[], Optional[T]], value_d
     assert condition_satisfied, (
             f'Timed out waiting for {value_description}' +
             (
-                f'\n\nLatest value is None but previously it was {last_non_none_value}'
-                if value is None and last_non_none_value is not None
-                else '\n\nValue retrieved was None at all times'
-            )
+                f'\n\nLatest retrieved value was {value}'
+                if value is not None else (
+                    '\n\nValue retrieved was None at all times'
+                    if last_non_none_value is None
+                    else f'\n\nLatest retrieved value was None but previously it was {last_non_none_value}'
+                ))
     )
 
     return value
