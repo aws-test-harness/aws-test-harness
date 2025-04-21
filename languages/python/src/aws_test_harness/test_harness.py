@@ -3,7 +3,8 @@ from typing import Optional
 
 from boto3 import Session
 
-from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
+from aws_test_harness.cloudformation.cloudformation_resource_registry import CloudFormationResourceRegistry
+from aws_test_harness.infrastructure.boto_aws_resource_factory import BotoAwsResourceFactory
 from aws_test_harness.infrastructure.serverless_invocation_post_office import ServerlessInvocationPostOffice
 from aws_test_harness.infrastructure.thread_based_repeating_task_scheduler import ThreadBasedRepeatingTaskScheduler
 from aws_test_harness.step_functions.state_machine import StateMachine
@@ -17,12 +18,12 @@ class TestHarness:
     def __init__(self, test_stack_name: str, logger: Logger, aws_profile: Optional[str] = None):
         self.__boto_session = Session(profile_name=aws_profile)
         self.__logger = logger
-        self.__test_resource_registry = ResourceRegistry(test_stack_name, self.__boto_session)
+        self.__test_resource_registry = CloudFormationResourceRegistry(test_stack_name, self.__boto_session)
         self.__test_double_source = TestDoubleSource(self.__test_resource_registry, ServerlessInvocationPostOffice(
             self.__test_resource_registry.get_physical_resource_id('AWSTestHarnessTestDoubleInvocationQueue'),
             self.__test_resource_registry.get_physical_resource_id('AWSTestHarnessTestDoubleInvocationTable'),
             self.__boto_session, logger
-        ), ThreadBasedRepeatingTaskScheduler(self.__logger), self.__boto_session, logger)
+        ), ThreadBasedRepeatingTaskScheduler(self.__logger), BotoAwsResourceFactory(self.__boto_session, self.__test_resource_registry))
 
     @property
     def test_doubles(self) -> TestDoubleSource:

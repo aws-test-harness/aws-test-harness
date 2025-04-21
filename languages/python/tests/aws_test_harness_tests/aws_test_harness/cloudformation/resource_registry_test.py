@@ -3,7 +3,7 @@ from logging import Logger
 import pytest
 from boto3 import Session
 
-from aws_test_harness.cloudformation.resource_registry import ResourceRegistry
+from aws_test_harness.cloudformation.cloudformation_resource_registry import CloudFormationResourceRegistry
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 
 
@@ -23,7 +23,7 @@ def before_all(test_stack: TestCloudFormationStack) -> None:
 def test_provides_physical_id_for_resource_specified_by_logical_id(test_stack: TestCloudFormationStack,
                                                                    boto_session: Session) -> None:
     bucket_name = test_stack.get_output_value('BucketName')
-    resource_registry = ResourceRegistry(test_stack.name, boto_session)
+    resource_registry = CloudFormationResourceRegistry(test_stack.name, boto_session)
 
     physical_id = resource_registry.get_physical_resource_id('Bucket')
 

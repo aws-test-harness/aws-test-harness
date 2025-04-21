@@ -7,6 +7,7 @@ from boto3 import Session
 
 from aws_test_harness.test_harness import TestHarness
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
+from aws_test_harness_tests.support.s3_test_client import S3TestClient
 from aws_test_harness_tests.support.step_functions_test_client import StepFunctionsTestClient
 
 
@@ -60,7 +61,20 @@ def test_provides_object_to_interact_with_state_machine_specified_by_cfn_resourc
     assert execution.output == '3'
 
 
-def test_provides_object_to_control_test_doubles(
+def test_provides_object_for_interacting_with_test_doubles_that_do_not_execute_code(
+        test_harness: TestHarness, test_stack: TestCloudFormationStack, s3_test_client: S3TestClient
+) -> None:
+    s3_bucket = test_harness.test_doubles.s3_bucket('Messages')
+
+    object_key = str(uuid4())
+    object_content = f'Random content: {uuid4()}'
+    s3_bucket.put_object(Key=object_key, Body=object_content)
+
+    first_s3_bucket_name = test_stack.get_stack_resource_physical_id('MessagesAWSTestHarnessS3Bucket')
+    assert object_content == s3_test_client.get_object_content(first_s3_bucket_name, object_key)
+
+
+def test_provides_object_for_controlling_behaviour_of_test_doubles_that_execute_code(
         test_harness: TestHarness, test_stack: TestCloudFormationStack,
         step_functions_test_client: StepFunctionsTestClient,
 ) -> None:

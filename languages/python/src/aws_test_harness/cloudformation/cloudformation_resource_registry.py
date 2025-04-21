@@ -2,7 +2,7 @@ from boto3 import Session
 from mypy_boto3_cloudformation.service_resource import CloudFormationServiceResource
 
 
-class ResourceRegistry:
+class CloudFormationResourceRegistry:
     def __init__(self, stack_name: str, boto_session: Session):
         self.__stack_name = stack_name
         self.__boto_resource: CloudFormationServiceResource = boto_session.resource('cloudformation')

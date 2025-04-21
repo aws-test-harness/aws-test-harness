@@ -1,4 +1,3 @@
-# TODO: Retrofit tests
 from typing import Callable, Any
 
 from aws_test_harness.domain.invocation import Invocation

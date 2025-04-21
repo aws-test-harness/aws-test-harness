@@ -2,7 +2,6 @@ from typing import Dict
 from unittest.mock import Mock
 
 
-# TODO: Retrofit tests
 class TestDoubleBridge:
     __test_double_mocks: Dict[str, Mock] = dict()
 
