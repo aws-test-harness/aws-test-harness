@@ -6,7 +6,7 @@ requires-python = ">=3.13"
 dependencies = [
     "boto3>=1.36.6",
     "pyyaml>=6.0.2",
-    "boto3-stubs-lite[cloudformation,s3]>=1.36.6",
+    "boto3-stubs-lite[cloudformation,s3,sqs]>=1.36.6",
     "types-pyyaml>=6.0.12.20241230",
 ]
 

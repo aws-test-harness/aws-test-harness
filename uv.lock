@@ -72,7 +72,7 @@ version = "0.1.0"
 source = { editable = "test-support" }
 dependencies = [
     { name = "boto3" },
-    { name = "boto3-stubs-lite", extra = ["cloudformation", "s3"] },
+    { name = "boto3-stubs-lite", extra = ["cloudformation", "s3", "sqs"] },
     { name = "pyyaml" },
     { name = "types-pyyaml" },
 ]
@@ -80,7 +80,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.36.6" },
-    { name = "boto3-stubs-lite", extras = ["cloudformation", "s3"], specifier = ">=1.36.6" },
+    { name = "boto3-stubs-lite", extras = ["cloudformation", "s3", "sqs"], specifier = ">=1.36.6" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20241230" },
 ]
