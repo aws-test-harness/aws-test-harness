@@ -3,9 +3,9 @@ from unittest.mock import Mock
 import pytest
 
 from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
-from aws_test_harness.domain.invocation import Invocation
 from aws_test_harness.domain.test_double_bridge import TestDoubleBridge
 from aws_test_harness.domain.unknown_invocation_target_exception import UnknownInvocationTargetException
+from aws_test_harness_tests.support.builders.invocation_builder import an_invocation_with
 from aws_test_harness_tests.support.mocking import mock_class, when_calling
 
 
@@ -30,7 +30,7 @@ def test_generates_invocation_result_using_mock_associated_with_invocation_targe
     mock = test_double_bridge.get_mock_for('the-resource-id')
     mock.return_value = 'the result'
 
-    invocation = Invocation(target='the-resource-arn', id='the invocation id')
+    invocation = an_invocation_with(target='the-resource-arn')
 
     result = test_double_bridge.get_result_for(invocation)
 
@@ -41,7 +41,7 @@ def test_raises_exception_when_asked_to_provide_result_for_invocation_target_tha
     aws_resource_registry = mock_class(AwsResourceRegistry)
     test_double_bridge = TestDoubleBridge(aws_resource_registry)
 
-    invocation = Invocation(target='the-resource-arn', id='any invocation id')
+    invocation = an_invocation_with(target='the-resource-arn')
 
     with pytest.raises(UnknownInvocationTargetException, match='the-resource-arn'):
         test_double_bridge.get_result_for(invocation)
@@ -59,7 +59,7 @@ def test_forgets_mocks_on_reset() -> None:
 
     test_double_bridge.reset()
 
-    invocation = Invocation(target='the-resource-arn', id='the invocation id')
+    invocation = an_invocation_with(target='the-resource-arn')
 
     with pytest.raises(UnknownInvocationTargetException):
         test_double_bridge.get_result_for(invocation)

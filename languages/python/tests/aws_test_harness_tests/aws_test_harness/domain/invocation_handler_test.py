@@ -1,12 +1,12 @@
-from aws_test_harness.domain.invocation import Invocation
 from aws_test_harness.domain.invocation_handler import InvocationHandler
 from aws_test_harness.domain.invocation_post_office import InvocationPostOffice
+from aws_test_harness_tests.support.builders.invocation_builder import an_invocation_with
 from aws_test_harness_tests.support.mocking import mock_class, verify, when_calling
 
 
 def test_posts_generated_result_for_invocation_collected_from_post_office() -> None:
     invocation_post_office = mock_class(InvocationPostOffice)
-    the_invocation = Invocation(id="the id", target="the target")
+    the_invocation = an_invocation_with(invocation_id='the id')
     when_calling(invocation_post_office.maybe_collect_invocation).always_return(the_invocation)
 
     invocation_handler = InvocationHandler(
