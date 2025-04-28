@@ -38,3 +38,6 @@ class TestHarness:
     def state_machine(self, cfn_logical_resource_id: str) -> StateMachine:
         state_machine_arn = self.__aws_resource_registry.get_resource_arn(cfn_logical_resource_id)
         return StateMachine(state_machine_arn, self.__boto_session, self.__logger)
+
+    def tear_down(self) -> None:
+        self.__test_double_source.reset()

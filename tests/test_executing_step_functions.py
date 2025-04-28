@@ -1,5 +1,6 @@
 import json
 from logging import Logger
+from typing import Generator
 from uuid import uuid4
 
 import pytest
@@ -101,11 +102,16 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session:
     )
 
 
-def test_executing_a_step_function_that_interacts_with_test_doubles(
-        logger: Logger, aws_profile: str, test_cloudformation_stack: TestCloudFormationStack,
-        boto_session: Session) -> None:
+@pytest.fixture(scope='function')
+def test_harness(logger: Logger, aws_profile: str, test_cloudformation_stack: TestCloudFormationStack) -> Generator[
+    TestHarness
+]:
     test_harness = TestHarness(test_cloudformation_stack.name, logger, aws_profile)
+    yield test_harness
+    test_harness.tear_down()
 
+
+def test_executing_a_step_function_that_interacts_with_test_doubles(test_harness: TestHarness) -> None:
     s3_object_key = str(uuid4())
     s3_object_content = f'Random content: {uuid4()}'
     messages_bucket = test_harness.test_doubles.s3_bucket('Messages')

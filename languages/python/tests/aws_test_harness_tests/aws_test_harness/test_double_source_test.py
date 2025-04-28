@@ -87,3 +87,13 @@ def test_does_not_schedule_invocation_handler_repeating_task_if_already_schedule
     test_double_source.state_machine('any identifier')
 
     verify(invocation_handler_repeating_task_scheduler.schedule).was_not_called()
+
+
+def test_resets_repeating_task_scheduler_when_asked_to_reset(
+        test_double_source: TestDoubleSource, aws_resource_registry: AwsResourceRegistry,
+        invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
+        invocation_post_office: InvocationPostOffice
+) -> None:
+    test_double_source.reset()
+
+    verify(invocation_handler_repeating_task_scheduler.reset_schedule).was_called()

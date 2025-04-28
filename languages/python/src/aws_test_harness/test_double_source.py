@@ -33,3 +33,6 @@ class TestDoubleSource:
             )
 
         return self.__test_double_bridge.get_mock_for(f'{test_double_name}AWSTestHarnessStateMachine')
+
+    def reset(self) -> None:
+        self.__invocation_handler_repeating_task_scheduler.reset_schedule()

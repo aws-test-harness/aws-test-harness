@@ -1,11 +1,13 @@
 import json
 from logging import Logger
+from typing import Generator
 from uuid import uuid4
 
 import pytest
 from boto3 import Session
 
 from aws_test_harness.test_harness import TestHarness
+from aws_test_harness_test_support.step_functions_utils import assert_describes_successful_execution
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
 from aws_test_harness_tests.support.step_functions_test_client import StepFunctionsTestClient
@@ -47,9 +49,11 @@ def test_stack(cfn_stack_name_prefix: str, test_double_macro_name: str, boto_ses
     return stack
 
 
-@pytest.fixture(scope="module")
-def test_harness(test_stack: TestCloudFormationStack, logger: Logger, aws_profile: str) -> TestHarness:
-    return TestHarness(test_stack.name, logger, aws_profile)
+@pytest.fixture(scope="function")
+def test_harness(test_stack: TestCloudFormationStack, logger: Logger, aws_profile: str) -> Generator[TestHarness]:
+    test_harness = TestHarness(test_stack.name, logger, aws_profile)
+    yield test_harness
+    test_harness.tear_down()
 
 
 def test_provides_object_to_interact_with_state_machine_specified_by_cfn_resource_logical_id(
@@ -92,10 +96,31 @@ def test_provides_object_for_controlling_behaviour_of_test_doubles_that_execute_
         test_stack.get_stack_resource_physical_id('OrangeAWSTestHarnessStateMachine'),
         {}
     )
+    assert_describes_successful_execution(orange_execution)
     assert json.loads(orange_execution['output']) == expected_orange_result
 
     blue_execution = step_functions_test_client.execute_state_machine(
         test_stack.get_stack_resource_physical_id('BlueAWSTestHarnessStateMachine'),
         {}
     )
+    assert_describes_successful_execution(blue_execution)
     assert json.loads(blue_execution['output']) == expected_blue_result
+
+
+def test_does_not_handle_test_double_invocations_after_being_torn_down(
+        test_harness: TestHarness, test_stack: TestCloudFormationStack,
+        step_functions_test_client: StepFunctionsTestClient) -> None:
+    test_double_state_machine = test_harness.test_doubles.state_machine('Orange')
+    test_double_state_machine.return_value = dict()
+
+    state_machine_arn = test_stack.get_stack_resource_physical_id('OrangeAWSTestHarnessStateMachine')
+
+    first_execution_description = step_functions_test_client.execute_state_machine(state_machine_arn, {})
+    assert_describes_successful_execution(first_execution_description)
+    call_count_before_teardown = test_double_state_machine.call_count
+    assert call_count_before_teardown == 1
+
+    test_harness.tear_down()
+
+    step_functions_test_client.execute_state_machine(state_machine_arn, {})
+    assert test_double_state_machine.call_count == call_count_before_teardown

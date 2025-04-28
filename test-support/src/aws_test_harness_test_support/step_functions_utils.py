@@ -35,10 +35,10 @@ def execute_state_machine(state_machine_arn: str, step_functions_client: SFNClie
     state_machine_execution_arn = start_state_machine_execution(state_machine_arn, step_functions_client,
                                                                 execution_input)
 
-    describe_execution_result = wait_for_state_machine_execution_completion(state_machine_execution_arn, step_functions_client)
+    return wait_for_state_machine_execution_completion(state_machine_execution_arn, step_functions_client)
 
-    failure_cause = describe_execution_result.get('cause')
+
+def assert_describes_successful_execution(execution_description: DescribeExecutionOutputTypeDef) -> None:
+    failure_cause = execution_description.get('cause')
     assert failure_cause is None, f"State machine execution failed with cause: {failure_cause}"
-    assert describe_execution_result['status'] == 'SUCCEEDED'
-
-    return describe_execution_result
+    assert execution_description['status'] == 'SUCCEEDED'

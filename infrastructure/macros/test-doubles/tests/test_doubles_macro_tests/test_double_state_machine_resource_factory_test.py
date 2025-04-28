@@ -9,7 +9,7 @@ from mypy_boto3_stepfunctions.client import SFNClient
 
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from test_doubles_macro.test_double_state_machine_resource_factory import TestDoubleStateMachineResourceFactory
-from aws_test_harness_test_support.step_functions_utils import execute_state_machine
+from aws_test_harness_test_support.step_functions_utils import execute_state_machine, assert_describes_successful_execution
 
 
 @pytest.fixture(scope="module")
@@ -66,6 +66,7 @@ def test_generates_cloudformation_resources_for_a_state_machine_that_delegates_i
         step_functions_client,
         execution_input=dict(colour='orange', size='small'),
     )
+    assert_describes_successful_execution(execution_description)
 
     execution_output = json.loads(execution_description['output'])
     echoing_function_event = execution_output['receivedEvent']
