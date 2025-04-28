@@ -6,11 +6,10 @@ from aws_test_harness.domain.repeating_task_scheduler import RepeatingTaskSchedu
 
 
 class ThreadBasedRepeatingTaskScheduler(RepeatingTaskScheduler):
-    __thread: Optional[Thread] = None
-
     def __init__(self, logger: Logger):
         self.__logger = logger
         self.__reset_schedule_event = Event()
+        self.__thread: Optional[Thread] = None
 
     def schedule(self, task: Callable[..., Any]) -> None:
         if self.__thread is not None:

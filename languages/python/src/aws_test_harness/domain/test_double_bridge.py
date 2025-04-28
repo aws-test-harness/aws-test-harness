@@ -7,6 +7,8 @@ from aws_test_harness.domain.unknown_invocation_target_exception import UnknownI
 
 
 class TestDoubleBridge:
+    # Tell pytest to treat this class as a normal class
+    __test__ = False
 
     def __init__(self, aws_resource_registry: AwsResourceRegistry):
         self.__aws_resource_registry = aws_resource_registry

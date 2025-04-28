@@ -13,13 +13,11 @@ class TestDoubleSource:
     # Tell pytest to treat this class as a normal class
     __test__ = False
 
-    __invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler
-
     def __init__(self, aws_resource_registry: AwsResourceRegistry, invocation_post_office: InvocationPostOffice,
                  invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
                  aws_resource_factory: AwsResourceFactory):
         self.__aws_resource_factory = aws_resource_factory
-        self.__invocation_handler_repeating_task_scheduler = invocation_handler_repeating_task_scheduler
+        self.__invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler = invocation_handler_repeating_task_scheduler
         self.__test_double_bridge = TestDoubleBridge(aws_resource_registry)
         self.__invocation_handler = InvocationHandler(invocation_post_office, self.__test_double_bridge.get_result_for)
 
