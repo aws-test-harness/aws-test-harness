@@ -8,6 +8,7 @@ from aws_test_harness.domain.invocation import Invocation
 from aws_test_harness.domain.invocation_post_office import InvocationPostOffice
 from aws_test_harness.domain.repeating_task_scheduler import RepeatingTaskScheduler
 from aws_test_harness.domain.s3_bucket import S3Bucket
+from aws_test_harness.domain.unknown_invocation_target_exception import UnknownInvocationTargetException
 from aws_test_harness.test_double_source import TestDoubleSource
 from aws_test_harness_tests.support.mocking import mock_class, when_calling, verify, inspect
 
@@ -97,3 +98,27 @@ def test_resets_repeating_task_scheduler_when_asked_to_reset(
     test_double_source.reset()
 
     verify(invocation_handler_repeating_task_scheduler.reset_schedule).was_called()
+
+
+def test_forgets_mocks_when_asked_to_reset(
+        test_double_source: TestDoubleSource, aws_resource_registry: AwsResourceRegistry,
+        invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
+        invocation_post_office: InvocationPostOffice
+) -> None:
+    when_calling(aws_resource_registry.get_resource_arn).invoke(lambda resource_id: resource_id + 'ARN')
+    when_calling(invocation_handler_repeating_task_scheduler.scheduled).always_return(False)
+    when_calling(invocation_post_office.maybe_collect_invocation).always_return(Invocation(
+        target='OrangeAWSTestHarnessStateMachineARN',
+        id='any-invocation-id'
+    ))
+
+    test_double_state_machine = test_double_source.state_machine('Orange')
+    test_double_state_machine.return_value = dict(message='result message')
+
+    verify(invocation_handler_repeating_task_scheduler.schedule).was_called()
+    scheduled_task = inspect(invocation_handler_repeating_task_scheduler.schedule).call_args[0][0]
+
+    test_double_source.reset()
+
+    with pytest.raises(UnknownInvocationTargetException):
+        scheduled_task()

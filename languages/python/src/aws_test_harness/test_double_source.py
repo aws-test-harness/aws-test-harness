@@ -36,3 +36,4 @@ class TestDoubleSource:
 
     def reset(self) -> None:
         self.__invocation_handler_repeating_task_scheduler.reset_schedule()
+        self.__test_double_bridge.reset()

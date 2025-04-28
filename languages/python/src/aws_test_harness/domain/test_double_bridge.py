@@ -3,13 +3,14 @@ from unittest.mock import Mock
 
 from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
 from aws_test_harness.domain.invocation import Invocation
+from aws_test_harness.domain.unknown_invocation_target_exception import UnknownInvocationTargetException
 
 
 class TestDoubleBridge:
-    __test_double_mocks: Dict[str, Mock] = dict()
 
     def __init__(self, aws_resource_registry: AwsResourceRegistry):
         self.__aws_resource_registry = aws_resource_registry
+        self.__test_double_mocks: Dict[str, Mock] = dict()
 
     def get_mock_for(self, resource_id: str) -> Mock:
         mock = Mock()
@@ -18,7 +19,13 @@ class TestDoubleBridge:
         return mock
 
     def get_result_for(self, invocation: Invocation) -> Any:
-        # TODO: Handle unknown invocation target
-        matching_mock = self.__test_double_mocks[invocation.target]
+        matching_mock = self.__test_double_mocks.get(invocation.target)
+
+        if matching_mock is None:
+            raise UnknownInvocationTargetException(f'Invocation target "{invocation.target}" has not been mocked')
+
         # TODO: Pass invocation input to mock
         return matching_mock()
+
+    def reset(self) -> None:
+        self.__test_double_mocks = dict()
