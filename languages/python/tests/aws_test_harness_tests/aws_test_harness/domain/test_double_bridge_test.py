@@ -6,7 +6,7 @@ from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
 from aws_test_harness.domain.test_double_bridge import TestDoubleBridge
 from aws_test_harness.domain.unknown_invocation_target_exception import UnknownInvocationTargetException
 from aws_test_harness_tests.support.builders.invocation_builder import an_invocation_with
-from aws_test_harness_tests.support.mocking import mock_class, when_calling
+from aws_test_harness_test_support.mocking import mock_class, when_calling
 
 
 def test_creates_unittest_mock_for_specified_invocation_target() -> None:

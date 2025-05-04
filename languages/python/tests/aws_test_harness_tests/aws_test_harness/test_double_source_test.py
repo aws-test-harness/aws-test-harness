@@ -10,7 +10,7 @@ from aws_test_harness.domain.s3_bucket import S3Bucket
 from aws_test_harness.domain.unknown_invocation_target_exception import UnknownInvocationTargetException
 from aws_test_harness.test_double_source import TestDoubleSource
 from aws_test_harness_tests.support.builders.invocation_builder import an_invocation_with
-from aws_test_harness_tests.support.mocking import mock_class, when_calling, verify, inspect
+from aws_test_harness_test_support.mocking import mock_class, when_calling, verify, inspect
 
 
 @pytest.fixture(scope='function')

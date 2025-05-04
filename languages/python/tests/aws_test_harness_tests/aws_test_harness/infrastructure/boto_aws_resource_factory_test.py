@@ -7,7 +7,7 @@ from boto3 import Session
 from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
 from aws_test_harness.infrastructure.boto_aws_resource_factory import BotoAwsResourceFactory
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
-from aws_test_harness_tests.support.mocking import mock_class, when_calling
+from aws_test_harness_test_support.mocking import mock_class, when_calling
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
 
 

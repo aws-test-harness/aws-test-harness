@@ -1,9 +1,9 @@
 from typing import TypeVar, Callable, cast, Any, Type
 from unittest.mock import create_autospec
 
-from aws_test_harness_tests.support.mocking.inspectable_spy import InspectableSpy
-from aws_test_harness_tests.support.mocking.stub import Stub
-from aws_test_harness_tests.support.mocking.verifiable_spy import VerifiableSpy
+from aws_test_harness_test_support.mocking.inspectable_spy import InspectableSpy
+from aws_test_harness_test_support.mocking.stub import Stub
+from aws_test_harness_test_support.mocking.verifiable_spy import VerifiableSpy
 
 T = TypeVar("T")
 
