@@ -1,29 +1,25 @@
 import os
-from time import sleep
 from typing import Dict, Any
 
 import boto3
 
-from test_double_invocation_handler.domain.invocation_post_office import InvocationPostOffice
+from test_double_invocation_handler.domain.invocation import Invocation
+from test_double_invocation_handler.domain.invocation_result_service import InvocationResultService
 from test_double_invocation_handler.infrastructure.serverless_invocation_post_office import \
     ServerlessInvocationPostOffice
 
-boto_session = boto3.Session()
-
-invocation_post_office: InvocationPostOffice = ServerlessInvocationPostOffice(
+invocation_result_service = InvocationResultService(ServerlessInvocationPostOffice(
     os.environ['INVOCATION_QUEUE_URL'],
     os.environ['INVOCATION_TABLE_NAME'],
-    boto_session
-)
+    boto3.Session()
+))
 
 
 def handler(event: Dict[str, Any], _: Any) -> Any:
-    invocation_target = event['invocationTarget']
-    invocation_id = event['invocationId']
+    invocation = Invocation(
+        id=event['invocationId'],
+        target=event['invocationTarget'],
+        payload=event
+    )
 
-    # TODO: extract domain
-    invocation_post_office.post_invocation(invocation_target, invocation_id, event)
-    # TODO: Poll rather than sleep
-    sleep(1)
-    # TODO: Support result value of 'None'
-    return invocation_post_office.maybe_collect_result(invocation_id)
+    return invocation_result_service.generate_result_for(invocation)

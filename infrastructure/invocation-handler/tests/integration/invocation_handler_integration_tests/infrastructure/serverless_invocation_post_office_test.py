@@ -10,6 +10,7 @@ from mypy_boto3_sqs.type_defs import MessageTypeDef
 
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
+from invocation_handler_integration_tests.support.builders.invocation_builder import an_invocation_with
 from test_double_invocation_handler.infrastructure.serverless_invocation_post_office import \
     ServerlessInvocationPostOffice
 
@@ -61,16 +62,14 @@ def invocation_table(boto_session: Session, table_name: str) -> Table:
     return dynamodb_resource.Table(table_name)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def received_message(boto_session: Session, queue_url: str,
                      serverless_invocation_post_office: ServerlessInvocationPostOffice) -> MessageTypeDef:
     unique_invocation_id = str(uuid4())
 
-    serverless_invocation_post_office.post_invocation(
-        'the-invocation-target',
-        unique_invocation_id,
-        dict(colour='orange', size='small')
-    )
+    serverless_invocation_post_office.post_invocation(an_invocation_with(invocation_id=unique_invocation_id,
+                                                                         invocation_target='the-invocation-target',
+                                                                         payload=dict(colour='orange', size='small')))
 
     matching_message = wait_for_sqs_message_matching(
         lambda message: message is not None and
@@ -102,7 +101,8 @@ def test_retrieves_invocation_result_value_from_specified_dynamodb_table(
         result=dict(value=dict(randomString=random_string))
     ))
 
-    result_value = serverless_invocation_post_office.maybe_collect_result(invocation_id)
+    result_value = serverless_invocation_post_office.maybe_collect_result(an_invocation_with(
+        invocation_id=invocation_id))
 
     assert result_value == dict(randomString=random_string)
 

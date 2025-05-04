@@ -6,6 +6,7 @@ from mypy_boto3_dynamodb import DynamoDBServiceResource
 from mypy_boto3_dynamodb.service_resource import Table
 from mypy_boto3_sqs.client import SQSClient
 
+from test_double_invocation_handler.domain.invocation import Invocation
 from test_double_invocation_handler.domain.invocation_post_office import InvocationPostOffice
 
 
@@ -17,17 +18,17 @@ class ServerlessInvocationPostOffice(InvocationPostOffice):
         dynamodb_resource: DynamoDBServiceResource = boto_session.resource('dynamodb')
         self.__invocation_table: Table = dynamodb_resource.Table(invocation_table_name)
 
-    def post_invocation(self, invocation_target: str, invocation_id: str, event: Dict[str, Any]) -> None:
+    def post_invocation(self, invocation: Invocation) -> None:
         self.__sqs_client.send_message(
             QueueUrl=self.__invocation_queue_url,
-            MessageBody=json.dumps(dict(event=event)),
+            MessageBody=json.dumps(dict(event=invocation.payload)),
             MessageAttributes=dict(
-                InvocationTarget=dict(StringValue=invocation_target, DataType='String'),
-                InvocationId=dict(StringValue=invocation_id, DataType='String'),
+                InvocationTarget=dict(StringValue=invocation.target, DataType='String'),
+                InvocationId=dict(StringValue=invocation.id, DataType='String'),
             )
         )
 
-    def maybe_collect_result(self, invocation_id: str) -> Any:
-        get_item_response = self.__invocation_table.get_item(Key=dict(id=invocation_id))
+    def maybe_collect_result(self, invocation: Invocation) -> Any:
+        get_item_response = self.__invocation_table.get_item(Key=dict(id=invocation.id))
         item = cast(Dict[str, Any], get_item_response['Item'])
         return item['result']['value']

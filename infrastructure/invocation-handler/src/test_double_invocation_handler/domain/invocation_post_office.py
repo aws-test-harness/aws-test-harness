@@ -1,12 +1,14 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, Dict
+from typing import Any
+
+from test_double_invocation_handler.domain.invocation import Invocation
 
 
 class InvocationPostOffice(metaclass=ABCMeta):
     @abstractmethod
-    def post_invocation(self, invocation_target: str, invocation_id: str, event: Dict[str, Any]) -> None:
+    def post_invocation(self, invocation: Invocation) -> None:
         pass
 
     @abstractmethod
-    def maybe_collect_result(self, invocation_id: str) -> Any:
+    def maybe_collect_result(self, invocation: Invocation) -> Any:
         pass
