@@ -4,6 +4,9 @@
 
 ### Prerequisites
 - [uv](https://docs.astral.sh/uv/)
+- [jq](https://jqlang.org/)
+- [AWS CLI](https://aws.amazon.com/cli/)
+- An AWS account
 
 ### After pulling code
 Always run `./go.sh` after pulling the latest changes, to ensure your local development environment is up to date.
