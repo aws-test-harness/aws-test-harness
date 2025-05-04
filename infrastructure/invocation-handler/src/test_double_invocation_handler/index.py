@@ -41,6 +41,4 @@ def handler(event: Dict[str, Any], context: Context) -> Any:
         payload=event
     )
 
-    # TODO: test receiving instruction to throw exception instead of returning value
-
     return result_service.generate_result_for(invocation)
