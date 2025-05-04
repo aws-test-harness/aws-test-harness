@@ -1,5 +1,5 @@
-from typing import Any, Sequence
-from unittest.mock import Mock
+from typing import Any, Sequence, Type, Callable, cast
+from unittest.mock import Mock, call
 # noinspection PyUnresolvedReferences,PyProtectedMember
 from unittest.mock import _Call
 
