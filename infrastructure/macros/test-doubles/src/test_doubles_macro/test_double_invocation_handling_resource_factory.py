@@ -37,6 +37,7 @@ class TestDoubleInvocationHandlingResourceFactory:
             Properties=dict(
                 Runtime='python3.13',
                 Handler='test_double_invocation_handler.index.handler',
+                Timeout=5,
                 Environment=dict(
                     Variables=dict(
                         INVOCATION_QUEUE_URL=dict(Ref=invocation_queue_logical_id),

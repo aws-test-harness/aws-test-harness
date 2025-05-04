@@ -1,0 +1,2 @@
+class InvocationResultRetrievalTimeoutException(Exception):
+    pass

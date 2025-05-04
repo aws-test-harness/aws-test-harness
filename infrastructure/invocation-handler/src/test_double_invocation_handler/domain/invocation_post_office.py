@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any
 
 from test_double_invocation_handler.domain.invocation import Invocation
+from test_double_invocation_handler.domain.retrieval_attempt import RetrievalAttempt
 
 
 class InvocationPostOffice(metaclass=ABCMeta):
@@ -10,5 +10,5 @@ class InvocationPostOffice(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def maybe_collect_result(self, invocation: Invocation) -> Any:
+    def maybe_collect_result(self, invocation: Invocation) -> RetrievalAttempt:
         pass

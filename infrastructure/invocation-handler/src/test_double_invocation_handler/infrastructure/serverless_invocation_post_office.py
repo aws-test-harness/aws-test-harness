@@ -8,6 +8,7 @@ from mypy_boto3_sqs.client import SQSClient
 
 from test_double_invocation_handler.domain.invocation import Invocation
 from test_double_invocation_handler.domain.invocation_post_office import InvocationPostOffice
+from test_double_invocation_handler.domain.retrieval_attempt import RetrievalAttempt
 
 
 class ServerlessInvocationPostOffice(InvocationPostOffice):
@@ -28,7 +29,12 @@ class ServerlessInvocationPostOffice(InvocationPostOffice):
             )
         )
 
-    def maybe_collect_result(self, invocation: Invocation) -> Any:
+    def maybe_collect_result(self, invocation: Invocation) -> RetrievalAttempt:
         get_item_response = self.__invocation_table.get_item(Key=dict(id=invocation.id))
-        item = cast(Dict[str, Any], get_item_response['Item'])
-        return item['result']['value']
+        table_item = get_item_response.get('Item')
+
+        if table_item is None:
+            return RetrievalAttempt.failed()
+
+        item = cast(Dict[str, Any], table_item)
+        return RetrievalAttempt(item['result']['value'])

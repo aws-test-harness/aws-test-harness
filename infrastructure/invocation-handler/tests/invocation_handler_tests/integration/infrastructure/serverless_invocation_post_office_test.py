@@ -101,11 +101,18 @@ def test_retrieves_invocation_result_value_from_specified_dynamodb_table(
         result=dict(value=dict(randomString=random_string))
     ))
 
-    result_value = serverless_invocation_post_office.maybe_collect_result(an_invocation_with(
+    retrieval_attempt = serverless_invocation_post_office.maybe_collect_result(an_invocation_with(
         invocation_id=invocation_id))
 
-    assert result_value == dict(randomString=random_string)
+    assert retrieval_attempt.succeeded is True
+    assert retrieval_attempt.value == dict(randomString=random_string)
 
-# TODO: test not finding invocation
-# TODO: test supporting None result value
-# TODO: test receiving instruction to throw exception instead of returning value
+
+def test_indicates_retrieval_attempt_failed_when_no_invocation_result_table_record_exists(
+        serverless_invocation_post_office: ServerlessInvocationPostOffice, invocation_table: Table) -> None:
+    invocation_id = str(uuid4())
+
+    retrieval_attempt = serverless_invocation_post_office.maybe_collect_result(an_invocation_with(
+        invocation_id=invocation_id))
+
+    assert retrieval_attempt.succeeded is False
