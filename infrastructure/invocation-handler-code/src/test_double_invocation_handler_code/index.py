@@ -4,9 +4,9 @@ from typing import Dict, Any, Optional
 import boto3
 from aws_lambda_typing.context import Context
 
-from test_double_invocation_handler.domain.invocation import Invocation
-from test_double_invocation_handler.domain.invocation_result_service import InvocationResultService
-from test_double_invocation_handler.infrastructure.serverless_invocation_post_office import \
+from test_double_invocation_handler_code.domain.invocation import Invocation
+from test_double_invocation_handler_code.domain.invocation_result_service import InvocationResultService
+from test_double_invocation_handler_code.infrastructure.serverless_invocation_post_office import \
     ServerlessInvocationPostOffice
 
 TIMEOUT_BUFFER_MILLIS = 1000

@@ -36,7 +36,7 @@ class TestDoubleInvocationHandlingResourceFactory:
             Type='AWS::Lambda::Function',
             Properties=dict(
                 Runtime='python3.13',
-                Handler='test_double_invocation_handler.index.handler',
+                Handler='test_double_invocation_handler_code.index.handler',
                 Timeout=5,
                 Environment=dict(
                     Variables=dict(

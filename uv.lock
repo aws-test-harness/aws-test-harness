@@ -8,7 +8,7 @@ members = [
     "aws-test-harness-test-support",
     "infrastructure-acceptance-tests",
     "infrastructure-test-support",
-    "test-double-invocation-handler",
+    "test-double-invocation-handler-code",
     "test-doubles-macro",
 ]
 
@@ -429,9 +429,9 @@ wheels = [
 ]
 
 [[package]]
-name = "test-double-invocation-handler"
+name = "test-double-invocation-handler-code"
 version = "0.1.0"
-source = { editable = "infrastructure/invocation-handler" }
+source = { editable = "infrastructure/invocation-handler-code" }
 dependencies = [
     { name = "aws-lambda-typing" },
     { name = "boto3" },

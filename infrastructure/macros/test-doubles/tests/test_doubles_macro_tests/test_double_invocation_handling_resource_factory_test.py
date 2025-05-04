@@ -32,7 +32,7 @@ def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session
     assets_bucket_stack = TestS3BucketStack(f'{test_stack_name}-test-assets-bucket', logger, boto_session)
     assets_bucket_stack.ensure_exists()
 
-    project_path = absolute_path_relative_to(__file__, '..', '..', '..', '..', 'invocation-handler')
+    project_path = absolute_path_relative_to(__file__, '..', '..', '..', '..', 'invocation-handler-code')
 
     system_command_executor.execute([os.path.join(project_path, 'build.sh')])
 

@@ -1,10 +1,10 @@
 import time
 from typing import Any
 
-from test_double_invocation_handler.domain.invocation_result_retrieval_timeout_exception import \
+from test_double_invocation_handler_code.domain.invocation_result_retrieval_timeout_exception import \
     InvocationResultRetrievalTimeoutException
-from test_double_invocation_handler.domain.invocation import Invocation
-from test_double_invocation_handler.domain.invocation_post_office import InvocationPostOffice
+from test_double_invocation_handler_code.domain.invocation import Invocation
+from test_double_invocation_handler_code.domain.invocation_post_office import InvocationPostOffice
 
 
 class InvocationResultService:

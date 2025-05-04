@@ -11,7 +11,7 @@ from mypy_boto3_sqs.type_defs import MessageTypeDef
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
 from invocation_handler_tests.support.builders.invocation_builder import an_invocation_with
-from test_double_invocation_handler.infrastructure.serverless_invocation_post_office import \
+from test_double_invocation_handler_code.infrastructure.serverless_invocation_post_office import \
     ServerlessInvocationPostOffice
 
 

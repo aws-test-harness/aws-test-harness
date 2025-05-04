@@ -89,7 +89,7 @@ def test_controlling_lambda_function_result(cfn_stack_name_prefix: str, logger: 
                 Type='AWS::Lambda::Function',
                 Properties=dict(
                     Runtime='python3.13',
-                    Handler='test_double_invocation_handler.index.handler',
+                    Handler='test_double_invocation_handler_code.index.handler',
                     Timeout=5,
                     Environment=dict(Variables=dict(
                         INVOCATION_QUEUE_URL=dict(Ref='InvocationQueue'),
