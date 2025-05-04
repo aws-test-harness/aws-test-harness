@@ -2,6 +2,8 @@
 
 set -o nounset -o errexit -o pipefail
 
+fix_linting=0
+
 while getopts ":f" opt; do
   case $opt in
     f)
@@ -15,7 +17,7 @@ while getopts ":f" opt; do
 done
 
 
-if [[ -n "${fix_linting:-}" ]]; then
+if [[ "${fix_linting}" -eq 1 ]]; then
   echo "Fixing linting..."
   uv run ruff check --fix .
   exit 0
