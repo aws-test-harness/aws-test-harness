@@ -16,10 +16,11 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "aws-test-harness-test-support",
-    "boto3-stubs-lite[lambda]>=1.37.13",
     "infrastructure-test-support",
     "pytest>=8.3.4",
+    "test-double-invocation-handler-message-infrastructure",
 ]
 
 [tool.uv.sources]
 infrastructure-test-support = { workspace = true }
+test-double-invocation-handler-message-infrastructure = { workspace = true }

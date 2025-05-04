@@ -10,9 +10,11 @@ from mypy_boto3_sqs.type_defs import MessageTypeDef
 
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
-from invocation_handler_tests.support.builders.invocation_builder import an_invocation_with
+from invocation_handler_code_tests.support.builders.invocation_builder import an_invocation_with
 from test_double_invocation_handler_code.infrastructure.serverless_invocation_post_office import \
     ServerlessInvocationPostOffice
+from test_double_invocation_handler_message_infrastructure.test_double_invocation_messaging_resource_factory import \
+    TestDoubleInvocationMessagingResourceFactory
 
 
 @pytest.fixture(scope="module")
@@ -24,16 +26,8 @@ def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session
     )
     stack.ensure_state_is(
         Resources=dict(
-            Queue=dict(Type='AWS::SQS::Queue'),
-            Table=dict(
-                Type='AWS::DynamoDB::Table',
-                Properties=dict(
-                    BillingMode='PAY_PER_REQUEST',
-                    KeySchema=[dict(AttributeName="id", KeyType="HASH")],
-                    AttributeDefinitions=[dict(AttributeName="id", AttributeType="S")],
-                    TimeToLiveSpecification=dict(AttributeName="ttl", Enabled=True)
-                )
-            )
+            Queue=TestDoubleInvocationMessagingResourceFactory.generate_queue_resource(),
+            Table=TestDoubleInvocationMessagingResourceFactory.generate_invocations_table()
         )
     )
 

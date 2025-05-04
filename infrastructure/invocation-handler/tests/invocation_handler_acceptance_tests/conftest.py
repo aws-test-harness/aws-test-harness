@@ -25,11 +25,6 @@ def aws_region(test_configuration: Dict[str, str]) -> str:
 
 
 @pytest.fixture(scope="session")
-def cfn_stack_name_prefix(test_configuration: Dict[str, str]) -> str:
-    return test_configuration['cfnStackNamePrefix'] + 'test-double-invocation-handler-tests-'
-
-
-@pytest.fixture(scope="session")
 def logger() -> Logger:
     return logging.getLogger()
 

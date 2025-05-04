@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from typing import Dict, Any
 
+from test_double_invocation_handler_message_infrastructure.test_double_invocation_messaging_resource_factory import \
+    TestDoubleInvocationMessagingResourceFactory
+
 
 @dataclass
 class TestDoubleInvocationHandlingResourceDescriptions:
@@ -25,8 +28,8 @@ class TestDoubleInvocationHandlingResourceFactory:
                                                                           invocation_table_logical_id),
             invocation_handler_function_role=self.__generate_function_role_resource(
                 invocation_queue_logical_id, invocation_table_logical_id),
-            invocation_queue=self.__generate_queue_resource(),
-            invocation_table=self.__generate_invocations_table()
+            invocation_queue=TestDoubleInvocationMessagingResourceFactory.generate_queue_resource(),
+            invocation_table=TestDoubleInvocationMessagingResourceFactory.generate_invocations_table()
         )
 
     def __generate_function_resource(self, function_role_logical_id: str,
@@ -91,24 +94,5 @@ class TestDoubleInvocationHandlingResourceFactory:
                         )
                     )
                 ]
-            )
-        )
-
-    @staticmethod
-    def __generate_queue_resource() -> Dict[str, Any]:
-        return dict(
-            Type='AWS::SQS::Queue',
-            Properties=dict(MessageRetentionPeriod=60)
-        )
-
-    @staticmethod
-    def __generate_invocations_table() -> Dict[str, Any]:
-        return dict(
-            Type='AWS::DynamoDB::Table',
-            Properties=dict(
-                BillingMode='PAY_PER_REQUEST',
-                KeySchema=[dict(AttributeName="id", KeyType="HASH")],
-                AttributeDefinitions=[dict(AttributeName="id", AttributeType="S")],
-                TimeToLiveSpecification=dict(AttributeName="ttl", Enabled=True)
             )
         )

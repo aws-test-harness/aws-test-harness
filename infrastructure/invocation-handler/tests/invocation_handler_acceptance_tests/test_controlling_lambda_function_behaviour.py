@@ -17,16 +17,18 @@ from aws_test_harness_test_support.test_s3_bucket_stack import TestS3BucketStack
 from infrastructure_test_support.digest_utils import calculate_md5
 from infrastructure_test_support.s3_utils import sync_file_to_s3
 from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
+from test_double_invocation_handler.test_double_invocation_handling_resource_factory import \
+    TestDoubleInvocationHandlingResourceFactory
 
 
-def test_controlling_lambda_function_result(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session,
+def test_controlling_lambda_function_result(test_configuration: Dict[str, str], logger: Logger, boto_session: Session,
                                             system_command_executor: SystemCommandExecutor) -> None:
-    test_stack_name = f'{cfn_stack_name_prefix}acceptance-tests-'
+    test_stack_name = test_configuration['cfnStackNamePrefix'] + 'test-double-invocation-handler-tests-acceptance'
 
     assets_bucket_stack = TestS3BucketStack(f'{test_stack_name}test-assets-bucket', logger, boto_session)
     assets_bucket_stack.ensure_exists()
 
-    project_path = absolute_path_relative_to(__file__, '..', '..', '..')
+    project_path = absolute_path_relative_to(__file__, '../../../invocation-handler-code')
 
     system_command_executor.execute([
         absolute_path_relative_to(__file__, project_path, 'build.sh')
@@ -45,70 +47,23 @@ def test_controlling_lambda_function_result(cfn_stack_name_prefix: str, logger: 
         boto_session.client('s3')
     )
 
+    test_double_invocation_handling_resource_factory = TestDoubleInvocationHandlingResourceFactory(
+        assets_bucket_name, function_code_s3_key
+    )
+
+    invocation_handling_resources = test_double_invocation_handling_resource_factory.generate_resources(
+        invocation_handler_function_role_logical_id='FunctionRole',
+        invocation_queue_logical_id='Queue',
+        invocation_table_logical_id='Table'
+    )
+
     test_stack = TestCloudFormationStack(test_stack_name, logger, boto_session)
     test_stack.ensure_state_is(
         Resources=dict(
-            InvocationHandlerFunctionRole=dict(
-                Type='AWS::IAM::Role',
-                Properties=dict(
-                    AssumeRolePolicyDocument=dict(
-                        Version='2012-10-17',
-                        Statement=[dict(
-                            Effect='Allow',
-                            Principal=dict(Service='lambda.amazonaws.com'),
-                            Action='sts:AssumeRole'
-                        )]
-                    ),
-                    ManagedPolicyArns=['arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
-                    Policies=[
-                        dict(
-                            PolicyName='SendMessagesToInvocationQueue',
-                            PolicyDocument=dict(
-                                Version='2012-10-17',
-                                Statement=[dict(
-                                    Effect='Allow',
-                                    Action=['sqs:SendMessage'],
-                                    Resource={'Fn::GetAtt': 'InvocationQueue.Arn'}
-                                )]
-                            )
-                        ),
-                        dict(
-                            PolicyName='GetRecordsFromInvocationTable',
-                            PolicyDocument=dict(
-                                Version='2012-10-17',
-                                Statement=[dict(
-                                    Effect='Allow',
-                                    Action=['dynamodb:GetItem'],
-                                    Resource={'Fn::GetAtt': 'InvocationTable.Arn'}
-                                )]
-                            )
-                        )]
-                )
-            ),
-            InvocationHandlerFunction=dict(
-                Type='AWS::Lambda::Function',
-                Properties=dict(
-                    Runtime='python3.13',
-                    Handler='test_double_invocation_handler_code.index.handler',
-                    Timeout=5,
-                    Environment=dict(Variables=dict(
-                        INVOCATION_QUEUE_URL=dict(Ref='InvocationQueue'),
-                        INVOCATION_TABLE_NAME=dict(Ref='InvocationTable')
-                    )),
-                    Code=dict(S3Bucket=assets_bucket_name, S3Key=function_code_s3_key),
-                    Role={'Fn::GetAtt': 'InvocationHandlerFunctionRole.Arn'},
-                )
-            ),
-            InvocationQueue=dict(Type='AWS::SQS::Queue'),
-            InvocationTable=dict(
-                Type='AWS::DynamoDB::Table',
-                Properties=dict(
-                    BillingMode='PAY_PER_REQUEST',
-                    KeySchema=[dict(AttributeName="id", KeyType="HASH")],
-                    AttributeDefinitions=[dict(AttributeName="id", AttributeType="S")],
-                    TimeToLiveSpecification=dict(AttributeName="ttl", Enabled=True)
-                )
-            )
+            FunctionRole=invocation_handling_resources.invocation_handler_function_role,
+            Function=invocation_handling_resources.invocation_handler_function,
+            Queue=invocation_handling_resources.invocation_queue,
+            Table=invocation_handling_resources.invocation_table
         )
     )
 
@@ -116,7 +71,7 @@ def test_controlling_lambda_function_result(cfn_stack_name_prefix: str, logger: 
     random_input_string = str(uuid4())
 
     lambda_client: LambdaClient = boto_session.client('lambda')
-    invocation_handler_function_name = test_stack.get_stack_resource_physical_id('InvocationHandlerFunction')
+    invocation_handler_function_name = test_stack.get_stack_resource_physical_id('Function')
     event = dict(
         invocationTarget=str(uuid4()),
         invocationId=invocation_id,
@@ -143,9 +98,9 @@ def test_controlling_lambda_function_result(cfn_stack_name_prefix: str, logger: 
     lambda_invocation_thread = Thread(target=invoke_lambda_function, daemon=True)
     lambda_invocation_thread.start()
 
-    invocation_queue_url = test_stack.get_stack_resource_physical_id('InvocationQueue')
+    invocation_queue_url = test_stack.get_stack_resource_physical_id('Queue')
     dynamodb_resource: DynamoDBServiceResource = boto_session.resource('dynamodb')
-    invocation_table = dynamodb_resource.Table(test_stack.get_stack_resource_physical_id('InvocationTable'))
+    invocation_table = dynamodb_resource.Table(test_stack.get_stack_resource_physical_id('Table'))
     sqs_client = boto_session.client('sqs')
     random_output_string = str(uuid4())
 

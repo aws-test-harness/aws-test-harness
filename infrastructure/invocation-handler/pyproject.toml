@@ -1,0 +1,25 @@
+[project]
+name = "test-double-invocation-handler"
+version = "0.1.0"
+description = "Test Double Invocation Handler"
+requires-python = ">=3.13"
+dependencies = [
+    "test-double-invocation-handler-message-infrastructure",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+test-double-invocation-handler-message-infrastructure = { workspace = true }
+aws-test-harness-test-support = { workspace = true }
+infrastructure-test-support = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "aws-test-harness-test-support",
+    "boto3-stubs-lite[dynamodb,lambda]>=1.37.13",
+    "infrastructure-test-support",
+    "pytest>=8.3.4",
+]

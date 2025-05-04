@@ -1,3 +1,9 @@
+# Brittle hack for determining uv workspace root directory
+function __lambda__find_uv_workspace_root_directory() {
+  # shellcheck disable=SC2016
+  uv lock --dry-run --verbose 2>&1 | grep 'Found workspace root' | head -1 | sed -E 's/.*Found workspace root: `(.+)`.*/\1/'
+}
+
 function __lambda__build_function_code_asset() {
   local lambda_function_directory_path="$1"
   local target_directory_path="$2"
@@ -15,7 +21,11 @@ function __lambda__build_function_code_asset() {
   # Ensure uv is on path
   . $HOME/.cargo/env
   uv export --no-header --no-hashes --frozen --no-emit-project --no-dev > "${working_directory_path}/requirements.txt"
-  uv pip install --target "${working_directory_path}" --requirements "${working_directory_path}/requirements.txt" > /dev/null
+  uv_workspace_root_directory="$(__lambda__find_uv_workspace_root_directory)"
+  # Include editable dependencies in requirements.txt
+  sed -i '' 's@-e \./@'"${uv_workspace_root_directory}"/'@' "${working_directory_path}/requirements.txt"
+  # --no-deps avoids pip creating .pth files to editable transitive dependencies
+  uv pip install --no-deps --target "${working_directory_path}" --requirements "${working_directory_path}/requirements.txt" > /dev/null
   rm "${working_directory_path}/requirements.txt" "${working_directory_path}/.lock"
   # shellcheck disable=SC2164
   popd > /dev/null

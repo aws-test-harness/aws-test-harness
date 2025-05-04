@@ -3,7 +3,10 @@ name = "test-doubles-macro"
 version = "0.1.0"
 description = "CloudFormation Macro for adding test doubles resources to CloudFormation templates"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "aws-lambda-typing>=2.20.0",
+    "test-double-invocation-handler",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -20,3 +23,6 @@ dev = [
 
 [[tool.uv.index]]
 url = "https://pypi.org/simple"
+
+[tool.uv.sources]
+test-double-invocation-handler = { workspace = true }

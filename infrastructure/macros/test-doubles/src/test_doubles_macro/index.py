@@ -2,6 +2,8 @@ import os
 from logging import getLogger
 from typing import Any, TypedDict, Dict, NotRequired
 
+from aws_lambda_typing.context import Context
+
 from test_doubles_macro.fragment_generator import FragmentGenerator
 from test_doubles_macro.test_double_resource_factory import TestDoubleResourceFactory
 
@@ -29,7 +31,7 @@ test_double_resource_factory = TestDoubleResourceFactory(
 )
 
 
-def handler(event: CloudFormationMacroEvent, _: Any) -> CloudFormationMacroResponse:
+def handler(event: CloudFormationMacroEvent, _: Context) -> CloudFormationMacroResponse:
     original_fragment = event['fragment']
 
     LOGGER.info("Received CloudFormation template fragment", extra=dict(fragment=original_fragment))

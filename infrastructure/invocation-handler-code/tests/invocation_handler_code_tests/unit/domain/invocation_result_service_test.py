@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 
 from aws_test_harness_test_support.mocking import mock_class, when_calling, verify, as_calls, typed_call
-from invocation_handler_tests.support.builders.invocation_builder import an_invocation_with
+from invocation_handler_code_tests.support.builders.invocation_builder import an_invocation_with
 from test_double_invocation_handler_code.domain.invocation_result_retrieval_timeout_exception import InvocationResultRetrievalTimeoutException
 from test_double_invocation_handler_code.domain.invocation import Invocation
 from test_double_invocation_handler_code.domain.invocation_post_office import InvocationPostOffice
