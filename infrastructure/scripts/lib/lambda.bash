@@ -23,10 +23,12 @@ function __lambda__build_function_code_asset() {
   uv export --no-header --no-hashes --frozen --no-emit-project --no-dev > "${working_directory_path}/requirements.txt"
   uv_workspace_root_directory="$(__lambda__find_uv_workspace_root_directory)"
   # Include editable dependencies in requirements.txt
-  sed -i '' 's@-e \./@'"${uv_workspace_root_directory}"/'@' "${working_directory_path}/requirements.txt"
+  grep -v '^-e ./' "${working_directory_path}/requirements.txt" > "${working_directory_path}/non-editable-requirements.txt"
+  uv pip install --target "${working_directory_path}" --requirements "${working_directory_path}/non-editable-requirements.txt" > /dev/null
+  grep '^-e ./' "${working_directory_path}/requirements.txt" | sed 's@-e \./@'"${uv_workspace_root_directory}"/'@' > "${working_directory_path}/editable-requirements.txt"
   # --no-deps avoids pip creating .pth files to editable transitive dependencies
-  uv pip install --no-deps --target "${working_directory_path}" --requirements "${working_directory_path}/requirements.txt" > /dev/null
-  rm "${working_directory_path}/requirements.txt" "${working_directory_path}/.lock"
+  uv --no-cache pip install --no-deps --target "${working_directory_path}" --requirements "${working_directory_path}/editable-requirements.txt" > /dev/null
+  rm "${working_directory_path}/requirements.txt" "${working_directory_path}/non-editable-requirements.txt" "${working_directory_path}/editable-requirements.txt" "${working_directory_path}/.lock"
   # shellcheck disable=SC2164
   popd > /dev/null
 
