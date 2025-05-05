@@ -1,5 +1,5 @@
 [project]
-name = "test-double-invocation-handler"
+name = "test-double-invocation-handler-infrastructure"
 version = "0.1.0"
 description = "Test Double Invocation Handler"
 requires-python = ">=3.13"

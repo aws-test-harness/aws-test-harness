@@ -9,7 +9,7 @@ members = [
     "aws-test-harness-test-support",
     "infrastructure-acceptance-tests",
     "infrastructure-test-support",
-    "test-double-invocation-handler",
+    "test-double-invocation-handler-infrastructure",
     "test-double-invocation-handler-code",
     "test-double-invocation-handler-message-infrastructure",
     "test-doubles-macro",
@@ -434,9 +434,9 @@ wheels = [
 ]
 
 [[package]]
-name = "test-double-invocation-handler"
+name = "test-double-invocation-handler-infrastructure"
 version = "0.1.0"
-source = { editable = "infrastructure/invocation-handler" }
+source = { editable = "infrastructure/invocation-handler-infrastructure" }
 dependencies = [
     { name = "test-double-invocation-handler-message-infrastructure" },
 ]
@@ -504,7 +504,7 @@ version = "0.1.0"
 source = { editable = "infrastructure/macros/test-doubles" }
 dependencies = [
     { name = "aws-lambda-typing" },
-    { name = "test-double-invocation-handler" },
+    { name = "test-double-invocation-handler-infrastructure" },
 ]
 
 [package.dev-dependencies]
@@ -519,7 +519,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aws-lambda-typing", specifier = ">=2.20.0" },
-    { name = "test-double-invocation-handler", editable = "infrastructure/invocation-handler" },
+    { name = "test-double-invocation-handler-infrastructure", editable = "infrastructure/invocation-handler-infrastructure" },
 ]
 
 [package.metadata.requires-dev]

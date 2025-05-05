@@ -1,6 +1,6 @@
 from typing import Dict, Any, List
 
-from test_double_invocation_handler.test_double_invocation_handling_resource_factory import \
+from test_double_invocation_handler_infrastructure.test_double_invocation_handling_resource_factory import \
     TestDoubleInvocationHandlingResourceFactory
 from test_doubles_macro.test_double_s3_bucket_resource_factory import TestDoubleS3BucketResourceFactory
 from test_doubles_macro.test_double_state_machine_resource_factory import TestDoubleStateMachineResourceFactory

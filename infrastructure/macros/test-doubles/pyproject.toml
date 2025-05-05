@@ -5,7 +5,7 @@ description = "CloudFormation Macro for adding test doubles resources to CloudFo
 requires-python = ">=3.13"
 dependencies = [
     "aws-lambda-typing>=2.20.0",
-    "test-double-invocation-handler",
+    "test-double-invocation-handler-infrastructure",
 ]
 
 [build-system]
@@ -25,4 +25,4 @@ dev = [
 url = "https://pypi.org/simple"
 
 [tool.uv.sources]
-test-double-invocation-handler = { workspace = true }
+test-double-invocation-handler-infrastructure = { workspace = true }
