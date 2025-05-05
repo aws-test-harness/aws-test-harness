@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timedelta
 from logging import Logger
 from uuid import uuid4
 
@@ -9,11 +8,12 @@ from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource
 from mypy_boto3_stepfunctions.client import SFNClient
 
 from aws_test_harness_test_support.file_utils import absolute_path_relative_to
-from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
-from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
-from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
 from aws_test_harness_test_support.step_functions_utils import start_state_machine_execution, \
     wait_for_state_machine_execution_completion
+from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
+from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
+from test_double_invocation_handler_message_infrastructure.test_support.invocation_messaging_utils import \
+    put_invocation_result_dynamodb_record, wait_for_invocation_sqs_message, get_invocation_payload_from_sqs_message
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -82,24 +82,23 @@ def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack
         execution_input=dict(randomString=random_input_string)
     )
 
-    sqs_message = wait_for_sqs_message_matching(
-        lambda message: message is not None and
-                        message['MessageAttributes']['InvocationId']['StringValue'] == execution_arn,
+    sqs_message = wait_for_invocation_sqs_message(
+        execution_arn,
         test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationQueue'),
         boto_session.client('sqs')
     )
+
     assert sqs_message is not None
-    assert json.loads(sqs_message['Body'])['event']['executionInput'] == dict(randomString=random_input_string)
+    invocation_payload = get_invocation_payload_from_sqs_message(sqs_message)
+    assert invocation_payload['executionInput'] == dict(randomString=random_input_string)
 
     random_output_string = str(uuid4())
     dynamodb_resource: DynamoDBServiceResource = boto_session.resource('dynamodb')
     invocation_table = dynamodb_resource.Table(
         test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationTable'))
-    invocation_table.put_item(Item=dict(
-        id=execution_arn,
-        ttl=int((datetime.now() + timedelta(days=1)).timestamp()),
-        result=dict(value=dict(randomString=random_output_string))
-    ))
+
+    put_invocation_result_dynamodb_record(execution_arn, dict(value=dict(randomString=random_output_string)),
+                                          invocation_table)
 
     execution_description = wait_for_state_machine_execution_completion(execution_arn, step_functions_client)
     assert execution_description['status'] == 'SUCCEEDED'

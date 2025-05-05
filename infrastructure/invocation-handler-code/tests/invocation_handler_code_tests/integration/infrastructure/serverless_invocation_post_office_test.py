@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timedelta
 from logging import Logger
 from uuid import uuid4
 
@@ -9,12 +8,13 @@ from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource, Table
 from mypy_boto3_sqs.type_defs import MessageTypeDef
 
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
-from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
 from invocation_handler_code_tests.support.builders.invocation_builder import an_invocation_with
 from test_double_invocation_handler_code.infrastructure.serverless_invocation_post_office import \
     ServerlessInvocationPostOffice
 from test_double_invocation_handler_message_infrastructure.test_double_invocation_messaging_resource_factory import \
     TestDoubleInvocationMessagingResourceFactory
+from test_double_invocation_handler_message_infrastructure.test_support.invocation_messaging_utils import \
+    put_invocation_result_dynamodb_record, wait_for_invocation_sqs_message, get_invocation_target_from_sqs_message
 
 
 @pytest.fixture(scope="module")
@@ -65,12 +65,7 @@ def received_message(boto_session: Session, queue_url: str,
                                                                          invocation_target='the-invocation-target',
                                                                          payload=dict(colour='orange', size='small')))
 
-    matching_message = wait_for_sqs_message_matching(
-        lambda message: message is not None and
-                        message['MessageAttributes']['InvocationId']['StringValue'] == unique_invocation_id,
-        queue_url,
-        boto_session.client('sqs')
-    )
+    matching_message = wait_for_invocation_sqs_message(unique_invocation_id, queue_url, boto_session.client('sqs'))
 
     assert matching_message is not None
     return matching_message
@@ -81,7 +76,7 @@ def test_sends_event_data_to_specified_sqs_queue(received_message: MessageTypeDe
 
 
 def test_includes_invocation_target_in_sqs_message_attributes(received_message: MessageTypeDef) -> None:
-    assert received_message['MessageAttributes']['InvocationTarget']['StringValue'] == 'the-invocation-target'
+    assert get_invocation_target_from_sqs_message(received_message) == 'the-invocation-target'
 
 
 def test_retrieves_invocation_result_value_from_specified_dynamodb_table(
@@ -89,11 +84,8 @@ def test_retrieves_invocation_result_value_from_specified_dynamodb_table(
     invocation_id = str(uuid4())
     random_string = str(uuid4())
 
-    invocation_table.put_item(Item=dict(
-        id=invocation_id,
-        ttl=int((datetime.now() + timedelta(days=1)).timestamp()),
-        result=dict(value=dict(randomString=random_string))
-    ))
+    put_invocation_result_dynamodb_record(invocation_id, dict(value=dict(randomString=random_string)),
+                                          invocation_table)
 
     retrieval_attempt = serverless_invocation_post_office.maybe_collect_result(an_invocation_with(
         invocation_id=invocation_id))

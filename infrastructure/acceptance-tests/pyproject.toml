@@ -11,4 +11,8 @@ dev = [
     "boto3-stubs-lite[dynamodb,s3,sqs,stepfunctions]>=1.36.6",
     "pytest>=8.3.4",
     "infrastructure-test-support",
+    "test-double-invocation-handler-message-infrastructure",
 ]
+
+[tool.uv.sources]
+test-double-invocation-handler-message-infrastructure = { workspace = true }

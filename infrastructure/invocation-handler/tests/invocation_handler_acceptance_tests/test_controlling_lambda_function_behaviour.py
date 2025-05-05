@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import datetime, timedelta
 from logging import Logger
 from threading import Thread
 from typing import Optional, Any, Dict
@@ -16,9 +15,11 @@ from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFor
 from aws_test_harness_test_support.test_s3_bucket_stack import TestS3BucketStack
 from infrastructure_test_support.digest_utils import calculate_md5
 from infrastructure_test_support.s3_utils import sync_file_to_s3
-from infrastructure_test_support.sqs_utils import wait_for_sqs_message_matching
 from test_double_invocation_handler.test_double_invocation_handling_resource_factory import \
     TestDoubleInvocationHandlingResourceFactory
+from test_double_invocation_handler_message_infrastructure.test_support.invocation_messaging_utils import \
+    put_invocation_result_dynamodb_record, get_invocation_payload_from_sqs_message, \
+    get_invocation_target_from_sqs_message, wait_for_invocation_sqs_message
 
 
 def test_controlling_lambda_function_result(test_configuration: Dict[str, str], logger: Logger, boto_session: Session,
@@ -104,23 +105,15 @@ def test_controlling_lambda_function_result(test_configuration: Dict[str, str], 
     sqs_client = boto_session.client('sqs')
     random_output_string = str(uuid4())
 
-    invocation_message = wait_for_sqs_message_matching(
-        lambda message: message is not None and
-                        message['MessageAttributes']['InvocationId']['StringValue'] == invocation_id,
-        invocation_queue_url,
-        sqs_client
-    )
+    invocation_message = wait_for_invocation_sqs_message(invocation_id, invocation_queue_url, sqs_client)
 
-    invocation_table.put_item(Item=dict(
-        id=invocation_id,
-        ttl=int((datetime.now() + timedelta(days=1)).timestamp()),
-        result=dict(value=dict(randomString=random_output_string))
-    ))
+    put_invocation_result_dynamodb_record(invocation_id, dict(value=dict(randomString=random_output_string)),
+                                          invocation_table)
 
     lambda_invocation_thread.join()
     assert lambda_invocation_thread_exception is None
     assert lambda_invocation_result_data == dict(randomString=random_output_string)
 
     assert invocation_message is not None
-    assert invocation_message['MessageAttributes']['InvocationTarget']['StringValue'] == event['invocationTarget']
-    assert json.loads(invocation_message['Body']) == dict(event=event)
+    assert get_invocation_target_from_sqs_message(invocation_message) == event['invocationTarget']
+    assert get_invocation_payload_from_sqs_message(invocation_message) == event
