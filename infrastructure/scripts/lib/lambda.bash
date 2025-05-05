@@ -34,6 +34,7 @@ function __lambda__build_function_code_asset() {
 
   echo "Copying source..." >&2
   cp -r "${lambda_function_directory_path}/src/" "${working_directory_path}"
+  find "${working_directory_path}" \( -type f -name "*.pyc" -o -type d -name "__pycache__" \) -delete
   find "${working_directory_path}" -exec touch -t 198001010000 {} +
 
   local code_bundle_file_path
