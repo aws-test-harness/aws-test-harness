@@ -45,4 +45,4 @@ mkdir -p "${assets_directory_path}"
 
 echo "TEST_DOUBLES_MACRO_CODE_BUNDLE_PATH=$(build_asset macros/test-doubles "${assets_directory_path}")" >> "${build_directory_path}/install.env"
 # TODO: Ensure we exit if the first command fails
-echo "TEST_DOUBLE_INVOCATION_HANDLER_FUNCTION_CODE_BUNDLE_PATH=$(build_asset invocation-handler-code "${assets_directory_path}")" >> "${build_directory_path}/install.env"
+echo "TEST_DOUBLE_INVOCATION_HANDLER_FUNCTION_CODE_BUNDLE_PATH=$(build_asset test-double-invocation-handler/function-code "${assets_directory_path}")" >> "${build_directory_path}/install.env"

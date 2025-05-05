@@ -29,7 +29,7 @@ def test_controlling_lambda_function_result(test_configuration: Dict[str, str], 
     assets_bucket_stack = TestS3BucketStack(f'{test_stack_name}test-assets-bucket', logger, boto_session)
     assets_bucket_stack.ensure_exists()
 
-    project_path = absolute_path_relative_to(__file__, '../../../invocation-handler-code')
+    project_path = absolute_path_relative_to(__file__, '../../../function-code')
 
     system_command_executor.execute([
         absolute_path_relative_to(__file__, project_path, 'build.sh')

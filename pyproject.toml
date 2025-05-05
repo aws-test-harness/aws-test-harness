@@ -23,9 +23,9 @@ members = [
     "infrastructure/acceptance-tests",
     "infrastructure/macros/test-doubles",
     "infrastructure/test-support",
-    "infrastructure/invocation-handler-infrastructure",
-    "infrastructure/invocation-handler-code",
-    "infrastructure/invocation-handler-message-infrastructure"
+    "infrastructure/test-double-invocation-handler/infrastructure",
+    "infrastructure/test-double-invocation-handler/function-code",
+    "infrastructure/test-double-invocation-handler/messaging"
 ]
 
 [tool.uv.sources]
