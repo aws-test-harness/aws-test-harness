@@ -17,7 +17,7 @@ from infrastructure_test_support.digest_utils import calculate_md5
 from infrastructure_test_support.s3_utils import sync_file_to_s3
 from test_double_invocation_handler_infrastructure.test_double_invocation_handling_resource_factory import \
     TestDoubleInvocationHandlingResourceFactory
-from test_double_invocation_handler_message_infrastructure.test_support.invocation_messaging_utils import \
+from test_double_invocation_handler_messaging.test_support.invocation_messaging_utils import \
     put_invocation_result_dynamodb_record, get_invocation_payload_from_sqs_message, \
     get_invocation_target_from_sqs_message, wait_for_invocation_sqs_message
 

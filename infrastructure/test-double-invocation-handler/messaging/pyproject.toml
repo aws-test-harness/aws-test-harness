@@ -1,5 +1,5 @@
 [project]
-name = "test-double-invocation-handler-message-infrastructure"
+name = "test-double-invocation-handler-messaging"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"

@@ -1,5 +1,5 @@
 [project]
-name = "test-double-invocation-handler-code"
+name = "test-double-invocation-handler-function-code"
 version = "0.1.0"
 description = "Code for Test Double Invocation Handler Lambda function"
 requires-python = ">=3.13"
@@ -18,9 +18,9 @@ dev = [
     "aws-test-harness-test-support",
     "infrastructure-test-support",
     "pytest>=8.3.4",
-    "test-double-invocation-handler-message-infrastructure",
+    "test-double-invocation-handler-messaging",
 ]
 
 [tool.uv.sources]
 infrastructure-test-support = { workspace = true }
-test-double-invocation-handler-message-infrastructure = { workspace = true }
+test-double-invocation-handler-messaging = { workspace = true }

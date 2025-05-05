@@ -6,7 +6,7 @@ from mypy_boto3_dynamodb.service_resource import Table
 from mypy_boto3_sqs import SQSClient
 from mypy_boto3_sqs.type_defs import MessageTypeDef
 
-from test_double_invocation_handler_message_infrastructure.test_support.sqs_utils import wait_for_sqs_message_matching
+from test_double_invocation_handler_messaging.test_support.sqs_utils import wait_for_sqs_message_matching
 
 
 def put_invocation_result_dynamodb_record(invocation_id: str, result: Any, invocation_table: Table) -> None:

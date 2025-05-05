@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, Any
 
-from test_double_invocation_handler_message_infrastructure.test_double_invocation_messaging_resource_factory import \
+from test_double_invocation_handler_messaging.test_double_invocation_messaging_resource_factory import \
     TestDoubleInvocationMessagingResourceFactory
 
 
@@ -39,7 +39,7 @@ class TestDoubleInvocationHandlingResourceFactory:
             Type='AWS::Lambda::Function',
             Properties=dict(
                 Runtime='python3.13',
-                Handler='test_double_invocation_handler_code.index.handler',
+                Handler='test_double_invocation_handler_function_code.index.handler',
                 Timeout=5,
                 Environment=dict(
                     Variables=dict(

@@ -10,8 +10,8 @@ members = [
     "infrastructure-acceptance-tests",
     "infrastructure-test-support",
     "test-double-invocation-handler-infrastructure",
-    "test-double-invocation-handler-code",
-    "test-double-invocation-handler-message-infrastructure",
+    "test-double-invocation-handler-function-code",
+    "test-double-invocation-handler-messaging",
     "test-doubles-macro",
 ]
 
@@ -191,7 +191,7 @@ dev = [
     { name = "boto3-stubs-lite", extra = ["dynamodb", "s3", "sqs", "stepfunctions"] },
     { name = "infrastructure-test-support" },
     { name = "pytest" },
-    { name = "test-double-invocation-handler-message-infrastructure" },
+    { name = "test-double-invocation-handler-messaging" },
 ]
 
 [package.metadata]
@@ -203,7 +203,7 @@ dev = [
     { name = "boto3-stubs-lite", extras = ["dynamodb", "s3", "sqs", "stepfunctions"], specifier = ">=1.36.6" },
     { name = "infrastructure-test-support", editable = "infrastructure/test-support" },
     { name = "pytest", specifier = ">=8.3.4" },
-    { name = "test-double-invocation-handler-message-infrastructure", editable = "infrastructure/test-double-invocation-handler/messaging" },
+    { name = "test-double-invocation-handler-messaging", editable = "infrastructure/test-double-invocation-handler/messaging" },
 ]
 
 [[package]]
@@ -438,7 +438,7 @@ name = "test-double-invocation-handler-infrastructure"
 version = "0.1.0"
 source = { editable = "infrastructure/test-double-invocation-handler/infrastructure" }
 dependencies = [
-    { name = "test-double-invocation-handler-message-infrastructure" },
+    { name = "test-double-invocation-handler-messaging" },
 ]
 
 [package.dev-dependencies]
@@ -450,7 +450,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "test-double-invocation-handler-message-infrastructure", editable = "infrastructure/test-double-invocation-handler/messaging" }]
+requires-dist = [{ name = "test-double-invocation-handler-messaging", editable = "infrastructure/test-double-invocation-handler/messaging" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -461,7 +461,7 @@ dev = [
 ]
 
 [[package]]
-name = "test-double-invocation-handler-code"
+name = "test-double-invocation-handler-function-code"
 version = "0.1.0"
 source = { editable = "infrastructure/test-double-invocation-handler/function-code" }
 dependencies = [
@@ -475,7 +475,7 @@ dev = [
     { name = "aws-test-harness-test-support" },
     { name = "infrastructure-test-support" },
     { name = "pytest" },
-    { name = "test-double-invocation-handler-message-infrastructure" },
+    { name = "test-double-invocation-handler-messaging" },
 ]
 
 [package.metadata]
@@ -490,11 +490,11 @@ dev = [
     { name = "aws-test-harness-test-support", editable = "test-support" },
     { name = "infrastructure-test-support", editable = "infrastructure/test-support" },
     { name = "pytest", specifier = ">=8.3.4" },
-    { name = "test-double-invocation-handler-message-infrastructure", editable = "infrastructure/test-double-invocation-handler/messaging" },
+    { name = "test-double-invocation-handler-messaging", editable = "infrastructure/test-double-invocation-handler/messaging" },
 ]
 
 [[package]]
-name = "test-double-invocation-handler-message-infrastructure"
+name = "test-double-invocation-handler-messaging"
 version = "0.1.0"
 source = { editable = "infrastructure/test-double-invocation-handler/messaging" }
 
