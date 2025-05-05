@@ -3,8 +3,20 @@ name = "test-double-invocation-handler-messaging"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "aws-test-harness-test-support",
+    "boto3>=1.37.13",
+    "boto3-stubs-lite[dynamodb,sqs]>=1.37.13",
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+]
+
+[tool.uv.sources]
+aws-test-harness-test-support = { workspace = true }

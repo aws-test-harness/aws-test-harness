@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
-from test_double_invocation_handler_function_code.domain.invocation import Invocation
-from test_double_invocation_handler_function_code.domain.retrieval_attempt import RetrievalAttempt
+from test_double_invocation_handler_messaging.domain.invocation import Invocation
+from test_double_invocation_handler_messaging.domain.retrieval_attempt import RetrievalAttempt
 
 
 class InvocationPostOffice(metaclass=ABCMeta):

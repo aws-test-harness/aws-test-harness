@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, Any
 
-from test_double_invocation_handler_messaging.test_double_invocation_messaging_resource_factory import \
+from test_double_invocation_handler_messaging.infrastructure.test_double_invocation_messaging_resource_factory import \
     TestDoubleInvocationMessagingResourceFactory
 
 
