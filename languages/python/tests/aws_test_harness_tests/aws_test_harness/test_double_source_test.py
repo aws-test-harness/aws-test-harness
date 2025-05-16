@@ -1,5 +1,3 @@
-from unittest.mock import Mock
-
 import pytest
 
 from aws_test_harness.domain.aws_resource_factory import AwsResourceFactory
@@ -9,8 +7,8 @@ from aws_test_harness.domain.repeating_task_scheduler import RepeatingTaskSchedu
 from aws_test_harness.domain.s3_bucket import S3Bucket
 from aws_test_harness.domain.unknown_invocation_target_exception import UnknownInvocationTargetException
 from aws_test_harness.test_double_source import TestDoubleSource
-from aws_test_harness_tests.support.builders.invocation_builder import an_invocation_with
 from aws_test_harness_test_support.mocking import mock_class, when_calling, verify, inspect
+from aws_test_harness_tests.support.builders.invocation_builder import an_invocation_with
 
 
 @pytest.fixture(scope='function')
@@ -25,12 +23,12 @@ def aws_resource_factory() -> AwsResourceFactory:
 
 @pytest.fixture(scope='function')
 def invocation_handler_repeating_task_scheduler() -> RepeatingTaskScheduler:
-    return Mock(RepeatingTaskScheduler)
+    return mock_class(RepeatingTaskScheduler)
 
 
 @pytest.fixture(scope='function')
 def invocation_post_office() -> InvocationPostOffice:
-    return Mock(InvocationPostOffice)
+    return mock_class(InvocationPostOffice)
 
 
 @pytest.fixture(scope='function')
