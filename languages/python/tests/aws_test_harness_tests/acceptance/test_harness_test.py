@@ -56,7 +56,7 @@ def test_harness(test_stack: TestCloudFormationStack, logger: Logger, aws_profil
     test_harness.tear_down()
 
 
-def test_provides_object_to_interact_with_state_machine_specified_by_cfn_resource_logical_id(
+def test_executing_state_machine_specified_by_cfn_resource_logical_id(
         test_harness: TestHarness) -> None:
     state_machine = test_harness.state_machine('AddNumbersStateMachine')
 
@@ -65,7 +65,7 @@ def test_provides_object_to_interact_with_state_machine_specified_by_cfn_resourc
     assert execution.output == '3'
 
 
-def test_provides_object_for_interacting_with_test_doubles_that_do_not_execute_code(
+def test_interacting_with_test_doubles_that_do_not_execute_code(
         test_harness: TestHarness, test_stack: TestCloudFormationStack, s3_test_client: S3TestClient
 ) -> None:
     s3_bucket = test_harness.test_doubles.s3_bucket('Messages')
@@ -78,7 +78,7 @@ def test_provides_object_for_interacting_with_test_doubles_that_do_not_execute_c
     assert object_content == s3_test_client.get_object_content(first_s3_bucket_name, object_key)
 
 
-def test_provides_object_for_controlling_behaviour_of_test_doubles_that_execute_code(
+def test_controlling_behaviour_of_test_doubles_that_execute_code(
         test_harness: TestHarness, test_stack: TestCloudFormationStack,
         step_functions_test_client: StepFunctionsTestClient,
 ) -> None:
@@ -107,7 +107,7 @@ def test_provides_object_for_controlling_behaviour_of_test_doubles_that_execute_
     assert json.loads(blue_execution['output']) == expected_blue_result
 
 
-def test_does_not_handle_test_double_invocations_after_being_torn_down(
+def test_ignoring_test_double_invocations_after_being_torn_down(
         test_harness: TestHarness, test_stack: TestCloudFormationStack,
         step_functions_test_client: StepFunctionsTestClient) -> None:
     test_double_state_machine = test_harness.test_doubles.state_machine('Orange')
