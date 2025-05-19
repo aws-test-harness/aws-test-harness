@@ -1,3 +1,4 @@
+from typing import Callable, Dict, Any, Optional
 from unittest.mock import Mock
 
 from aws_test_harness.domain.aws_resource_factory import AwsResourceFactory
@@ -24,13 +25,16 @@ class TestDoubleSource:
     def s3_bucket(self, test_double_name: str) -> S3Bucket:
         return self.__aws_resource_factory.get_s3_bucket(f'{test_double_name}AWSTestHarnessS3Bucket')
 
-    def state_machine(self, test_double_name: str) -> Mock:
+    def state_machine(self, test_double_name: str,
+                      execution_handler: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None) -> Mock:
         if not self.__invocation_handler_repeating_task_scheduler.scheduled():
             self.__invocation_handler_repeating_task_scheduler.schedule(
                 self.__invocation_handler.handle_pending_invocation
             )
 
-        return self.__test_double_bridge.get_mock_for(f'{test_double_name}AWSTestHarnessStateMachine')
+        mock = self.__test_double_bridge.get_mock_for(f'{test_double_name}AWSTestHarnessStateMachine')
+        mock.side_effect = execution_handler if execution_handler else lambda _: dict()
+        return mock
 
     def reset(self) -> None:
         self.__invocation_handler_repeating_task_scheduler.reset_schedule()

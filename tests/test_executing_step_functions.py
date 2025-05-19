@@ -117,9 +117,8 @@ def test_executing_a_step_function_that_interacts_with_test_doubles(test_harness
     messages_bucket = test_harness.test_doubles.s3_bucket('Messages')
     messages_bucket.put_object(Key=s3_object_key, Body=s3_object_content)
 
-    random_string_state_machine = test_harness.test_doubles.state_machine('RandomString')
     random_string = str(uuid4())
-    random_string_state_machine.return_value = dict(randomString=random_string)
+    test_harness.test_doubles.state_machine('RandomString', lambda _: dict(randomString=random_string))
 
     state_machine = test_harness.state_machine('StateMachine')
 

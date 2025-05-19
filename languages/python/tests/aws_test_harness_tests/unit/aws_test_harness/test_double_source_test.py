@@ -62,16 +62,41 @@ def test_provides_mock_to_control_test_double_state_machine(
         an_invocation_with(target='OrangeAWSTestHarnessStateMachineARN', invocation_id='123456789')
     )
 
-    test_double_state_machine = test_double_source.state_machine('Orange')
-    test_double_state_machine.return_value = dict(message='result message')
+    test_double_source.state_machine(
+        'Orange',
+        lambda _: dict(message='result message')
+    )
 
     verify(invocation_handler_repeating_task_scheduler.schedule).was_called()
     scheduled_task = inspect(invocation_handler_repeating_task_scheduler.schedule).call_args[0][0]
     scheduled_task()
 
     verify(invocation_post_office.post_result).was_called_once_with(
-        '123456789',
-        dict(value=dict(message='result message'))
+        invocation_id='123456789',
+        result=dict(value=dict(message='result message'))
+    )
+
+
+def test_uses_default_test_double_state_machine_execution_handler_if_none_provided(
+        test_double_source: TestDoubleSource, aws_resource_registry: AwsResourceRegistry,
+        invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
+        invocation_post_office: InvocationPostOffice
+) -> None:
+    when_calling(aws_resource_registry.get_resource_arn).invoke(lambda resource_id: resource_id + 'ARN')
+    when_calling(invocation_handler_repeating_task_scheduler.scheduled).always_return(False)
+    when_calling(invocation_post_office.maybe_collect_invocation).always_return(
+        an_invocation_with(target='OrangeAWSTestHarnessStateMachineARN', invocation_id='123456789')
+    )
+
+    test_double_source.state_machine('Orange')
+
+    verify(invocation_handler_repeating_task_scheduler.schedule).was_called()
+    scheduled_task = inspect(invocation_handler_repeating_task_scheduler.schedule).call_args[0][0]
+    scheduled_task()
+
+    verify(invocation_post_office.post_result).was_called_once_with(
+        invocation_id='123456789',
+        result=dict(value=dict())
     )
 
 
@@ -108,8 +133,7 @@ def test_forgets_mocks_when_asked_to_reset(
         an_invocation_with(target='OrangeAWSTestHarnessStateMachineARN')
     )
 
-    test_double_state_machine = test_double_source.state_machine('Orange')
-    test_double_state_machine.return_value = dict(message='result message')
+    test_double_source.state_machine('Orange')
 
     verify(invocation_handler_repeating_task_scheduler.schedule).was_called()
     scheduled_task = inspect(invocation_handler_repeating_task_scheduler.schedule).call_args[0][0]

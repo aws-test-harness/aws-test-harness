@@ -84,11 +84,15 @@ def test_controlling_behaviour_of_test_doubles_that_execute_code(
 ) -> None:
     test_double_source = test_harness.test_doubles
 
-    orange_state_machine = test_double_source.state_machine('Orange')
-    orange_state_machine.side_effect = lambda execution_input: dict(orangeString=execution_input['randomString'])
+    orange_state_machine = test_double_source.state_machine(
+        'Orange',
+        lambda execution_input: dict(orangeString=execution_input['randomString'])
+    )
 
-    blue_state_machine = test_double_source.state_machine('Blue')
-    blue_state_machine.side_effect = lambda execution_input: dict(blueString=execution_input['randomString'])
+    blue_state_machine = test_double_source.state_machine(
+        'Blue',
+        lambda execution_input: dict(blueString=execution_input['randomString'])
+    )
 
     orange_random_string = str(uuid4())
     orange_execution = step_functions_test_client.execute_state_machine(
@@ -113,7 +117,6 @@ def test_ignoring_test_double_invocations_after_being_torn_down(
         test_harness: TestHarness, test_stack: TestCloudFormationStack,
         step_functions_test_client: StepFunctionsTestClient) -> None:
     test_double_state_machine = test_harness.test_doubles.state_machine('Orange')
-    test_double_state_machine.return_value = dict()
 
     state_machine_arn = test_stack.get_stack_resource_physical_id('OrangeAWSTestHarnessStateMachine')
 

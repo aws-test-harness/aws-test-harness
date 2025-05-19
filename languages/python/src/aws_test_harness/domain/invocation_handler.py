@@ -14,6 +14,7 @@ class InvocationHandler:
         invocation = self.__invocation_post_office.maybe_collect_invocation()
 
         if invocation:
+            # TODO: Post invocation error result if an exception is thrown whilst generating / serialising result
             self.__invocation_post_office.post_result(
                 invocation.id,
                 dict(value=self.__get_invocation_result(invocation))
