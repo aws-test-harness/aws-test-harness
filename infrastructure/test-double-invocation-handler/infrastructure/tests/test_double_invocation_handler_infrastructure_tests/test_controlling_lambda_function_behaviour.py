@@ -112,7 +112,7 @@ def test_handling_invocation(test_configuration: Dict[str, str], logger: Logger,
 
     lambda_invocation_thread.join()
     assert lambda_invocation_thread_exception is None
-    assert lambda_invocation_result_data == dict(randomString=random_output_string)
+    assert lambda_invocation_result_data == dict(invocationResult=dict(value=dict(randomString=random_output_string)))
 
     assert invocation_message is not None
     assert get_invocation_target_from_sqs_message(invocation_message) == invocation_target

@@ -41,4 +41,6 @@ def handler(event: Dict[str, Any], context: Context) -> Any:
         parameters=event['invocationParameters']
     )
 
-    return result_service.generate_result_for(invocation)
+    invocation_result_value = result_service.generate_result_for(invocation)
+
+    return dict(invocationResult=dict(value=invocation_result_value))

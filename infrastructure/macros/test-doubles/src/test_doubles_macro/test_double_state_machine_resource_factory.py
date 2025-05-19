@@ -35,7 +35,7 @@ class TestDoubleStateMachineResourceFactory:
                     States=dict(GetStateMachineResult=dict(
                         Type='Task',
                         Resource='arn:aws:states:::lambda:invoke',
-                        OutputPath='$.Payload',
+                        OutputPath='$.Payload.invocationResult.value',
                         Parameters=dict(
                             Payload={
                                 'invocationId.$': '$$.Execution.Id',

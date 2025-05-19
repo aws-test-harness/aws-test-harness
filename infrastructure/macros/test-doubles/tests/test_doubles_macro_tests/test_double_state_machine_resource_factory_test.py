@@ -31,7 +31,7 @@ def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session
                 Properties=dict(
                     Runtime='python3.13',
                     Handler='index.handler',
-                    InlineCode='handler = lambda event, context: dict(receivedEvent=event)'
+                    InlineCode='handler = lambda event, context: dict(invocationResult=dict(value=event))'
                 )
             )
         ))
