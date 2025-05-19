@@ -68,8 +68,12 @@ def test_generates_cloudformation_resources_for_a_state_machine_that_delegates_i
     )
     assert_describes_successful_execution(execution_description)
 
-    execution_output = json.loads(execution_description['output'])
-    echoing_function_event = execution_output['receivedEvent']
+    echoing_function_event = json.loads(execution_description['output'])
+    assert 'invocationId' in echoing_function_event
     assert echoing_function_event['invocationId'] == execution_description['executionArn']
+
+    assert 'invocationTarget' in echoing_function_event
     assert echoing_function_event['invocationTarget'] == example_state_machine_arn
-    assert echoing_function_event['executionInput'] == dict(colour='orange', size='small')
+
+    assert 'invocationParameters' in echoing_function_event
+    assert echoing_function_event['invocationParameters'] == dict(input=dict(colour='orange', size='small'))

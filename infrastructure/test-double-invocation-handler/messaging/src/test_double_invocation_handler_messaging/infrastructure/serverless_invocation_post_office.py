@@ -22,7 +22,7 @@ class ServerlessInvocationPostOffice(InvocationPostOffice):
     def post_invocation(self, invocation: Invocation) -> None:
         self.__sqs_client.send_message(
             QueueUrl=self.__invocation_queue_url,
-            MessageBody=json.dumps(dict(event=invocation.payload)),
+            MessageBody=json.dumps(dict(parameters=invocation.parameters)),
             MessageAttributes=dict(
                 InvocationTarget=dict(StringValue=invocation.target, DataType='String'),
                 InvocationId=dict(StringValue=invocation.id, DataType='String'),

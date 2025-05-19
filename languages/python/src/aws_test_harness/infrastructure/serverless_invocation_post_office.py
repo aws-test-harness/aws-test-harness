@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta, datetime
 from logging import Logger
 from typing import Optional, Any
@@ -38,9 +39,12 @@ class ServerlessInvocationPostOffice(InvocationPostOffice):
         )
         message.delete()
 
+        message_payload = json.loads(message.body)
+
         return Invocation(
             target=message.message_attributes['InvocationTarget']['StringValue'],
-            id=message.message_attributes['InvocationId']['StringValue']
+            id=message.message_attributes['InvocationId']['StringValue'],
+            parameters=message_payload['parameters']
         )
 
     def post_result(self, invocation_id: str, result: Any) -> None:

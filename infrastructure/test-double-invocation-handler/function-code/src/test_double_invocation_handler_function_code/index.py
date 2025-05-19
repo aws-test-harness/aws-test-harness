@@ -38,7 +38,7 @@ def handler(event: Dict[str, Any], context: Context) -> Any:
     invocation = Invocation(
         id=event['invocationId'],
         target=event['invocationTarget'],
-        payload=event
+        parameters=event['invocationParameters']
     )
 
     return result_service.generate_result_for(invocation)

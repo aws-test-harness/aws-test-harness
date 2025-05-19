@@ -84,27 +84,29 @@ def test_controlling_behaviour_of_test_doubles_that_execute_code(
 ) -> None:
     test_double_source = test_harness.test_doubles
 
-    orange_test_double_state_machine = test_double_source.state_machine('Orange')
-    expected_orange_result = dict(randomString=str(uuid4()))
-    orange_test_double_state_machine.return_value = expected_orange_result
+    orange_state_machine = test_double_source.state_machine('Orange')
+    orange_state_machine.side_effect = lambda execution_input: dict(input=execution_input, machine='orange')
 
-    blue_test_double_state_machine = test_double_source.state_machine('Blue')
-    expected_blue_result = dict(randomString=str(uuid4()))
-    blue_test_double_state_machine.return_value = expected_blue_result
+    blue_state_machine = test_double_source.state_machine('Blue')
+    blue_state_machine.side_effect = lambda execution_input: dict(input=execution_input, machine='blue')
 
+    orange_execution_input = dict(randomString=str(uuid4()))
     orange_execution = step_functions_test_client.execute_state_machine(
         test_stack.get_stack_resource_physical_id('OrangeAWSTestHarnessStateMachine'),
-        {}
+        orange_execution_input
     )
     assert_describes_successful_execution(orange_execution)
-    assert json.loads(orange_execution['output']) == expected_orange_result
+    orange_state_machine.assert_called_once_with(orange_execution_input)
+    assert json.loads(orange_execution['output']) == dict(input=orange_execution_input, machine='orange')
 
+    blue_execution_input = dict(randomString=str(uuid4()))
     blue_execution = step_functions_test_client.execute_state_machine(
         test_stack.get_stack_resource_physical_id('BlueAWSTestHarnessStateMachine'),
-        {}
+        blue_execution_input
     )
     assert_describes_successful_execution(blue_execution)
-    assert json.loads(blue_execution['output']) == expected_blue_result
+    blue_state_machine.assert_called_once_with(blue_execution_input)
+    assert json.loads(blue_execution['output']) == dict(input=blue_execution_input, machine='blue')
 
 
 def test_ignoring_test_double_invocations_after_being_torn_down(

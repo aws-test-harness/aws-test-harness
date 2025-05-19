@@ -61,9 +61,13 @@ def received_message(boto_session: Session, queue_url: str,
                      serverless_invocation_post_office: ServerlessInvocationPostOffice) -> MessageTypeDef:
     unique_invocation_id = str(uuid4())
 
-    serverless_invocation_post_office.post_invocation(an_invocation_with(invocation_id=unique_invocation_id,
-                                                                         invocation_target='the-invocation-target',
-                                                                         payload=dict(colour='orange', size='small')))
+    serverless_invocation_post_office.post_invocation(
+        an_invocation_with(
+            invocation_id=unique_invocation_id,
+            invocation_target='the-invocation-target',
+            parameters=dict(colour='orange', size='small')
+        )
+    )
 
     matching_message = wait_for_invocation_sqs_message(unique_invocation_id, queue_url, boto_session.client('sqs'))
 
@@ -72,11 +76,13 @@ def received_message(boto_session: Session, queue_url: str,
 
 
 def test_sends_event_data_to_specified_sqs_queue(received_message: MessageTypeDef) -> None:
-    assert json.loads(received_message['Body'])['event'] == dict(colour='orange', size='small')
+    message_payload = json.loads(received_message['Body'])
+    assert message_payload['parameters'] == dict(colour='orange', size='small')
 
 
 def test_includes_invocation_target_in_sqs_message_attributes(received_message: MessageTypeDef) -> None:
-    assert get_invocation_target_from_sqs_message(received_message) == 'the-invocation-target'
+    invocation_target = get_invocation_target_from_sqs_message(received_message)
+    assert invocation_target == 'the-invocation-target'
 
 
 def test_retrieves_invocation_result_value_from_specified_dynamodb_table(

@@ -26,8 +26,7 @@ class TestDoubleBridge:
         if matching_mock is None:
             raise UnknownInvocationTargetException(f'Invocation target "{invocation.target}" has not been mocked')
 
-        # TODO: Pass invocation input to mock
-        return matching_mock()
+        return matching_mock(invocation.parameters['input'])
 
     def reset(self) -> None:
         self.__test_double_mocks = dict()

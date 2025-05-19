@@ -27,8 +27,8 @@ def wait_for_invocation_sqs_message(invocation_id: str, invocation_queue_url: st
     )
 
 
-def get_invocation_payload_from_sqs_message(invocation_message: MessageTypeDef) -> Dict[str, Any]:
-    return cast(Dict[str, Any], json.loads(invocation_message['Body'])['event'])
+def get_invocation_parameters_from_sqs_message(invocation_message: MessageTypeDef) -> Dict[str, Any]:
+    return cast(Dict[str, Any], json.loads(invocation_message['Body'])['parameters'])
 
 
 def get_invocation_target_from_sqs_message(invocation_message: MessageTypeDef) -> str:

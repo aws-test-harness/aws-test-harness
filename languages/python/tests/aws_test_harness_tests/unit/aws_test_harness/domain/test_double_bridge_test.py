@@ -37,6 +37,23 @@ def test_generates_invocation_result_using_mock_associated_with_invocation_targe
     assert result == 'the result'
 
 
+def test_provides_step_function_mock_with_execution_input_when_generating_result() -> None:
+    aws_resource_registry = mock_class(AwsResourceRegistry)
+    when_calling(aws_resource_registry.get_resource_arn).always_return('the-resource-arn')
+
+    test_double_bridge = TestDoubleBridge(aws_resource_registry)
+    mock = test_double_bridge.get_mock_for('any-resource-id')
+
+    invocation = an_invocation_with(
+        target='the-resource-arn',
+        parameters=dict(input=dict(message='the message'))
+    )
+
+    test_double_bridge.get_result_for(invocation)
+
+    mock.assert_called_once_with(dict(message='the message'))
+
+
 def test_raises_exception_when_asked_to_provide_result_for_invocation_target_that_has_not_been_mocked() -> None:
     aws_resource_registry = mock_class(AwsResourceRegistry)
     test_double_bridge = TestDoubleBridge(aws_resource_registry)

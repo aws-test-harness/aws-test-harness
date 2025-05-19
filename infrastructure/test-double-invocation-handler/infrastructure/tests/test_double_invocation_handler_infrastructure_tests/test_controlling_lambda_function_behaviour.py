@@ -18,11 +18,11 @@ from infrastructure_test_support.s3_utils import sync_file_to_s3
 from test_double_invocation_handler_infrastructure.test_double_invocation_handling_resource_factory import \
     TestDoubleInvocationHandlingResourceFactory
 from test_double_invocation_handler_messaging.test_support.invocation_messaging_utils import \
-    put_invocation_result_dynamodb_record, get_invocation_payload_from_sqs_message, \
+    put_invocation_result_dynamodb_record, get_invocation_parameters_from_sqs_message, \
     get_invocation_target_from_sqs_message, wait_for_invocation_sqs_message
 
 
-def test_controlling_lambda_function_result(test_configuration: Dict[str, str], logger: Logger, boto_session: Session,
+def test_handling_invocation(test_configuration: Dict[str, str], logger: Logger, boto_session: Session,
                                             system_command_executor: SystemCommandExecutor) -> None:
     test_stack_name = test_configuration['cfnStackNamePrefix'] + 'test-double-invocation-handler-tests-acceptance'
 
@@ -73,11 +73,7 @@ def test_controlling_lambda_function_result(test_configuration: Dict[str, str], 
 
     lambda_client: LambdaClient = boto_session.client('lambda')
     invocation_handler_function_name = test_stack.get_stack_resource_physical_id('Function')
-    event = dict(
-        invocationTarget=str(uuid4()),
-        invocationId=invocation_id,
-        randomString=random_input_string
-    )
+    invocation_target = str(uuid4())
 
     lambda_invocation_result_data: Optional[Dict[str, Any]] = None
     lambda_invocation_thread_exception: Optional[BaseException] = None
@@ -89,7 +85,11 @@ def test_controlling_lambda_function_result(test_configuration: Dict[str, str], 
             lambda_invocation_response = lambda_client.invoke(
                 FunctionName=invocation_handler_function_name,
                 InvocationType='RequestResponse',
-                Payload=json.dumps(event)
+                Payload=json.dumps(dict(
+                    invocationTarget=invocation_target,
+                    invocationId=invocation_id,
+                    invocationParameters=dict(randomString=random_input_string)
+                ))
             )
             lambda_invocation_result_data = json.loads(lambda_invocation_response['Payload'].read().decode('utf-8'))
         except BaseException as e:
@@ -115,5 +115,7 @@ def test_controlling_lambda_function_result(test_configuration: Dict[str, str], 
     assert lambda_invocation_result_data == dict(randomString=random_output_string)
 
     assert invocation_message is not None
-    assert get_invocation_target_from_sqs_message(invocation_message) == event['invocationTarget']
-    assert get_invocation_payload_from_sqs_message(invocation_message) == event
+    assert get_invocation_target_from_sqs_message(invocation_message) == invocation_target
+
+    invocation_parameters = get_invocation_parameters_from_sqs_message(invocation_message)
+    assert invocation_parameters == dict(randomString=random_input_string)

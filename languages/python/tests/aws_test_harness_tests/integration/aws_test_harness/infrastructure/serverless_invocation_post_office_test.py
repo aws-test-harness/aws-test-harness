@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 from decimal import Decimal
 from logging import Logger
@@ -71,22 +72,26 @@ def test_collects_invocation_from_sqs_queue(invocation_post_office: ServerlessIn
 
     sqs_client: SQSClient = boto_session.client('sqs')
 
+    the_invocation_parameters = dict(randomString=str(uuid4()))
+
     sqs_client.send_message(
         QueueUrl=invocation_queue_url,
-        MessageBody=ANY_MESSAGE_BODY,
+        MessageBody=json.dumps(dict(parameters=the_invocation_parameters)),
         MessageAttributes=dict(
             InvocationTarget=dict(DataType='String', StringValue=the_invocation_target),
-            InvocationId=dict(DataType='String', StringValue=the_invocation_id)
+            InvocationId=dict(DataType='String', StringValue=the_invocation_id),
         )
     )
 
-    wait_for_value_matching(
+    retrieved_invocation = wait_for_value_matching(
         invocation_post_office.maybe_collect_invocation,
         f'invocation with target "{the_invocation_target}" and id "{the_invocation_id}"',
-        lambda invocation: invocation is not None
-                           and invocation.target == the_invocation_target
-                           and invocation.id == the_invocation_id
+        lambda invocation: invocation is not None and invocation.id == the_invocation_id
     )
+
+    assert retrieved_invocation is not None
+    assert retrieved_invocation.target == the_invocation_target
+    assert retrieved_invocation.parameters == the_invocation_parameters
 
 
 def test_returns_none_when_no_invocation_message_found_on_queue(

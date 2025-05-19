@@ -6,4 +6,4 @@ from typing import Dict, Any
 class Invocation:
     id: str
     target: str
-    payload: Dict[str, Any]
+    parameters: Dict[str, Any]

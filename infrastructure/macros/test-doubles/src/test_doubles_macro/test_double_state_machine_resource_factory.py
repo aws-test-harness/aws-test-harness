@@ -40,7 +40,9 @@ class TestDoubleStateMachineResourceFactory:
                             Payload={
                                 'invocationId.$': '$$.Execution.Id',
                                 'invocationTarget.$': '$$.StateMachine.Id',
-                                'executionInput.$': '$$.Execution.Input',
+                                'invocationParameters': {
+                                    'input.$': '$$.Execution.Input'
+                                },
                             },
                             FunctionName='${InvocationHandlerFunctionName}'
                         ),

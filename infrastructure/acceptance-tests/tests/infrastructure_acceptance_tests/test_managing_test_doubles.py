@@ -13,7 +13,7 @@ from aws_test_harness_test_support.step_functions_utils import start_state_machi
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from test_double_invocation_handler_messaging.test_support.invocation_messaging_utils import \
-    put_invocation_result_dynamodb_record, wait_for_invocation_sqs_message, get_invocation_payload_from_sqs_message
+    put_invocation_result_dynamodb_record, wait_for_invocation_sqs_message, get_invocation_parameters_from_sqs_message
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -89,8 +89,8 @@ def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack
     )
 
     assert sqs_message is not None
-    invocation_payload = get_invocation_payload_from_sqs_message(sqs_message)
-    assert invocation_payload['executionInput'] == dict(randomString=random_input_string)
+    invocation_parameters = get_invocation_parameters_from_sqs_message(sqs_message)
+    assert invocation_parameters['input'] == dict(randomString=random_input_string)
 
     random_output_string = str(uuid4())
     dynamodb_resource: DynamoDBServiceResource = boto_session.resource('dynamodb')
@@ -101,7 +101,7 @@ def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack
                                           invocation_table)
 
     execution_description = wait_for_state_machine_execution_completion(execution_arn, step_functions_client)
-    assert execution_description['status'] == 'SUCCEEDED'
+    assert execution_description['status'] == 'SUCCEEDED', execution_description['cause']
     assert json.loads(execution_description['output']) == dict(randomString=random_output_string)
 
 
