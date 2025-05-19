@@ -85,28 +85,28 @@ def test_controlling_behaviour_of_test_doubles_that_execute_code(
     test_double_source = test_harness.test_doubles
 
     orange_state_machine = test_double_source.state_machine('Orange')
-    orange_state_machine.side_effect = lambda execution_input: dict(input=execution_input, machine='orange')
+    orange_state_machine.side_effect = lambda execution_input: dict(orangeString=execution_input['randomString'])
 
     blue_state_machine = test_double_source.state_machine('Blue')
-    blue_state_machine.side_effect = lambda execution_input: dict(input=execution_input, machine='blue')
+    blue_state_machine.side_effect = lambda execution_input: dict(blueString=execution_input['randomString'])
 
-    orange_execution_input = dict(randomString=str(uuid4()))
+    orange_random_string = str(uuid4())
     orange_execution = step_functions_test_client.execute_state_machine(
         test_stack.get_stack_resource_physical_id('OrangeAWSTestHarnessStateMachine'),
-        orange_execution_input
+        dict(randomString=orange_random_string)
     )
     assert_describes_successful_execution(orange_execution)
-    orange_state_machine.assert_called_once_with(orange_execution_input)
-    assert json.loads(orange_execution['output']) == dict(input=orange_execution_input, machine='orange')
+    orange_state_machine.assert_called_once_with(dict(randomString=orange_random_string))
+    assert json.loads(orange_execution['output']) == dict(orangeString=orange_random_string)
 
-    blue_execution_input = dict(randomString=str(uuid4()))
+    blue_random_string = str(uuid4())
     blue_execution = step_functions_test_client.execute_state_machine(
         test_stack.get_stack_resource_physical_id('BlueAWSTestHarnessStateMachine'),
-        blue_execution_input
+        dict(randomString=blue_random_string)
     )
     assert_describes_successful_execution(blue_execution)
-    blue_state_machine.assert_called_once_with(blue_execution_input)
-    assert json.loads(blue_execution['output']) == dict(input=blue_execution_input, machine='blue')
+    blue_state_machine.assert_called_once_with(dict(randomString=blue_random_string))
+    assert json.loads(blue_execution['output']) == dict(blueString=blue_random_string)
 
 
 def test_ignoring_test_double_invocations_after_being_torn_down(
