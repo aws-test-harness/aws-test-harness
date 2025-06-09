@@ -1,10 +1,9 @@
-from typing import Optional, Dict, Any, Callable, TypeVar
+from typing import Optional, Dict, Any, TypeVar
 
 from aws_test_harness.domain.aws_resource_factory import AwsResourceFactory
 from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
 from aws_test_harness.domain.invocation import Invocation
 from aws_test_harness.domain.invocation_handler import InvocationHandler
-from aws_test_harness.domain.invocation_listener import InvocationListener
 from aws_test_harness.domain.invocation_post_office import InvocationPostOffice
 from aws_test_harness.domain.repeating_task_scheduler import RepeatingTaskScheduler
 from aws_test_harness.domain.s3_bucket import S3Bucket
@@ -23,7 +22,7 @@ class TestDoubleSource:
                  invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
                  aws_resource_factory: AwsResourceFactory):
         self.__aws_resource_factory = aws_resource_factory
-        self.__invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler = invocation_handler_repeating_task_scheduler
+        self.__invocation_handling_scheduler: RepeatingTaskScheduler = invocation_handler_repeating_task_scheduler
         self.__test_doubles: Dict[str, TestDouble] = dict()
         self.__aws_resource_registry = aws_resource_registry
 
@@ -37,21 +36,20 @@ class TestDoubleSource:
 
             return test_double.get_result_for(invocation)
 
-        self.__invocation_listener = InvocationListener(
-            InvocationHandler(invocation_post_office, get_result_for),
-            invocation_handler_repeating_task_scheduler
-        )
+        self.__invocation_handler = InvocationHandler(invocation_post_office, get_result_for)
 
     def s3_bucket(self, test_double_name: str) -> S3Bucket:
         return self.__aws_resource_factory.get_s3_bucket(f'{test_double_name}AWSTestHarnessS3Bucket')
 
     def state_machine(self, test_double_name: str,
                       execution_handler: Optional[StateMachineExecutionHandler] = None) -> TestDoubleStateMachine:
-        self.__invocation_listener.ensure_started()
+        if not self.__invocation_handling_scheduler.scheduled():
+            self.__invocation_handling_scheduler.schedule(self.__invocation_handler.handle_pending_invocation)
+
         return self.__add_test_double(test_double_name, TestDoubleStateMachine(execution_handler))
 
     def reset(self) -> None:
-        self.__invocation_listener.stop()
+        self.__invocation_handling_scheduler.reset_schedule()
         self.__test_doubles = dict()
 
     def __add_test_double(self, name: str, test_double: TestDoubleType) -> TestDoubleType:
