@@ -5,7 +5,7 @@ from unittest.mock import Mock
 from aws_test_harness.domain.invocation import Invocation
 
 
-class TestDouble(metaclass=ABCMeta):
+class InvocationTargetTwin(metaclass=ABCMeta):
     def __init__(self) -> None:
         self._mock = Mock()
 

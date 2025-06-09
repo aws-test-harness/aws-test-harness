@@ -1,17 +1,13 @@
-from typing import Optional, Dict, Any, TypeVar
+from typing import Optional
 
 from aws_test_harness.domain.aws_resource_factory import AwsResourceFactory
 from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
-from aws_test_harness.domain.invocation import Invocation
 from aws_test_harness.domain.invocation_handler import InvocationHandler
 from aws_test_harness.domain.invocation_post_office import InvocationPostOffice
+from aws_test_harness.domain.invocation_target_twin_service import InvocationTargetTwinService
 from aws_test_harness.domain.repeating_task_scheduler import RepeatingTaskScheduler
 from aws_test_harness.domain.s3_bucket import S3Bucket
-from aws_test_harness.domain.test_double import TestDouble
 from aws_test_harness.domain.test_double_state_machine import TestDoubleStateMachine, StateMachineExecutionHandler
-from aws_test_harness.domain.unknown_invocation_target_exception import UnknownInvocationTargetException
-
-TestDoubleType = TypeVar('TestDoubleType', bound=TestDouble)
 
 
 class TestDoubleSource:
@@ -19,41 +15,27 @@ class TestDoubleSource:
     __test__ = False
 
     def __init__(self, aws_resource_registry: AwsResourceRegistry, invocation_post_office: InvocationPostOffice,
-                 invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
+                 invocation_handling_scheduler: RepeatingTaskScheduler,
                  aws_resource_factory: AwsResourceFactory):
         self.__aws_resource_factory = aws_resource_factory
-        self.__invocation_handling_scheduler: RepeatingTaskScheduler = invocation_handler_repeating_task_scheduler
-        self.__test_doubles: Dict[str, TestDouble] = dict()
-        self.__aws_resource_registry = aws_resource_registry
-
-        def get_result_for(invocation: Invocation) -> Any:
-            test_double = self.__test_doubles.get(invocation.target)
-
-            if test_double is None:
-                raise UnknownInvocationTargetException(
-                    f'No test double has been configured for invocation target "{invocation.target}"'
-                )
-
-            return test_double.get_result_for(invocation)
-
-        self.__invocation_handler = InvocationHandler(invocation_post_office, get_result_for)
+        self.__invocation_handling_scheduler: RepeatingTaskScheduler = invocation_handling_scheduler
+        self.__invocation_target_twin_service = InvocationTargetTwinService(aws_resource_registry)
+        self.__invocation_handler = InvocationHandler(
+            invocation_post_office,
+            self.__invocation_target_twin_service.generate_result_for_invocation
+        )
 
     def s3_bucket(self, test_double_name: str) -> S3Bucket:
         return self.__aws_resource_factory.get_s3_bucket(f'{test_double_name}AWSTestHarnessS3Bucket')
 
-    def state_machine(self, test_double_name: str,
+    def state_machine(self, state_machine_name: str,
                       execution_handler: Optional[StateMachineExecutionHandler] = None) -> TestDoubleStateMachine:
         if not self.__invocation_handling_scheduler.scheduled():
             self.__invocation_handling_scheduler.schedule(self.__invocation_handler.handle_pending_invocation)
 
-        return self.__add_test_double(test_double_name, TestDoubleStateMachine(execution_handler))
+        return self.__invocation_target_twin_service.create_twin_for_state_machine(state_machine_name,
+                                                                                   execution_handler)
 
     def reset(self) -> None:
         self.__invocation_handling_scheduler.reset_schedule()
-        self.__test_doubles = dict()
-
-    def __add_test_double(self, name: str, test_double: TestDoubleType) -> TestDoubleType:
-        resource_arn = self.__aws_resource_registry.get_resource_arn(f'{name}AWSTestHarnessStateMachine')
-        self.__test_doubles[resource_arn] = test_double
-
-        return test_double
+        self.__invocation_target_twin_service.reset()

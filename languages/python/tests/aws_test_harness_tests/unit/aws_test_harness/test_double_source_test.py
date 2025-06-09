@@ -122,25 +122,6 @@ def test_resets_repeating_task_scheduler_when_asked_to_reset(
     verify(invocation_handler_repeating_task_scheduler.reset_schedule).was_called()
 
 
-def test_raises_exception_when_asked_to_provide_test_double_for_invocation_target_that_hasnt_been_configured(
-        test_double_source: TestDoubleSource, aws_resource_registry: AwsResourceRegistry,
-        invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
-        invocation_post_office: InvocationPostOffice
-) -> None:
-    when_calling(aws_resource_registry.get_resource_arn).always_return('known-arn')
-    when_calling(invocation_handler_repeating_task_scheduler.scheduled).always_return(False)
-    when_calling(invocation_post_office.maybe_collect_invocation).always_return(
-        an_invocation_with(target='unknown-arn')
-    )
-
-    test_double_source.state_machine('known-id')
-
-    verify(invocation_handler_repeating_task_scheduler.schedule).was_called()
-    scheduled_task = inspect(invocation_handler_repeating_task_scheduler.schedule).call_args[0][0]
-
-    with pytest.raises(UnknownInvocationTargetException, match='unknown-arn'):
-        scheduled_task()
-
 def test_forgets_mocks_when_asked_to_reset(
         test_double_source: TestDoubleSource, aws_resource_registry: AwsResourceRegistry,
         invocation_handler_repeating_task_scheduler: RepeatingTaskScheduler,
