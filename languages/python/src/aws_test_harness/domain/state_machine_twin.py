@@ -6,7 +6,7 @@ from aws_test_harness.domain.invocation_target_twin import InvocationTargetTwin
 type StateMachineExecutionHandler = Callable[[Dict[str, Any]], Dict[str, Any]]
 
 
-class TestDoubleStateMachine(InvocationTargetTwin):
+class StateMachineTwin(InvocationTargetTwin):
     def __init__(self, execution_handler: Optional[StateMachineExecutionHandler] = None):
         super().__init__()
         self._mock.side_effect = execution_handler if execution_handler else lambda _: dict()

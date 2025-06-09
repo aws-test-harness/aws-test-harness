@@ -3,13 +3,12 @@ from typing import Dict, TypeVar, Optional, Any
 from aws_test_harness.domain.aws_resource_registry import AwsResourceRegistry
 from aws_test_harness.domain.invocation import Invocation
 from aws_test_harness.domain.invocation_target_twin import InvocationTargetTwin
-from aws_test_harness.domain.test_double_state_machine import TestDoubleStateMachine, StateMachineExecutionHandler
+from aws_test_harness.domain.state_machine_twin import StateMachineTwin, StateMachineExecutionHandler
 from aws_test_harness.domain.unknown_invocation_target_exception import UnknownInvocationTargetException
 
 InvocationTargetTwinType = TypeVar('InvocationTargetTwinType', bound=InvocationTargetTwin)
 
 
-# TODO: Retrofit tests
 class InvocationTargetTwinService:
 
     def __init__(self, aws_resource_registry: AwsResourceRegistry):
@@ -21,8 +20,8 @@ class InvocationTargetTwinService:
 
     def create_twin_for_state_machine(self, state_machine_name: str,
                                       execution_handler: Optional[
-                                          StateMachineExecutionHandler]) -> TestDoubleStateMachine:
-        twin = TestDoubleStateMachine(execution_handler)
+                                          StateMachineExecutionHandler]) -> StateMachineTwin:
+        twin = StateMachineTwin(execution_handler)
         self.__add_twin(f'{state_machine_name}AWSTestHarnessStateMachine', twin)
         return twin
 

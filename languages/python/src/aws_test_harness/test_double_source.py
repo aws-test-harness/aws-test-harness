@@ -7,7 +7,7 @@ from aws_test_harness.domain.invocation_post_office import InvocationPostOffice
 from aws_test_harness.domain.invocation_target_twin_service import InvocationTargetTwinService
 from aws_test_harness.domain.repeating_task_scheduler import RepeatingTaskScheduler
 from aws_test_harness.domain.s3_bucket import S3Bucket
-from aws_test_harness.domain.test_double_state_machine import TestDoubleStateMachine, StateMachineExecutionHandler
+from aws_test_harness.domain.state_machine_twin import StateMachineTwin, StateMachineExecutionHandler
 
 
 class TestDoubleSource:
@@ -29,7 +29,7 @@ class TestDoubleSource:
         return self.__aws_resource_factory.get_s3_bucket(f'{test_double_name}AWSTestHarnessS3Bucket')
 
     def state_machine(self, state_machine_name: str,
-                      execution_handler: Optional[StateMachineExecutionHandler] = None) -> TestDoubleStateMachine:
+                      execution_handler: Optional[StateMachineExecutionHandler] = None) -> StateMachineTwin:
         if not self.__invocation_handling_scheduler.scheduled():
             self.__invocation_handling_scheduler.schedule(self.__invocation_handler.handle_pending_invocation)
 
