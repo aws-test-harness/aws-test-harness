@@ -7,10 +7,11 @@ from aws_test_harness.domain.invocation_post_office import InvocationPostOffice
 from aws_test_harness.domain.invocation_target_twin_service import InvocationTargetTwinService
 from aws_test_harness.domain.repeating_task_scheduler import RepeatingTaskScheduler
 from aws_test_harness.domain.s3_bucket import S3Bucket
-from aws_test_harness.domain.state_machine_twin import StateMachineTwin, StateMachineExecutionHandler
+from aws_test_harness.domain.state_machine import StateMachine
+from aws_test_harness.domain.state_machine_twin import StateMachineExecutionHandler, StateMachineTwin
 
 
-class TestDoubleSource:
+class TestHarness:
     # Tell pytest to treat this class as a normal class
     __test__ = False
 
@@ -25,17 +26,20 @@ class TestDoubleSource:
             self.__invocation_target_twin_service.generate_result_for_invocation
         )
 
-    def s3_bucket(self, test_double_name: str) -> S3Bucket:
+    def state_machine(self, cfn_logical_resource_id: str) -> StateMachine:
+        return self.__aws_resource_factory.get_state_machine(cfn_logical_resource_id)
+
+    def twin_s3_bucket(self, test_double_name: str) -> S3Bucket:
         return self.__aws_resource_factory.get_s3_bucket(f'{test_double_name}AWSTestHarnessS3Bucket')
 
-    def state_machine(self, state_machine_name: str,
-                      execution_handler: Optional[StateMachineExecutionHandler] = None) -> StateMachineTwin:
+    def twin_state_machine(self, state_machine_name: str,
+                           execution_handler: Optional[StateMachineExecutionHandler] = None) -> StateMachineTwin:
         if not self.__invocation_handling_scheduler.scheduled():
             self.__invocation_handling_scheduler.schedule(self.__invocation_handler.handle_pending_invocation)
 
         return self.__invocation_target_twin_service.create_twin_for_state_machine(state_machine_name,
                                                                                    execution_handler)
 
-    def reset(self) -> None:
+    def tear_down(self) -> None:
         self.__invocation_handling_scheduler.reset_schedule()
         self.__invocation_target_twin_service.reset()

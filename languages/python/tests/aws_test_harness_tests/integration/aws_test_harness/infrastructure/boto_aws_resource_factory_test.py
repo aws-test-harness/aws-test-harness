@@ -42,7 +42,7 @@ def before_all(test_stack: TestCloudFormationStack) -> None:
 
 
 def test_provides_object_for_interacting_with_s3_bucket_in_cfn_stack(
-        test_stack: TestCloudFormationStack, boto_session: Session, s3_test_client: S3TestClient
+        test_stack: TestCloudFormationStack, boto_session: Session, s3_test_client: S3TestClient, logger: Logger
 ) -> None:
     bucket_name = test_stack.get_stack_resource_physical_id('Bucket')
 
@@ -51,10 +51,7 @@ def test_provides_object_for_interacting_with_s3_bucket_in_cfn_stack(
         lambda resource_id: f'arn:aws:s3:::{bucket_name}' if resource_id == 'Bucket' else None
     )
 
-    aws_resource_factory = BotoAwsResourceFactory(
-        boto_session,
-        aws_resource_registry
-    )
+    aws_resource_factory = BotoAwsResourceFactory(boto_session, aws_resource_registry, logger)
 
     s3_bucket = aws_resource_factory.get_s3_bucket('Bucket')
 

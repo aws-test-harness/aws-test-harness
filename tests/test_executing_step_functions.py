@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from boto3 import Session
 
-from aws_test_harness.test_harness import TestHarness
+from aws_test_harness import aws_test_harness, TestHarness
 from aws_test_harness_test_support.file_utils import absolute_path_relative_to
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
@@ -106,7 +106,7 @@ def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session:
 def test_harness(logger: Logger, aws_profile: str, test_cloudformation_stack: TestCloudFormationStack) -> Generator[
     TestHarness
 ]:
-    test_harness = TestHarness(test_cloudformation_stack.name, logger, aws_profile)
+    test_harness = aws_test_harness(test_cloudformation_stack.name, aws_profile, logger)
     yield test_harness
     test_harness.tear_down()
 
@@ -114,11 +114,11 @@ def test_harness(logger: Logger, aws_profile: str, test_cloudformation_stack: Te
 def test_executing_a_step_function_that_interacts_with_test_doubles(test_harness: TestHarness) -> None:
     s3_object_key = str(uuid4())
     s3_object_content = f'Random content: {uuid4()}'
-    messages_bucket = test_harness.test_doubles.s3_bucket('Messages')
+    messages_bucket = test_harness.twin_s3_bucket('Messages')
     messages_bucket.put_object(Key=s3_object_key, Body=s3_object_content)
 
     random_string = str(uuid4())
-    test_harness.test_doubles.state_machine('RandomString', lambda _: dict(randomString=random_string))
+    test_harness.twin_state_machine('RandomString', lambda _: dict(randomString=random_string))
 
     state_machine = test_harness.state_machine('StateMachine')
 

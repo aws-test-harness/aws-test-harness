@@ -5,7 +5,7 @@ from typing import Any, Dict
 import pytest
 from boto3 import Session
 
-from aws_test_harness.step_functions.state_machine import StateMachine
+from aws_test_harness.infrastructure.boto_state_machine import BotoStateMachine
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_tests.support.step_functions_test_client import StepFunctionsTestClient
 
@@ -91,7 +91,7 @@ def test_executes_state_machine_with_provided_input(boto_session: Session, logge
                                                     test_stack: TestCloudFormationStack) -> None:
     state_machine_arn = test_stack.get_output_value('PassThroughStateMachineArn')
     previous_execution_arn = step_functions_test_client.get_latest_execution_arn(state_machine_arn)
-    state_machine = StateMachine(state_machine_arn, boto_session, logger)
+    state_machine = BotoStateMachine(state_machine_arn, boto_session, logger)
 
     execution_input = {
         'aParameter': 'aValue',
@@ -114,7 +114,7 @@ def test_executes_state_machine_with_provided_input(boto_session: Session, logge
 def test_reports_execution_success(boto_session: Session, logger: Logger,
                                    test_stack: TestCloudFormationStack) -> None:
     state_machine_arn = test_stack.get_output_value('PassThroughStateMachineArn')
-    state_machine = StateMachine(state_machine_arn, boto_session, logger)
+    state_machine = BotoStateMachine(state_machine_arn, boto_session, logger)
 
     execution = state_machine.execute(ANY_EXECUTION_INPUT)
 
@@ -124,7 +124,7 @@ def test_reports_execution_success(boto_session: Session, logger: Logger,
 def test_reports_execution_failure(boto_session: Session,
                                    logger: Logger, test_stack: TestCloudFormationStack) -> None:
     state_machine_arn = test_stack.get_output_value('AddNumbersStateMachineArn')
-    state_machine = StateMachine(state_machine_arn, boto_session, logger)
+    state_machine = BotoStateMachine(state_machine_arn, boto_session, logger)
 
     execution_input = {'firstNumber': 1, 'secondNumber': 'NOT A NUMBER'}
 
@@ -139,7 +139,7 @@ def test_reports_execution_failure(boto_session: Session,
 def test_reports_execution_timeout(boto_session: Session, logger: Logger,
                                    test_stack: TestCloudFormationStack) -> None:
     state_machine_arn = test_stack.get_output_value('TimingOutStateMachineArn')
-    state_machine = StateMachine(state_machine_arn, boto_session, logger)
+    state_machine = BotoStateMachine(state_machine_arn, boto_session, logger)
 
     execution = state_machine.execute(ANY_EXECUTION_INPUT)
 
@@ -149,7 +149,7 @@ def test_reports_execution_timeout(boto_session: Session, logger: Logger,
 def test_provides_execution_result(boto_session: Session, logger: Logger,
                                    test_stack: TestCloudFormationStack) -> None:
     state_machine_arn = test_stack.get_output_value('AddNumbersStateMachineArn')
-    state_machine = StateMachine(state_machine_arn, boto_session, logger)
+    state_machine = BotoStateMachine(state_machine_arn, boto_session, logger)
 
     execution_input = {'firstNumber': 1, 'secondNumber': 2}
 

@@ -2,12 +2,14 @@ from logging import Logger
 from time import sleep
 from typing import Optional
 
-from mypy_boto3_stepfunctions.client import SFNClient
+from mypy_boto3_stepfunctions import SFNClient
 from mypy_boto3_stepfunctions.literals import ExecutionStatusType
 from mypy_boto3_stepfunctions.type_defs import DescribeExecutionOutputTypeDef
 
+from aws_test_harness.domain.state_machine_execution import StateMachineExecution
 
-class StateMachineExecution:
+
+class BotoStateMachineExecution(StateMachineExecution):
     def __init__(self, execution_arn: str, step_functions_client: SFNClient, logger: Logger):
         self.__step_functions_client = step_functions_client
         self.__execution_arn = execution_arn

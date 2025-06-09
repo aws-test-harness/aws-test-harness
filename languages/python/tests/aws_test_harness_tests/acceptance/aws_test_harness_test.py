@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from boto3 import Session
 
-from aws_test_harness.test_harness import TestHarness
+from aws_test_harness import aws_test_harness, TestHarness
 from aws_test_harness_test_support.step_functions_utils import assert_describes_successful_execution
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
@@ -51,7 +51,7 @@ def test_stack(cfn_stack_name_prefix: str, test_double_macro_name: str, boto_ses
 
 @pytest.fixture(scope="function")
 def test_harness(test_stack: TestCloudFormationStack, logger: Logger, aws_profile: str) -> Generator[TestHarness]:
-    test_harness = TestHarness(test_stack.name, logger, aws_profile)
+    test_harness = aws_test_harness(test_stack.name, aws_profile, logger)
     yield test_harness
     test_harness.tear_down()
 
@@ -68,7 +68,7 @@ def test_executing_state_machine_specified_by_cfn_resource_logical_id(
 def test_interacting_with_test_doubles_that_do_not_execute_code(
         test_harness: TestHarness, test_stack: TestCloudFormationStack, s3_test_client: S3TestClient
 ) -> None:
-    s3_bucket = test_harness.test_doubles.s3_bucket('Messages')
+    s3_bucket = test_harness.twin_s3_bucket('Messages')
 
     object_key = str(uuid4())
     object_content = f'Random content: {uuid4()}'
@@ -82,14 +82,12 @@ def test_controlling_behaviour_of_test_doubles_that_execute_code(
         test_harness: TestHarness, test_stack: TestCloudFormationStack,
         step_functions_test_client: StepFunctionsTestClient,
 ) -> None:
-    test_double_source = test_harness.test_doubles
-
-    orange_state_machine = test_double_source.state_machine(
+    orange_state_machine = test_harness.twin_state_machine(
         'Orange',
         lambda execution_input: dict(orangeString=execution_input['randomString'])
     )
 
-    blue_state_machine = test_double_source.state_machine(
+    blue_state_machine = test_harness.twin_state_machine(
         'Blue',
         lambda execution_input: dict(blueString=execution_input['randomString'])
     )
@@ -116,7 +114,7 @@ def test_controlling_behaviour_of_test_doubles_that_execute_code(
 def test_ignoring_test_double_invocations_after_being_torn_down(
         test_harness: TestHarness, test_stack: TestCloudFormationStack,
         step_functions_test_client: StepFunctionsTestClient) -> None:
-    test_double_state_machine = test_harness.test_doubles.state_machine('Orange')
+    test_double_state_machine = test_harness.twin_state_machine('Orange')
 
     state_machine_arn = test_stack.get_stack_resource_physical_id('OrangeAWSTestHarnessStateMachine')
 

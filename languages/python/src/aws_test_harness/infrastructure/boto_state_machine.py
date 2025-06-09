@@ -4,12 +4,14 @@ from typing import Dict, Any
 from uuid import uuid4
 
 from boto3 import Session
-from mypy_boto3_stepfunctions.client import SFNClient
+from mypy_boto3_stepfunctions import SFNClient
 
-from aws_test_harness.step_functions.state_machine_execution import StateMachineExecution
+from aws_test_harness.domain.state_machine import StateMachine
+from aws_test_harness.domain.state_machine_execution import StateMachineExecution
+from aws_test_harness.infrastructure.boto_state_machine_execution import BotoStateMachineExecution
 
 
-class StateMachine:
+class BotoStateMachine(StateMachine):
     def __init__(self, state_machine_arn: str, boto_session: Session, logger: Logger):
         self.__state_machine_arn = state_machine_arn
         self.__logger = logger
@@ -29,5 +31,5 @@ class StateMachine:
             input=json.dumps(execution_input)
         )
 
-        return StateMachineExecution(start_execution_result['executionArn'], self.__step_functions_client,
-                                     self.__logger)
+        return BotoStateMachineExecution(start_execution_result['executionArn'], self.__step_functions_client,
+                                         self.__logger)
