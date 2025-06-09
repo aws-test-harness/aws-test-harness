@@ -48,15 +48,14 @@ class TestDoubleSource:
     def state_machine(self, test_double_name: str,
                       execution_handler: Optional[StateMachineExecutionHandler] = None) -> TestDoubleStateMachine:
         self.__invocation_listener.ensure_started()
-        return self.__add_test_double(test_double_name, lambda: TestDoubleStateMachine(execution_handler))
+        return self.__add_test_double(test_double_name, TestDoubleStateMachine(execution_handler))
 
     def reset(self) -> None:
         self.__invocation_listener.stop()
         self.__test_doubles = dict()
 
-    def __add_test_double(self, name: str, create_test_double: Callable[[], TestDoubleType]) -> TestDoubleType:
+    def __add_test_double(self, name: str, test_double: TestDoubleType) -> TestDoubleType:
         resource_arn = self.__aws_resource_registry.get_resource_arn(f'{name}AWSTestHarnessStateMachine')
-        test_double = create_test_double()
         self.__test_doubles[resource_arn] = test_double
 
         return test_double
