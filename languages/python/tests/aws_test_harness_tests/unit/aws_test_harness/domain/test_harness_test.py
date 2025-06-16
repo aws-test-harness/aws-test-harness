@@ -73,7 +73,7 @@ def test_provides_object_to_control_test_double_state_machine(
 
     verify(invocation_post_office.post_result).was_called_once_with(
         invocation_id='123456789',
-        result=dict(value=dict(message='result message'))
+        result=dict(status='succeeded', context=dict(result=dict(message='result message')))
     )
 
 
@@ -96,7 +96,7 @@ def test_uses_default_test_double_state_machine_execution_handler_if_none_provid
 
     verify(invocation_post_office.post_result).was_called_once_with(
         invocation_id='123456789',
-        result=dict(value=dict())
+        result=dict(status='succeeded', context=dict(result=dict()))
     )
 
 

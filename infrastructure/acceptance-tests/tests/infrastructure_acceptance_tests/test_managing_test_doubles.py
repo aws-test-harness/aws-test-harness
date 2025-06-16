@@ -97,8 +97,11 @@ def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack
     invocation_table = dynamodb_resource.Table(
         test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationTable'))
 
-    put_invocation_result_dynamodb_record(execution_arn, dict(value=dict(randomString=random_output_string)),
-                                          invocation_table)
+    put_invocation_result_dynamodb_record(
+        execution_arn,
+        dict(status='succeeded', context=dict(result=dict(randomString=random_output_string))),
+        invocation_table
+    )
 
     execution_description = wait_for_state_machine_execution_completion(execution_arn, step_functions_client)
     assert execution_description['status'] == 'SUCCEEDED', execution_description['cause']

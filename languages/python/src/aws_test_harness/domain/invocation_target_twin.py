@@ -1,8 +1,9 @@
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
-from typing import Any, List, Callable
+from typing import Any, List, Callable, cast
 
 from aws_test_harness.domain.invocation import Invocation
+from aws_test_harness.domain.state_machine_execution_failure import StateMachineExecutionFailure
 
 
 class InvocationTargetTwin(metaclass=ABCMeta):
@@ -17,7 +18,8 @@ class InvocationTargetTwin(metaclass=ABCMeta):
         self.__invocation_count += 1
         invocation_args = self._get_invocation_args(invocation)
         self.__invocations.append(invocation_args)
-        return dict(value=self.__invocation_handler(*invocation_args))
+        invocation_handler_result = self.__invocation_handler(*invocation_args)
+        return dict(status='succeeded', context=dict(result=invocation_handler_result))
 
     @property
     def invocation_count(self) -> int:

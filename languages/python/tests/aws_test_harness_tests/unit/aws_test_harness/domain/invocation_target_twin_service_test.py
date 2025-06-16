@@ -20,7 +20,7 @@ def test_creates_digital_twin_to_control_test_harness_state_machine() -> None:
     the_input = dict(message='the input')
     invocation = an_invocation_with(target='OrangeAWSTestHarnessStateMachineARN', parameters=dict(input=the_input))
     result = twin_service.generate_result_for_invocation(invocation)
-    assert result == dict(value=dict(output='the input'))
+    assert result == dict(status='succeeded', context=dict(result=dict(output='the input')))
 
 
 def test_associates_each_digital_twin_with_specific_invocation_target() -> None:
@@ -34,7 +34,7 @@ def test_associates_each_digital_twin_with_specific_invocation_target() -> None:
 
     invocation = an_invocation_with(target='BlueAWSTestHarnessStateMachineARN')
     result = twin_service.generate_result_for_invocation(invocation)
-    assert result == dict(value=dict(output='blue output'))
+    assert result == dict(status='succeeded', context=dict(result=dict(output='blue output')))
 
 
 def test_raises_exception_when_asked_to_generate_result_for_unknown_invocation_target() -> None:

@@ -37,4 +37,4 @@ class ServerlessInvocationPostOffice(InvocationPostOffice):
             return RetrievalAttempt.failed()
 
         item = cast(Dict[str, Any], table_item)
-        return RetrievalAttempt(item['result']['value'])
+        return RetrievalAttempt(item['result'])

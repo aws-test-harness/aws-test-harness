@@ -90,14 +90,17 @@ def test_retrieves_invocation_result_value_from_specified_dynamodb_table(
     invocation_id = str(uuid4())
     random_string = str(uuid4())
 
-    put_invocation_result_dynamodb_record(invocation_id, dict(value=dict(randomString=random_string)),
-                                          invocation_table)
+    put_invocation_result_dynamodb_record(
+        invocation_id,
+        dict(status='succeeded', context=dict(result=dict(randomString=random_string))),
+        invocation_table
+    )
 
     retrieval_attempt = serverless_invocation_post_office.maybe_collect_result(an_invocation_with(
         invocation_id=invocation_id))
 
     assert retrieval_attempt.succeeded is True
-    assert retrieval_attempt.value == dict(randomString=random_string)
+    assert retrieval_attempt.value == dict(status='succeeded', context=dict(result=dict(randomString=random_string)))
 
 
 def test_indicates_retrieval_attempt_failed_when_no_invocation_result_table_record_exists(

@@ -55,7 +55,7 @@ def test_generates_invocation_result_using_provided_execution_handler_and_input(
 
     result = state_machine_twin.get_result_for(invocation)
 
-    assert result == dict(value=dict(receivedMessage='the message'))
+    assert result == dict(status='succeeded', context=dict(result=dict(receivedMessage='the message')))
 
 
 def test_uses_default_invocation_handler_when_none_provided() -> None:
@@ -63,7 +63,7 @@ def test_uses_default_invocation_handler_when_none_provided() -> None:
 
     result = state_machine_twin.get_result_for(any_invocation())
 
-    assert result == dict(value=dict())
+    assert result == dict(status='succeeded', context=dict(dict(result=dict())))
 
 
 def test_supports_updating_execution_handler() -> None:
@@ -77,4 +77,4 @@ def test_supports_updating_execution_handler() -> None:
     ))
 
     result = state_machine_twin.get_result_for(invocation)
-    assert result == dict(value=dict(receivedMessage='THE MESSAGE'))
+    assert result == dict(status='succeeded', context=dict(dict(result=dict(receivedMessage='THE MESSAGE'))))

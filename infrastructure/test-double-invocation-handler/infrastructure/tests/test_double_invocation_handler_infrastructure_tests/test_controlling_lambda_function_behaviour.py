@@ -23,7 +23,7 @@ from test_double_invocation_handler_messaging.test_support.invocation_messaging_
 
 
 def test_handling_invocation(test_configuration: Dict[str, str], logger: Logger, boto_session: Session,
-                                            system_command_executor: SystemCommandExecutor) -> None:
+                             system_command_executor: SystemCommandExecutor) -> None:
     test_stack_name = test_configuration['cfnStackNamePrefix'] + 'test-double-invocation-handler-tests-acceptance'
 
     assets_bucket_stack = TestS3BucketStack(f'{test_stack_name}test-assets-bucket', logger, boto_session)
@@ -107,12 +107,17 @@ def test_handling_invocation(test_configuration: Dict[str, str], logger: Logger,
 
     invocation_message = wait_for_invocation_sqs_message(invocation_id, invocation_queue_url, sqs_client)
 
-    put_invocation_result_dynamodb_record(invocation_id, dict(value=dict(randomString=random_output_string)),
-                                          invocation_table)
+    put_invocation_result_dynamodb_record(
+        invocation_id,
+        dict(status='succeeded', context=dict(result=dict(randomString=random_output_string))),
+        invocation_table
+    )
 
     lambda_invocation_thread.join()
     assert lambda_invocation_thread_exception is None
-    assert lambda_invocation_result_data == dict(invocationResult=dict(value=dict(randomString=random_output_string)))
+    assert lambda_invocation_result_data == dict(
+        invocationResult=dict(status='succeeded', context=dict(result=dict(randomString=random_output_string)))
+    )
 
     assert invocation_message is not None
     assert get_invocation_target_from_sqs_message(invocation_message) == invocation_target
