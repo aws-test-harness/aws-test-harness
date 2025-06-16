@@ -64,3 +64,17 @@ def test_uses_default_invocation_handler_when_none_provided() -> None:
     result = state_machine_twin.get_result_for(any_invocation())
 
     assert result == dict()
+
+
+def test_supports_updating_execution_handler() -> None:
+    state_machine_twin = StateMachineTwin(
+        lambda execution_input: dict(receivedMessage=execution_input['message'])
+    )
+    invocation = an_invocation_with(parameters=dict(input=dict(message='the message')))
+
+    state_machine_twin.handle_executions_using(lambda execution_input: dict(
+        receivedMessage=execution_input['message'].upper()
+    ))
+
+    result = state_machine_twin.get_result_for(invocation)
+    assert result == dict(receivedMessage='THE MESSAGE')

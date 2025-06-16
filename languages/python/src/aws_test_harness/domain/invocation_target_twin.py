@@ -27,6 +27,9 @@ class InvocationTargetTwin(metaclass=ABCMeta):
     def invocations(self) -> List[List[Any]]:
         return deepcopy(self.__invocations)
 
+    def _set_invocation_handler(self, invocation_handler: Callable[..., Any]) -> None:
+        self.__invocation_handler = invocation_handler
+
     @abstractmethod
     def _get_invocation_args(self, invocation: Invocation) -> List[Any]:
         pass
