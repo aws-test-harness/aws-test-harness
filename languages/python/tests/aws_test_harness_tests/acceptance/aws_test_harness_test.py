@@ -98,7 +98,8 @@ def test_controlling_behaviour_of_state_machine_via_digital_twin(
         dict(randomString=orange_random_string)
     )
     assert_describes_successful_execution(orange_execution)
-    orange_state_machine.assert_called_once_with(dict(randomString=orange_random_string))
+    assert orange_state_machine.invocation_count == 1
+    assert orange_state_machine.invocations[0][0] == dict(randomString=orange_random_string)
     assert json.loads(orange_execution['output']) == dict(orangeString=orange_random_string)
 
     blue_random_string = str(uuid4())
@@ -107,7 +108,8 @@ def test_controlling_behaviour_of_state_machine_via_digital_twin(
         dict(randomString=blue_random_string)
     )
     assert_describes_successful_execution(blue_execution)
-    blue_state_machine.assert_called_once_with(dict(randomString=blue_random_string))
+    assert blue_state_machine.invocation_count == 1
+    assert blue_state_machine.invocations[0][0] == dict(randomString=blue_random_string)
     assert json.loads(blue_execution['output']) == dict(blueString=blue_random_string)
 
 
@@ -120,10 +122,10 @@ def test_ignoring_state_machine_invocations_after_being_torn_down(
 
     first_execution_description = step_functions_test_client.execute_state_machine(state_machine_arn, {})
     assert_describes_successful_execution(first_execution_description)
-    call_count_before_teardown = test_double_state_machine.call_count
+    call_count_before_teardown = test_double_state_machine.invocation_count
     assert call_count_before_teardown == 1
 
     test_harness.tear_down()
 
     step_functions_test_client.execute_state_machine(state_machine_arn, {})
-    assert test_double_state_machine.call_count == call_count_before_teardown
+    assert test_double_state_machine.invocation_count == call_count_before_teardown
