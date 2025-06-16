@@ -42,3 +42,19 @@ def assert_describes_successful_execution(execution_description: DescribeExecuti
     failure_cause = execution_description.get('cause')
     assert failure_cause is None, f"State machine execution failed with cause: {failure_cause}"
     assert execution_description['status'] == 'SUCCEEDED'
+
+
+def assert_describes_failed_execution(execution_description: DescribeExecutionOutputTypeDef,
+                                      expected_cause: str, expected_error: str) -> None:
+    assert execution_description['status'] == 'FAILED', \
+        f"State machine execution did not fail, status: '{execution_description['status']}'"
+
+    actual_error = execution_description.get('error')
+    actual_cause = execution_description.get('cause')
+
+    assert actual_error == expected_error, \
+        (f"State machine execution failed with unexpected error: '{actual_error}', expected: '{expected_error}'. "
+         f"Cause was: '{actual_cause}'")
+
+    assert actual_cause == expected_cause, \
+        f"State machine execution failed with unexpected cause: '{actual_cause}', expected: '{expected_cause}'"

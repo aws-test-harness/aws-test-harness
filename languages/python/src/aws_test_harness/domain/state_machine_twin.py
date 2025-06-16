@@ -2,8 +2,9 @@ from typing import Any, Callable, Dict, Optional, List
 
 from aws_test_harness.domain.invocation import Invocation
 from aws_test_harness.domain.invocation_target_twin import InvocationTargetTwin
+from aws_test_harness.domain.state_machine_execution_failure import StateMachineExecutionFailure
 
-type StateMachineExecutionHandler = Callable[[Dict[str, Any]], Dict[str, Any]]
+type StateMachineExecutionHandler = Callable[[Dict[str, Any]], Dict[str, Any] | StateMachineExecutionFailure]
 
 
 class StateMachineTwin(InvocationTargetTwin):

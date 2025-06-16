@@ -32,22 +32,32 @@ class TestDoubleStateMachineResourceFactory:
                 ),
                 Definition=dict(
                     StartAt='GetStateMachineResult',
-                    States=dict(GetStateMachineResult=dict(
-                        Type='Task',
-                        Resource='arn:aws:states:::lambda:invoke',
-                        OutputPath='$.Payload.invocationResult.context.result',
-                        Parameters=dict(
-                            Payload={
-                                'invocationId.$': '$$.Execution.Id',
-                                'invocationTarget.$': '$$.StateMachine.Id',
-                                'invocationParameters': {
-                                    'input.$': '$$.Execution.Input'
+                    States=dict(
+                        GetStateMachineResult=dict(
+                            Type='Task',
+                            Resource='arn:aws:states:::lambda:invoke',
+                            OutputPath='$.Payload.invocationResult',
+                            Parameters=dict(
+                                Payload={
+                                    'invocationId.$': '$$.Execution.Id',
+                                    'invocationTarget.$': '$$.StateMachine.Id',
+                                    'invocationParameters': {
+                                        'input.$': '$$.Execution.Input'
+                                    },
                                 },
-                            },
-                            FunctionName='${InvocationHandlerFunctionName}'
+                                FunctionName='${InvocationHandlerFunctionName}'
+                            ),
+                            Next= 'Choice'
                         ),
-                        End=True
-                    ))
+                        Choice=dict(
+                            Type="Choice",
+                            Choices=[dict(Next="Fail", Variable="$.status", StringEquals="failed")],
+                            Default="ExtractResult"
+                        ),
+                        ExtractResult=dict(Type="Pass", OutputPath="$.context.result", Next="Succeed"),
+                        Succeed=dict(Type="Succeed"),
+                        Fail=dict(Type="Fail", ErrorPath="$.context.error", CausePath="$.context.cause")
+                    )
                 )
             )
         )

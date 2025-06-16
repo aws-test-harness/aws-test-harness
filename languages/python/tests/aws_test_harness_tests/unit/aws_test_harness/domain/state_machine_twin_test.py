@@ -1,3 +1,4 @@
+from aws_test_harness.domain.state_machine_execution_failure import StateMachineExecutionFailure
 from aws_test_harness.domain.state_machine_twin import StateMachineTwin
 from aws_test_harness_tests.support.builders.invocation_builder import any_invocation, an_invocation_with
 
@@ -78,3 +79,13 @@ def test_supports_updating_execution_handler() -> None:
 
     result = state_machine_twin.get_result_for(invocation)
     assert result == dict(status='succeeded', context=dict(dict(result=dict(receivedMessage='THE MESSAGE'))))
+
+
+def test_indicates_failure_result_if_execution_handler_returns_state_machine_execution_failure() -> None:
+    state_machine_twin = StateMachineTwin(
+        lambda _: StateMachineExecutionFailure(error='TheError', cause='the cause of failure')
+    )
+
+    result = state_machine_twin.get_result_for(any_invocation())
+
+    assert result == dict(status='failed', context=dict(error='TheError', cause='the cause of failure'))

@@ -7,7 +7,9 @@ import pytest
 from boto3 import Session
 
 from aws_test_harness import aws_test_harness, TestHarness
-from aws_test_harness_test_support.step_functions_utils import assert_describes_successful_execution
+from aws_test_harness.domain.state_machine_execution_failure import StateMachineExecutionFailure
+from aws_test_harness_test_support.step_functions_utils import assert_describes_successful_execution, \
+    assert_describes_failed_execution
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
 from aws_test_harness_tests.support.step_functions_test_client import StepFunctionsTestClient
@@ -78,7 +80,7 @@ def test_interacting_with_test_s3_bucket(
     assert object_content == s3_test_client.get_object_content(first_s3_bucket_name, object_key)
 
 
-def test_controlling_behaviour_of_state_machine_via_digital_twin(
+def test_using_twin_to_control_state_machine_output(
         test_harness: TestHarness, test_stack: TestCloudFormationStack,
         step_functions_test_client: StepFunctionsTestClient,
 ) -> None:
@@ -111,6 +113,22 @@ def test_controlling_behaviour_of_state_machine_via_digital_twin(
     assert blue_state_machine.invocation_count == 1
     assert blue_state_machine.invocations[0][0] == dict(randomString=blue_random_string)
     assert json.loads(blue_execution['output']) == dict(blueString=blue_random_string)
+
+
+def test_using_twin_to_drive_state_machine_error(
+        test_harness: TestHarness, test_stack: TestCloudFormationStack,
+        step_functions_test_client: StepFunctionsTestClient,
+) -> None:
+    test_harness.twin_state_machine(
+        'Orange',
+        lambda _: StateMachineExecutionFailure(cause='the expected cause', error='TheExpectedError')
+    )
+
+    execution = step_functions_test_client.execute_state_machine(
+        test_stack.get_stack_resource_physical_id('OrangeAWSTestHarnessStateMachine'),
+        dict()
+    )
+    assert_describes_failed_execution(execution, 'the expected cause', 'TheExpectedError')
 
 
 def test_ignoring_state_machine_invocations_after_being_torn_down(
