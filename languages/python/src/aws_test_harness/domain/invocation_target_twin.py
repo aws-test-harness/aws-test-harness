@@ -17,7 +17,7 @@ class InvocationTargetTwin(metaclass=ABCMeta):
         self.__invocation_count += 1
         invocation_args = self._get_invocation_args(invocation)
         self.__invocations.append(invocation_args)
-        return self.__invocation_handler(*invocation_args)
+        return dict(value=self.__invocation_handler(*invocation_args))
 
     @property
     def invocation_count(self) -> int:

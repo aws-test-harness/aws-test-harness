@@ -6,19 +6,21 @@ from aws_test_harness_test_support.mocking import mock_class, verify, when_calli
 
 def test_posts_generated_result_for_invocation_collected_from_post_office() -> None:
     invocation_post_office = mock_class(InvocationPostOffice)
-    the_invocation = an_invocation_with(invocation_id='the id')
+    the_invocation = an_invocation_with(invocation_id='the invocation id')
     when_calling(invocation_post_office.maybe_collect_invocation).always_return(the_invocation)
 
     invocation_handler = InvocationHandler(
         invocation_post_office,
-        get_invocation_result=lambda invocation: "the result" if invocation == the_invocation else None
+        get_invocation_result=(
+            lambda invocation: dict(value="the invocation result") if invocation == the_invocation else None
+        )
     )
 
     invocation_handler.handle_pending_invocation()
 
     verify(invocation_post_office.post_result).was_called_once_with(
-        "the id",
-        dict(value="the result")
+        "the invocation id",
+        dict(value="the invocation result")
     )
 
 
@@ -28,7 +30,7 @@ def test_does_not_post_a_result_if_no_invocation_collected() -> None:
 
     invocation_handler = InvocationHandler(
         invocation_post_office,
-        get_invocation_result=lambda _: "any result"
+        get_invocation_result=lambda _: dict(value="any invocation result")
     )
 
     invocation_handler.handle_pending_invocation()
