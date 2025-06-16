@@ -111,10 +111,10 @@ def test_harness(logger: Logger, aws_profile: str, test_cloudformation_stack: Te
     test_harness.tear_down()
 
 
-def test_executing_a_step_function_that_interacts_with_test_doubles(test_harness: TestHarness) -> None:
+def test_executing_a_step_function_that_interacts_with_test_harness(test_harness: TestHarness) -> None:
     s3_object_key = str(uuid4())
     s3_object_content = f'Random content: {uuid4()}'
-    messages_bucket = test_harness.twin_s3_bucket('Messages')
+    messages_bucket = test_harness.test_s3_bucket('Messages')
     messages_bucket.put_object(Key=s3_object_key, Body=s3_object_content)
 
     random_string = str(uuid4())

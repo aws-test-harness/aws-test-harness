@@ -39,14 +39,14 @@ def test_harness(aws_resource_registry: AwsResourceRegistry, invocation_post_off
                        aws_resource_factory)
 
 
-def test_provides_object_to_interact_with_test_double_s3_bucket(test_harness: TestHarness,
+def test_provides_object_to_interact_with_test_s3_bucket(test_harness: TestHarness,
                                                                 aws_resource_factory: AwsResourceFactory) -> None:
     the_s3_bucket = mock_class(S3Bucket)
     when_calling(aws_resource_factory.get_s3_bucket).invoke(
         lambda name: the_s3_bucket if name == 'MyBucketAWSTestHarnessS3Bucket' else None
     )
 
-    provided_s3_bucket = test_harness.twin_s3_bucket('MyBucket')
+    provided_s3_bucket = test_harness.test_s3_bucket('MyBucket')
 
     assert provided_s3_bucket == the_s3_bucket
 

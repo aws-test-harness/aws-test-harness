@@ -65,10 +65,10 @@ def test_executing_state_machine_specified_by_cfn_resource_logical_id(
     assert execution.output == '3'
 
 
-def test_interacting_with_test_doubles_that_do_not_execute_code(
+def test_interacting_with_test_s3_bucket(
         test_harness: TestHarness, test_stack: TestCloudFormationStack, s3_test_client: S3TestClient
 ) -> None:
-    s3_bucket = test_harness.twin_s3_bucket('Messages')
+    s3_bucket = test_harness.test_s3_bucket('Messages')
 
     object_key = str(uuid4())
     object_content = f'Random content: {uuid4()}'
@@ -78,7 +78,7 @@ def test_interacting_with_test_doubles_that_do_not_execute_code(
     assert object_content == s3_test_client.get_object_content(first_s3_bucket_name, object_key)
 
 
-def test_controlling_behaviour_of_test_doubles_that_execute_code(
+def test_controlling_behaviour_of_state_machine_via_digital_twin(
         test_harness: TestHarness, test_stack: TestCloudFormationStack,
         step_functions_test_client: StepFunctionsTestClient,
 ) -> None:
@@ -111,7 +111,7 @@ def test_controlling_behaviour_of_test_doubles_that_execute_code(
     assert json.loads(blue_execution['output']) == dict(blueString=blue_random_string)
 
 
-def test_ignoring_test_double_invocations_after_being_torn_down(
+def test_ignoring_state_machine_invocations_after_being_torn_down(
         test_harness: TestHarness, test_stack: TestCloudFormationStack,
         step_functions_test_client: StepFunctionsTestClient) -> None:
     test_double_state_machine = test_harness.twin_state_machine('Orange')

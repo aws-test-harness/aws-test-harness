@@ -29,8 +29,8 @@ class TestHarness:
     def state_machine(self, cfn_logical_resource_id: str) -> StateMachine:
         return self.__aws_resource_factory.get_state_machine(cfn_logical_resource_id)
 
-    def twin_s3_bucket(self, test_double_name: str) -> S3Bucket:
-        return self.__aws_resource_factory.get_s3_bucket(f'{test_double_name}AWSTestHarnessS3Bucket')
+    def test_s3_bucket(self, test_resource_name: str) -> S3Bucket:
+        return self.__aws_resource_factory.get_s3_bucket(f'{test_resource_name}AWSTestHarnessS3Bucket')
 
     def twin_state_machine(self, state_machine_name: str,
                            execution_handler: Optional[StateMachineExecutionHandler] = None) -> StateMachineTwin:
