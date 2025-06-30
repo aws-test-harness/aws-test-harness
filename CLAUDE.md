@@ -104,3 +104,7 @@ This framework tests real AWS integrations using actual AWS resources configured
 - Work in small steps, starting from a failing test
 - Implement the simplest code possible to make the test pass
 - Work from the outer layers of the code downwards
+
+## Deployment Notes
+
+- To deploy the sandbox, you need to prefix the make command with an AWS_PROFILE environment variable and you need to provide a STACK_TEMPLATES_S3_BUCKET_NAME parameter
