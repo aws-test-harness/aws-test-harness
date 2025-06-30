@@ -22,6 +22,12 @@ def reset_database(test_double_driver: AWSTestDoubleDriver):
 @pytest.fixture(scope="function", autouse=True)
 def setup_default_mock_behaviour(mocking_engine: AWSResourceMockingEngine,
                                  test_double_driver: AWSTestDoubleDriver):
+    # Mock ECS task as the first state in our step function
+    mocking_engine.mock_an_ecs_task(
+        'data-processor',
+        lambda task_input: {'result': 'processed', 'status': 'success'}
+    )
+
     mocking_engine.mock_a_lambda_function(
         'InputTransformer',
         lambda event: {'number': event['data']['number']}
@@ -130,6 +136,10 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
     record_key_from_result = final_state_output_data['double']['result']['recordKey']
     item = second_table.get_item(dict(ID=record_key_from_result))
     assert item['message'] == 'Number passed to doubler function: 2'
+
+    # Assert ECS task was called
+    ecs_task = mocking_engine.get_mock_ecs_task('data-processor')
+    ecs_task.assert_called_once()
 
     input_transformer_function.assert_called_with({'data': {'number': 1}})
     doubler_function.assert_called_with({'number': 2})

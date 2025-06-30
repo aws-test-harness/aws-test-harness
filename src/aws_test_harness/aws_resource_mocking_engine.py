@@ -64,6 +64,22 @@ class AWSResourceMockingEngine:
 
         return mock
 
+    def mock_an_ecs_task(self, task_family: str,
+                         task_handler: Callable[[Dict[str, any]], Dict[str, any]]) -> Mock:
+        def ecs_task_handler(_: Dict[str, any]) -> Dict[str, any]:
+            pass
+
+        mock: Mock = create_autospec(ecs_task_handler, name=task_family)
+        mock.side_effect = task_handler
+
+        # TODO: Register with message listener for ECS task events
+        # self.__message_listener.register_ecs_task_handler(task_family, mock)
+
+        mock_id = self.__get_ecs_task_mock_id(task_family)
+        self.__mock_event_handlers[mock_id] = mock
+
+        return mock
+
     def __set_mocking_session_id(self) -> str:
         self.__mocking_session_id = str(uuid4())
         self.__test_double_driver.test_context_bucket.put_object('test-id', self.__mocking_session_id)
@@ -77,6 +93,10 @@ class AWSResourceMockingEngine:
         mock_id = self.__get_state_machine_mock_id(state_machine_id)
         return self.__mock_event_handlers[mock_id]
 
+    def get_mock_ecs_task(self, task_family: str) -> Mock:
+        mock_id = self.__get_ecs_task_mock_id(task_family)
+        return self.__mock_event_handlers[mock_id]
+
     @staticmethod
     def __get_lambda_function_mock_id(state_machine_id: str) -> str:
         return f'LambdaFunction::{state_machine_id}'
@@ -84,3 +104,7 @@ class AWSResourceMockingEngine:
     @staticmethod
     def __get_state_machine_mock_id(state_machine_id: str) -> str:
         return f'StateMachine::{state_machine_id}'
+
+    @staticmethod
+    def __get_ecs_task_mock_id(task_family: str) -> str:
+        return f'ECSTask::{task_family}'

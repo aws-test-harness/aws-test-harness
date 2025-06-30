@@ -28,11 +28,24 @@ uv run --directory example pytest tests                    # Run tests directly
 uv run --directory example pytest tests/test_specific.py   # Run specific test file
 ```
 
+**Note**: AWS_PROFILE is not needed when running tests - the tests use configured credentials from the environment.
+
 ### Deployment
 ```bash
 make deploy-example         # Deploy example application using SAM
 make deploy-infrastructure  # Deploy test harness infrastructure
 ```
+
+### Fast State Machine Updates
+For faster iteration when only changing state machine ASL definitions:
+```bash
+AWS_PROFILE=<profile> ./tools/update-state-machine.sh \
+  --cfn-stack <stack-name> \
+  --cfn-resource ExampleStateMachine/StateMachine \
+  --definition example/example-state-machine/statemachine.asl.yaml
+```
+This bypasses CloudFormation deployment and directly updates the Step Functions definition.
+**Note**: Stack name is available in `example/config.json` under `sandboxStackName`.
 
 ## Architecture Overview
 
@@ -102,6 +115,9 @@ This framework tests real AWS integrations using actual AWS resources configured
 ## Development Approach
 
 - Work in small steps, starting from a failing test
+- **NEVER write a single line of production code without a failing test first**
+- **ALWAYS run the test after each change to see the actual failure**
+- **DO NOT skip ahead or assume what the next failure will be**
 - Implement the simplest code possible to make the test pass
 - Work from the outer layers of the code downwards
 

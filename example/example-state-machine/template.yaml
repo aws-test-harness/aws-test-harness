@@ -67,6 +67,7 @@ Resources:
                 - events:DescribeRule
               Resource:
                 - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
+                - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForECSTaskRule
 Outputs:
   StateMachineArn:
     Value: !Ref StateMachine
