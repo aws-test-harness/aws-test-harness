@@ -105,6 +105,13 @@ This framework tests real AWS integrations using actual AWS resources configured
 - Implement the simplest code possible to make the test pass
 - Work from the outer layers of the code downwards
 
+## Feature Planning
+
+- Feature plans are stored in the `features/` directory
+- Each feature has its own markdown file with detailed implementation plans
+- Plans are marked as ROUGH and require step-by-step confirmation before implementation
+- Always check for existing feature plans before starting new work
+
 ## Deployment Notes
 
-- To deploy the sandbox, you need to prefix the make command with an AWS_PROFILE environment variable and you need to provide a STACK_TEMPLATES_S3_BUCKET_NAME parameter
+- To deploy the sandbox, you need to prefix the make command with an AWS_PROFILE environment variable and you need to provide a STACK_TEMPLATES_S3_BUCKET_NAME parameter. Use information from CLAUDE.local.md to determine correct values.
