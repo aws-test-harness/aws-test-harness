@@ -31,6 +31,36 @@ def handler(event, _):
             task_def_logical_id = f'{task_family}TaskDefinition'
             new_resources[task_def_logical_id] = create_minimal_ecs_task_definition(task_family)
             new_outputs[f'{task_family}TaskDefinitionArn'] = dict(Value={"Ref": task_def_logical_id})
+    
+    # Create ECS cluster and execution role if any task families are defined
+    if ecs_task_families:
+        new_resources['ECSTaskExecutionRole'] = dict(
+            Type='AWS::IAM::Role',
+            Properties=dict(
+                AssumeRolePolicyDocument=dict(
+                    Version="2012-10-17",
+                    Statement=[
+                        dict(
+                            Effect="Allow",
+                            Principal=dict(Service="ecs-tasks.amazonaws.com"),
+                            Action="sts:AssumeRole"
+                        )
+                    ]
+                ),
+                ManagedPolicyArns=[
+                    "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+                ]
+            )
+        )
+        new_resources['ECSCluster'] = dict(
+            Type='AWS::ECS::Cluster',
+            Properties=dict(
+                CapacityProviders=['FARGATE']
+            )
+        )
+        new_outputs['ECSClusterArn'] = dict(
+            Value={"Fn::GetAtt": ["ECSCluster", "Arn"]}
+        )
 
     updated_fragment = deepcopy(original_fragment)
 
@@ -125,6 +155,7 @@ def create_minimal_ecs_task_definition(task_family):
             NetworkMode='awsvpc',
             Cpu='256',
             Memory='512',
+            ExecutionRoleArn={"Fn::GetAtt": ["ECSTaskExecutionRole", "Arn"]},
             ContainerDefinitions=[
                 dict(
                     Name=task_family,
