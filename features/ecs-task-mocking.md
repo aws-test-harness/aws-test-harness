@@ -24,7 +24,7 @@ Key parameters: Cluster, TaskDefinition, ContainerOverrides, LaunchType, Network
 
 ### Core Components
 - **Test Double ECS Tasks** - Containerized test doubles replacing real ECS tasks
-- **Container Image** - Generic test double container following Lambda pattern
+- **Lightweight Container** - Use public `python:3.11-slim` image with S3 code fetching
 - **Message Flow** - Same SQS/DynamoDB pattern as existing mocks
 - **ECS Infrastructure** - Cluster, task definitions, IAM roles
 
@@ -46,9 +46,11 @@ mock_handler = mocking_engine.mock_an_ecs_task(
 - Add ECS Service definitions for test doubles
 - Add IAM roles for ECS task execution and Step Functions integration
 
-**1.2 Container Image for Test Doubles** (`infrastructure/templates/test-doubles/ecs-container/`)
-- Create Dockerfile for generic test double container
-- Python application that follows Lambda test double pattern:
+**1.2 ECS Task Definition Configuration**
+- Use lightweight public image: `python:3.11-slim`
+- Configure task to fetch Python code from S3 at runtime
+- Container command: `python -c "import urllib.request; exec(urllib.request.urlopen('s3://bucket/path/ecs_test_double.py').read())"`
+- Python code in S3 follows Lambda test double pattern:
   - Retrieve session ID from S3 TestContextBucket
   - Send task invocation message to SQS EventsQueue
   - Poll DynamoDB ResultsTable for mock handler response
@@ -114,7 +116,7 @@ mock_handler = mocking_engine.mock_an_ecs_task(
 
 1. **Start with failing acceptance test** - Create test that tries to mock an ECS task
 2. **Implement minimal CloudFormation infrastructure** - Just enough to deploy ECS cluster
-3. **Create basic container image** - Simple container that can receive parameters
+3. **Create S3-based test double script** - Python script that containers fetch and execute
 4. **Add ECS mock registration to AWSResourceMockingEngine** - Minimal implementation
 5. **Implement message handling for ECS tasks** - Extend MessageListener
 6. **Add sync pattern support** - Most common use case first
@@ -125,6 +127,8 @@ mock_handler = mocking_engine.mock_an_ecs_task(
 
 - Follow existing test double patterns for consistency
 - Use containerized approach for ECS task simulation
+- **Use lightweight public Python image** - Avoid custom Docker builds
+- **Fetch test double code from S3 at runtime** - Dynamic code execution
 - Maintain message-based async communication
 - Support all Step Functions ECS integration patterns
 - Preserve session isolation and parallel test execution
@@ -134,7 +138,8 @@ mock_handler = mocking_engine.mock_an_ecs_task(
 - Container startup time may affect test performance
 - ECS infrastructure costs during testing
 - Complexity of supporting all RunTask parameter combinations
-- Need for container registry for test double images
+- S3 network latency for code fetching
+- Need proper IAM permissions for S3 access from containers
 
 ---
 
