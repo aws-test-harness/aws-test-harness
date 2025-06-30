@@ -33,6 +33,7 @@ Resources:
         LambdaFunctionNames: InputTransformer, Doubler
         StateMachineNames: Multiplier
         S3BucketNames: First, Second
+        ECSTaskFamilies: DataProcessor
       TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/aws-test-harness-templates/test-doubles.yaml
   ExampleStateMachine:
     Type: AWS::Serverless::Application
@@ -46,3 +47,4 @@ Resources:
         FirstBucketName: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstS3BucketName
         SecondBucketName: !GetAtt AWSTestHarnessTestDoubles.Outputs.SecondS3BucketName
         MultiplierStateMachineArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.MultiplierStateMachineArn
+        DataProcessorTaskDefinitionArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.DataProcessorTaskDefinitionArn

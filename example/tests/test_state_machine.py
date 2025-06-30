@@ -24,7 +24,7 @@ def setup_default_mock_behaviour(mocking_engine: AWSResourceMockingEngine,
                                  test_double_driver: AWSTestDoubleDriver):
     # Mock ECS task as the first state in our step function
     mocking_engine.mock_an_ecs_task(
-        'data-processor',
+        'DataProcessor',
         lambda task_input: {'result': 'processed', 'status': 'success'}
     )
 
@@ -138,7 +138,7 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
     assert item['message'] == 'Number passed to doubler function: 2'
 
     # Assert ECS task was called
-    ecs_task = mocking_engine.get_mock_ecs_task('data-processor')
+    ecs_task = mocking_engine.get_mock_ecs_task('DataProcessor')
     ecs_task.assert_called_once()
 
     input_transformer_function.assert_called_with({'data': {'number': 1}})

@@ -10,6 +10,7 @@ def handler(event, _):
     template_parameters = event['templateParameterValues']
 
     dynamodb_tables_config = json.loads(template_parameters['DynamoDBTables'])
+    ecs_task_families = template_parameters.get('ECSTaskFamilies', [])
 
     new_resources = {}
     new_outputs = {}
@@ -22,6 +23,14 @@ def handler(event, _):
         new_outputs[f'{table_name}DynamoDBTableName'] = dict(
             Value={"Ref": f"{table_name}Table"}
         )
+
+    # Create minimal ECS task definitions
+    for task_family in ecs_task_families:
+        task_family = task_family.strip()
+        if task_family:
+            task_def_logical_id = f'{task_family}TaskDefinition'
+            new_resources[task_def_logical_id] = create_minimal_ecs_task_definition(task_family)
+            new_outputs[f'{task_family}TaskDefinitionArn'] = dict(Value={"Ref": task_def_logical_id})
 
     updated_fragment = deepcopy(original_fragment)
 
@@ -104,6 +113,25 @@ def create_table_resource_definition(table_config):
             TimeToLiveSpecification=dict(
                 AttributeName='TTL', Enabled=True
             )
+        )
+    )
+
+
+def create_minimal_ecs_task_definition(task_family):
+    return dict(
+        Type='AWS::ECS::TaskDefinition',
+        Properties=dict(
+            RequiresCompatibilities=['FARGATE'],
+            NetworkMode='awsvpc',
+            Cpu='256',
+            Memory='512',
+            ContainerDefinitions=[
+                dict(
+                    Name=task_family,
+                    Image='public.ecr.aws/lambda/python:3.11',
+                    Essential=True
+                )
+            ]
         )
     )
 

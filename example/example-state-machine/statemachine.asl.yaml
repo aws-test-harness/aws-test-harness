@@ -4,25 +4,7 @@ States:
     Type: Task
     Resource: arn:aws:states:::ecs:runTask.sync
     Parameters:
-      Cluster: test-harness-cluster
-      TaskDefinition: data-processor
-      LaunchType: FARGATE
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          Subnets:
-            - subnet-12345678
-          SecurityGroups:
-            - sg-12345678
-          AssignPublicIp: ENABLED
-      Overrides:
-        ContainerOverrides:
-          - Name: data-processor
-            Environment:
-              - Name: INPUT_DATA
-                Value.$: States.JsonToString($.input.data)
-    ResultPath: "$.processData"
-    ResultSelector:
-      "result.$": "$.Output"
+      TaskDefinition: ${DataProcessorTaskDefinitionArn}
     Next: DynamoDB GetItem
   DynamoDB GetItem:
     Type: Task

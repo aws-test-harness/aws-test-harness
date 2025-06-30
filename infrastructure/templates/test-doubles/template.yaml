@@ -17,6 +17,9 @@ Parameters:
   S3BucketNames:
     Type: CommaDelimitedList
     Default: ""
+  ECSTaskFamilies:
+    Type: CommaDelimitedList
+    Default: ""
 Resources:
   TestDoubleManagerRole:
     Type: AWS::IAM::Role

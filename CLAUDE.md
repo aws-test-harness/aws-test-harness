@@ -103,6 +103,11 @@ The framework supports several sophisticated testing patterns:
 - Session-based testing with automatic cleanup
 - No explicit linting/formatting configuration - follows Python standards
 - **Spike Development**: This is a spike project - drive all changes by adding or extending tests in the acceptance test suite
+- **AWS Security**: Always maintain least privilege principles when configuring AWS resource access and IAM permissions
+
+## Technical Debt
+
+- **ECS IAM PassRole Permissions**: The `iam:PassRole` permission in `example/example-state-machine/template.yaml` currently uses a wildcard resource (`"*"`). This should be restricted to only the specific execution role ARN that ECS tasks need to pass. Consider creating a specific ECS execution role in the test-doubles macro and referencing it explicitly in the permissions.
 
 ## Testing Philosophy
 
@@ -118,8 +123,22 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **NEVER write a single line of production code without a failing test first**
 - **ALWAYS run the test after each change to see the actual failure**
 - **DO NOT skip ahead or assume what the next failure will be**
+- **Make ONLY the absolute minimum change required to get the test passing**
+- **Do NOT add additional concerns, infrastructure, or complexity beyond what's needed for the current failure**
+- **Add additional features/infrastructure later when tests require them**
 - Implement the simplest code possible to make the test pass
 - Work from the outer layers of the code downwards
+
+### Debugging and Problem Solving
+- **When deployments fail, read CloudWatch logs instead of guessing** - especially for Lambda functions and macros
+- **Use CloudFormation stack events to debug nested stack failures** - check both parent and child stack events
+- **Follow existing architectural patterns** - use macros where other resources use macros, not CloudFormation ForEach
+- **Use fast iteration tools** - like `tools/update-state-machine.sh` for ASL changes instead of full deployments
+
+### Naming and Standards
+- **Follow PascalCase for resource names** - consistent with existing resources like "InputTransformer", "Doubler"
+- **CloudFormation logical resource IDs must be alphanumeric** - no hyphens or special characters
+- **Parameter types matter** - CommaDelimitedList parameters arrive as arrays, not strings needing splitting
 
 ## Feature Planning
 
