@@ -1,0 +1,99 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+AWS Test Harness is a Python framework for integration testing of AWS serverless applications, particularly Step Functions state machines and Lambda functions. It provides sophisticated mocking capabilities using real AWS resources as test doubles.
+
+## Common Commands
+
+### Setup and Development
+```bash
+make setup                    # Initialize dev environment with UV
+uv sync                      # Sync dependencies
+```
+
+### Building
+```bash
+make build                   # Build all components (infrastructure, tools, library)
+make build-library          # Build Python package only
+make build-infrastructure   # Build CloudFormation templates and macros
+```
+
+### Testing
+```bash
+make test-example           # Run all example tests
+uv run --directory example pytest tests                    # Run tests directly
+uv run --directory example pytest tests/test_specific.py   # Run specific test file
+```
+
+### Deployment
+```bash
+make deploy-example         # Deploy example application using SAM
+make deploy-infrastructure  # Deploy test harness infrastructure
+```
+
+## Architecture Overview
+
+### Core Components
+
+**TestResourcesFactory** (`src/aws_test_harness/test_resources_factory.py`)
+- Main entry point for creating test resources
+- Manages test sessions and resource lifecycle
+
+**AWSResourceMockingEngine** (`src/aws_test_harness/aws_resource_mocking_engine.py`)
+- Provides mocking capabilities for AWS services
+- Uses SQS queues and DynamoDB for message-based mocking
+
+**StateMachine** (`src/aws_test_harness/state_machine.py`)
+- Wrapper for AWS Step Functions with testing capabilities
+- Supports execution tracking and result verification
+
+**AWSTestDoubleDriver** (`src/aws_test_harness/aws_test_double_driver.py`)
+- Manages test doubles for AWS resources (Lambda, S3, DynamoDB)
+- Configures mock behavior and captures invocations
+
+### Infrastructure Components
+
+**CloudFormation Macros** (`infrastructure/macros/`)
+- Dynamic template generation for test infrastructure
+- Automatically provisions necessary AWS resources based on test requirements
+
+**Template System** (`infrastructure/templates/`)
+- `test-doubles/`: Creates mock AWS services infrastructure
+- `tester-role/`: IAM roles and permissions for testing
+
+### Testing Patterns
+
+The framework supports several sophisticated testing patterns:
+
+1. **Test Doubles**: Mock Lambda functions with configurable behavior
+2. **State Machine Testing**: Execute and verify Step Functions workflows
+3. **Message-Based Mocking**: SQS/DynamoDB-driven mock interactions
+4. **Session Isolation**: Unique session IDs prevent test interference
+
+## Project Structure
+
+- `src/aws_test_harness/` - Core Python library
+- `infrastructure/` - CloudFormation templates and macros
+- `example/` - Complete working example with Lambda functions and tests
+- `tools/` - Build and deployment utilities
+- `scripts/` - Build automation scripts
+
+## Development Notes
+
+- Uses UV package manager (faster than pip/conda)
+- Requires Python 3.11+
+- Heavy AWS integration requiring proper AWS credentials
+- CloudFormation-based infrastructure deployment
+- Session-based testing with automatic cleanup
+- No explicit linting/formatting configuration - follows Python standards
+
+## Testing Philosophy
+
+This framework tests real AWS integrations using actual AWS resources configured as test doubles, rather than local mocks. Tests provision temporary AWS infrastructure, execute workflows, and verify behavior through message queues and result stores.
+
+## Commit Guidelines
+
+- Commit messages should not contain Claude as co-author or reference that claude was used
