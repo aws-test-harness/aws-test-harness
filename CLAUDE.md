@@ -116,6 +116,12 @@ This framework tests real AWS integrations using actual AWS resources configured
 ## Commit Guidelines
 
 - Commit messages should not contain Claude as co-author or reference that claude was used
+- **CRITICAL**: Never include sensitive information in commits, including:
+  - AWS resource names (bucket names, VPC IDs, subnet IDs, etc.)
+  - Account IDs, ARNs, or region-specific identifiers
+  - Profile names or any deployment-specific configuration
+  - Use placeholders like `<bucket-name>`, `<vpc-id>`, etc. in documentation
+  - Always review diffs carefully before committing to catch sensitive data
 
 ## Development Approach
 
