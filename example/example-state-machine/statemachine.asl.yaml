@@ -4,7 +4,14 @@ States:
     Type: Task
     Resource: arn:aws:states:::ecs:runTask.sync
     Parameters:
+      Cluster: ${ECSClusterArn}
       TaskDefinition: ${DataProcessorTaskDefinitionArn}
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - ${SubnetIds}
+          SecurityGroups:
+            - ${SecurityGroupIds}
     Next: DynamoDB GetItem
   DynamoDB GetItem:
     Type: Task

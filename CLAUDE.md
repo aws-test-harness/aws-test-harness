@@ -150,3 +150,37 @@ This framework tests real AWS integrations using actual AWS resources configured
 ## Deployment Notes
 
 - To deploy the sandbox, you need to prefix the make command with an AWS_PROFILE environment variable and you need to provide a STACK_TEMPLATES_S3_BUCKET_NAME parameter. Use information from CLAUDE.local.md to determine correct values.
+
+## Current Work - ECS Task Integration
+
+**Status**: In progress - VPC parameterization complete, but ECS execution role needed
+
+**Recent Progress**:
+- ✅ Added ECS task mocking support to test-doubles macro
+- ✅ Implemented VPC parameterization with config.json integration  
+- ✅ Updated Makefile to extract all deployment config from example/config.json
+- ✅ Added NetworkConfiguration for ECS tasks in ASL
+- ⚠️ Added ECS execution role to macro but need to deploy it
+
+**Immediate Next Steps**:
+1. **Deploy updated macro**: `STACK_TEMPLATES_S3_BUCKET_NAME=<bucket-name> make deploy-infrastructure`
+   - This deploys the macro with the new ECS execution role (test_doubles.py:37-54)
+2. **Redeploy sandbox**: `make deploy-example-sandbox` 
+   - Picks up the new ECS execution role and VPC configuration
+3. **Test ECS integration**: `uv run --directory example pytest tests/test_state_machine.py::test_state_machine_transforms_input -v`
+   - Should pass once execution role is available
+
+**Technical Issue**: 
+ECS Fargate tasks were failing with "No Container Instances were found in your cluster" because they need an execution role. Added `ECSTaskExecutionRole` to the macro in test_doubles.py but haven't deployed it yet.
+
+**Files Modified**:
+- `infrastructure/macros/src/test_doubles.py` - Added ECS execution role and updated task definition
+- `example/config.json` - Added VPC parameters and S3 bucket name
+- `example/example-state-machine/statemachine.asl.yaml` - Added NetworkConfiguration  
+- `Makefile` - Updated deploy-example-sandbox to use config.json values
+- All templates updated to pass VPC parameters through the chain
+
+**VPC Configuration**: Now fully parameterized via example/config.json with automatic extraction in Makefile.
+
+**Open Questions**:
+- **ECS Cluster Ownership**: Should library users supply their own ECS cluster ARN rather than the test harness creating one for them? Currently we auto-create a minimal Fargate cluster, but users might want to use existing clusters with specific configurations, capacity providers, or cost optimization settings. Consider adding an optional `ECSClusterArn` parameter alongside the current auto-creation approach.

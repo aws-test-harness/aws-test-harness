@@ -15,6 +15,14 @@ Parameters:
     Type: String
   DataProcessorTaskDefinitionArn:
     Type: String
+  ECSClusterArn:
+    Type: String
+  VpcId:
+    Type: String
+  SubnetIds:
+    Type: String
+  SecurityGroupIds:
+    Type: String
   OutOfBandDeploymentSupport:
     Type: String
     Default: "false"
@@ -35,6 +43,10 @@ Resources:
         SecondBucketName: !Ref SecondBucketName
         MultiplierStateMachineArn: !Ref MultiplierStateMachineArn
         DataProcessorTaskDefinitionArn: !Ref DataProcessorTaskDefinitionArn
+        ECSClusterArn: !Ref ECSClusterArn
+        VpcId: !Ref VpcId
+        SubnetIds: !Ref SubnetIds
+        SecurityGroupIds: !Ref SecurityGroupIds
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref InputTransformerFunctionName

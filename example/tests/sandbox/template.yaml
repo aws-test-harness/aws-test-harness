@@ -6,6 +6,15 @@ Parameters:
   StackTemplatesS3BucketName:
     Type: String
     Description: The name of the S3 bucket where the stack templates are stored
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID for ECS tasks
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnet IDs for ECS tasks (comma-separated)
+  SecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+    Description: Security Group IDs for ECS tasks (comma-separated)
 Resources:
   AWSTestHarnessTesterRole:
     Type: AWS::CloudFormation::Stack
@@ -48,3 +57,7 @@ Resources:
         SecondBucketName: !GetAtt AWSTestHarnessTestDoubles.Outputs.SecondS3BucketName
         MultiplierStateMachineArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.MultiplierStateMachineArn
         DataProcessorTaskDefinitionArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.DataProcessorTaskDefinitionArn
+        ECSClusterArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.ECSClusterArn
+        VpcId: !Ref VpcId
+        SubnetIds: !Join [",", !Ref SubnetIds]
+        SecurityGroupIds: !Join [",", !Ref SecurityGroupIds]
