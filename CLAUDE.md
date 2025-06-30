@@ -89,6 +89,7 @@ The framework supports several sophisticated testing patterns:
 - CloudFormation-based infrastructure deployment
 - Session-based testing with automatic cleanup
 - No explicit linting/formatting configuration - follows Python standards
+- **Spike Development**: This is a spike project - drive all changes by adding or extending tests in the acceptance test suite
 
 ## Testing Philosophy
 
@@ -97,3 +98,9 @@ This framework tests real AWS integrations using actual AWS resources configured
 ## Commit Guidelines
 
 - Commit messages should not contain Claude as co-author or reference that claude was used
+
+## Development Approach
+
+- Work in small steps, starting from a failing test
+- Implement the simplest code possible to make the test pass
+- Work from the outer layers of the code downwards
