@@ -55,7 +55,13 @@ def handler(event, _):
         new_resources['ECSCluster'] = dict(
             Type='AWS::ECS::Cluster',
             Properties=dict(
-                CapacityProviders=['FARGATE']
+                CapacityProviders=['FARGATE'],
+                DefaultCapacityProviderStrategy=[
+                    dict(
+                        CapacityProvider='FARGATE',
+                        Weight=1
+                    )
+                ]
             )
         )
         new_outputs['ECSClusterArn'] = dict(
@@ -159,8 +165,12 @@ def create_minimal_ecs_task_definition(task_family):
             ContainerDefinitions=[
                 dict(
                     Name=task_family,
-                    Image='public.ecr.aws/lambda/python:3.11',
-                    Essential=True
+                    Image='python:3.11-slim',
+                    Essential=True,
+                    Command=[
+                        'python', '-c',
+                        'import json; print(json.dumps({"status": "success", "result": "task_completed", "message": "ECS task mock executed successfully"}))'
+                    ]
                 )
             ]
         )

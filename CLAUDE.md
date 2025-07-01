@@ -34,6 +34,22 @@ uv run --directory example pytest tests/test_specific.py   # Run specific test f
 ```bash
 make deploy-example         # Deploy example application using SAM
 make deploy-infrastructure  # Deploy test harness infrastructure
+make deploy-example-sandbox # Deploy test sandbox with config from example/config.json
+```
+
+### AWS Resource Inspection
+```bash
+# Get nested stack ARN from parent stack
+aws cloudformation describe-stack-resources --stack-name <parent-stack> --query "StackResources[?LogicalResourceId=='<logical-id>'].PhysicalResourceId" --output text
+
+# Get specific resource ARNs from nested stack
+aws cloudformation describe-stack-resources --stack-name <nested-stack-arn> --query "StackResources[?ResourceType=='<aws-resource-type>'].PhysicalResourceId"
+
+# Inspect Step Functions execution history
+aws stepfunctions get-execution-history --execution-arn <execution-arn> --max-results 10
+
+# Check ECS task status
+aws ecs describe-tasks --cluster <cluster-name> --tasks <task-arn>
 ```
 
 ### Fast State Machine Updates
@@ -109,6 +125,52 @@ The framework supports several sophisticated testing patterns:
 
 - **ECS IAM PassRole Permissions**: The `iam:PassRole` permission in `example/example-state-machine/template.yaml` currently uses a wildcard resource (`"*"`). This should be restricted to only the specific execution role ARN that ECS tasks need to pass. Consider creating a specific ECS execution role in the test-doubles macro and referencing it explicitly in the permissions.
 
+## ECS Integration Patterns
+
+**Key Implementation Insights:**
+- **ECS Execution Role Required**: Fargate tasks must have `ExecutionRoleArn` with `AmazonECSTaskExecutionRolePolicy` managed policy
+- **Default Capacity Provider Strategy Essential**: Must set `DefaultCapacityProviderStrategy` on cluster, not just `CapacityProviders` 
+- **Lightweight Base Images**: Use `python:3.11-slim` instead of Lambda images for containerized tasks
+- **VPC Configuration**: ECS tasks in `awsvpc` mode require NetworkConfiguration with subnets and security groups
+- **Container Commands**: Tasks need explicit commands since most base images don't have default entrypoints
+- **Structured Output**: Container stdout should output JSON for Step Functions integration
+
+**ECS Task Definition Pattern:**
+```python
+# Minimal Fargate-compatible task definition
+{
+    'Type': 'AWS::ECS::TaskDefinition',
+    'Properties': {
+        'RequiresCompatibilities': ['FARGATE'],
+        'NetworkMode': 'awsvpc',
+        'Cpu': '256',
+        'Memory': '512', 
+        'ExecutionRoleArn': {'Fn::GetAtt': ['ECSTaskExecutionRole', 'Arn']},
+        'ContainerDefinitions': [{
+            'Name': task_family,
+            'Image': 'python:3.11-slim',
+            'Essential': True,
+            'Command': ['python', '-c', 'import json; print(json.dumps({"status": "success"}))']
+        }]
+    }
+}
+```
+
+**ECS Cluster Pattern:**
+```python
+# Cluster with default Fargate capacity provider
+{
+    'Type': 'AWS::ECS::Cluster',
+    'Properties': {
+        'CapacityProviders': ['FARGATE'],
+        'DefaultCapacityProviderStrategy': [{
+            'CapacityProvider': 'FARGATE',
+            'Weight': 1
+        }]
+    }
+}
+```
+
 ## Testing Philosophy
 
 This framework tests real AWS integrations using actual AWS resources configured as test doubles, rather than local mocks. Tests provision temporary AWS infrastructure, execute workflows, and verify behavior through message queues and result stores.
@@ -140,6 +202,10 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **Use CloudFormation stack events to debug nested stack failures** - check both parent and child stack events
 - **Follow existing architectural patterns** - use macros where other resources use macros, not CloudFormation ForEach
 - **Use fast iteration tools** - like `tools/update-state-machine.sh` for ASL changes instead of full deployments
+- **Use CloudFormation stacks to find AWS resources** - Always use `aws cloudformation describe-stack-resources` to get resource ARNs before inspecting AWS services directly
+- **Inspect actual AWS service state for diagnosis** - Use ECS `describe-tasks`, Step Functions `get-execution-history`, etc. to understand what really happened vs assumptions
+- **Check Step Functions execution history** - Shows exact task progression, timing, and failure details with full AWS API responses
+- **Default capacity provider strategy is critical for ECS** - Must set `DefaultCapacityProviderStrategy` on cluster, not just `CapacityProviders`, to avoid "No Container Instances" errors
 
 ### Naming and Standards
 - **Follow PascalCase for resource names** - consistent with existing resources like "InputTransformer", "Doubler"
@@ -159,22 +225,27 @@ This framework tests real AWS integrations using actual AWS resources configured
 
 ## Current Work - ECS Task Integration
 
-**Status**: In progress - VPC parameterization complete, but ECS execution role needed
+**Status**: ECS infrastructure complete, investigating container exit and output capture
 
 **Recent Progress**:
 - ✅ Added ECS task mocking support to test-doubles macro
 - ✅ Implemented VPC parameterization with config.json integration  
 - ✅ Updated Makefile to extract all deployment config from example/config.json
 - ✅ Added NetworkConfiguration for ECS tasks in ASL
-- ⚠️ Added ECS execution role to macro but need to deploy it
+- ✅ Deployed ECS execution role and fixed Fargate capacity provider strategy
+- ✅ Fixed task definition to use python:3.11-slim with JSON output command
+- ✅ Validated CloudFormation-based AWS resource inspection approach
+
+**Current Investigation**:
+ECS tasks start successfully but Step Functions executions hang. Need to determine:
+1. **Does the container exit after printing output?** Container might stay alive indefinitely
+2. **Does Step Functions capture the printed output?** ECS runTask.sync may not return container stdout
 
 **Immediate Next Steps**:
-1. **Deploy updated macro**: `make deploy-infrastructure`
-   - This deploys the macro with the new ECS execution role (test_doubles.py:37-54)
-2. **Redeploy sandbox**: `make deploy-example-sandbox` 
-   - Picks up the new ECS execution role and VPC configuration
-3. **Test ECS integration**: `uv run --directory example pytest tests/test_state_machine.py::test_state_machine_transforms_input -v`
-   - Should pass once execution role is available
+1. **Check task exit behavior**: Investigate if container terminates after print statement
+2. **Verify output capture**: Determine if Step Functions receives the JSON output from container stdout
+3. **Fix container exit**: Ensure container terminates properly after output
+4. **Test output flow**: Verify JSON flows back to Step Functions execution result
 
 **Technical Issue**: 
 ECS Fargate tasks were failing with "No Container Instances were found in your cluster" because they need an execution role. Added `ECSTaskExecutionRole` to the macro in test_doubles.py but haven't deployed it yet.
