@@ -169,7 +169,7 @@ This framework tests real AWS integrations using actual AWS resources configured
 - ⚠️ Added ECS execution role to macro but need to deploy it
 
 **Immediate Next Steps**:
-1. **Deploy updated macro**: `STACK_TEMPLATES_S3_BUCKET_NAME=<bucket-name> make deploy-infrastructure`
+1. **Deploy updated macro**: `make deploy-infrastructure`
    - This deploys the macro with the new ECS execution role (test_doubles.py:37-54)
 2. **Redeploy sandbox**: `make deploy-example-sandbox` 
    - Picks up the new ECS execution role and VPC configuration

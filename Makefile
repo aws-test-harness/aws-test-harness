@@ -65,15 +65,22 @@ publish-library:
 .PHONY: deploy-infrastructure
 deploy-infrastructure: build-infrastructure
 	tar -xf dist/infrastructure.tar.gz -C dist
-	./dist/infrastructure/install.sh --macros-stack-name aws-test-harness-macros --stack-templates-s3-uri s3://$(STACK_TEMPLATES_S3_BUCKET_NAME)/aws-test-harness-templates --macro-names-prefix MacroNamesPrefix-
+	AWS_PROFILE=$$(jq -r '.awsDeploymentProfile' example/config.json) ./dist/infrastructure/install.sh \
+		--macros-stack-name aws-test-harness-macros \
+		--stack-templates-s3-uri s3://$$(jq -r '.stackTemplatesS3BucketName' example/config.json)/aws-test-harness-templates \
+		--macro-names-prefix MacroNamesPrefix-
 
 .PHONY: deploy-example
 deploy-example:
-	sam deploy --template example/template.yaml --config-file samconfig.toml
+	sam deploy \
+		--profile $$(jq -r '.awsDeploymentProfile' example/config.json) \
+		--template example/template.yaml \
+		--config-file samconfig.toml
 
 .PHONY: deploy-example-sandbox
 deploy-example-sandbox:
-	AWS_PROFILE=$$(jq -r '.awsDeploymentProfile' example/config.json) sam deploy \
+	sam deploy \
+		--profile $$(jq -r '.awsDeploymentProfile' example/config.json) \
 		--template example/tests/sandbox/template.yaml \
 		--config-file samconfig.toml \
 		--parameter-overrides \
