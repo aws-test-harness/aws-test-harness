@@ -200,3 +200,7 @@ Users of the test harness will need to provide:
 1. Review and confirm this plan
 2. Begin with acceptance test creation
 3. Implement incrementally with step-by-step confirmation
+
+## Technical Debt
+
+- **ECS IAM PassRole Permissions**: The `iam:PassRole` permission in `example/example-state-machine/template.yaml` currently uses a wildcard resource (`"*"`). This should be restricted to only the specific execution role ARN that ECS tasks need to pass. Consider creating a specific ECS execution role in the test-doubles macro and referencing it explicitly in the permissions.

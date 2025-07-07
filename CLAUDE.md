@@ -116,61 +116,6 @@ The framework supports several sophisticated testing patterns:
 - CloudFormation-based infrastructure deployment
 - Session-based testing with automatic cleanup
 - No explicit linting/formatting configuration - follows Python standards
-- **Spike Development**: This is a spike project - drive all changes by adding or extending tests in the acceptance test suite
-- **AWS Security**: Always maintain least privilege principles when configuring AWS resource access and IAM permissions
-
-## Technical Debt
-
-- **ECS IAM PassRole Permissions**: The `iam:PassRole` permission in `example/example-state-machine/template.yaml` currently uses a wildcard resource (`"*"`). This should be restricted to only the specific execution role ARN that ECS tasks need to pass. Consider creating a specific ECS execution role in the test-doubles macro and referencing it explicitly in the permissions.
-
-## ECS Integration Patterns
-
-**Key Implementation Insights:**
-- **ECS Execution Role Required**: Fargate tasks must have `ExecutionRoleArn` with `AmazonECSTaskExecutionRolePolicy` managed policy
-- **Default Capacity Provider Strategy Essential**: Must set `DefaultCapacityProviderStrategy` on cluster, not just `CapacityProviders` 
-- **Lightweight Base Images**: Use `python:3.11-slim` instead of Lambda images for containerized tasks
-- **VPC Configuration**: ECS tasks in `awsvpc` mode require NetworkConfiguration with subnets and security groups
-- **Public IP Assignment Critical**: Must set `AssignPublicIp: ENABLED` for Docker image pulls from public registries
-- **Container Commands**: Tasks need explicit commands since most base images don't have default entrypoints
-- **Structured Output**: Container stdout should output JSON for Step Functions integration
-- **Step Functions Data Flow**: Use `ResultPath` to preserve original input when ECS task output becomes state output
-- **ECS Task Timing**: Fargate tasks have significant orchestration overhead (~30s provisioning + ~11s image pull + container runtime), unlike Lambda's faster execution model
-
-**ECS Task Definition Pattern:**
-```python
-# Minimal Fargate-compatible task definition
-{
-    'Type': 'AWS::ECS::TaskDefinition',
-    'Properties': {
-        'RequiresCompatibilities': ['FARGATE'],
-        'NetworkMode': 'awsvpc',
-        'Cpu': '256',
-        'Memory': '512', 
-        'ExecutionRoleArn': {'Fn::GetAtt': ['ECSTaskExecutionRole', 'Arn']},
-        'ContainerDefinitions': [{
-            'Name': task_family,
-            'Image': 'python:3.11-slim',
-            'Essential': True,
-            'Command': ['python', '-c', 'import json; print(json.dumps({"status": "success"}))']
-        }]
-    }
-}
-```
-
-**ECS Cluster Pattern:**
-```python
-# Cluster with default Fargate capacity provider
-{
-    'Type': 'AWS::ECS::Cluster',
-    'Properties': {
-        'CapacityProviders': ['FARGATE'],
-        'DefaultCapacityProviderStrategy': [{
-            'CapacityProvider': 'FARGATE',
-            'Weight': 1
-        }]
-    }
-}
-```
 
 ## Testing Philosophy
 
@@ -192,6 +137,7 @@ This framework tests real AWS integrations using actual AWS resources configured
 
 ## Development Approach
 
+- **Spike Development**: This is a spike project - drive all changes by adding or extending tests in the acceptance test suite
 - Work in small steps, starting from a failing test
 - **NEVER write a single line of production code without a failing test first**
 - **ALWAYS run the test after each change to see the actual failure**
@@ -219,6 +165,9 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **Test timeout analysis requires end-to-end investigation** - When tests timeout, investigate the entire execution flow: Step Functions execution history, Lambda logs, SQS queues, and DynamoDB tables to identify where the workflow is hanging
 - **Lambda mocking requires sufficient test timeout** - Lambda functions polling DynamoDB for mock results need adequate time; test timeouts should account for Step Functions orchestration overhead plus Lambda execution time
 
+### Security
+- **AWS Security**: Always maintain least privilege principles when configuring AWS resource access and IAM permissions
+
 ### Naming and Standards
 - **Follow PascalCase for resource names** - consistent with existing resources like "InputTransformer", "Doubler"
 - **CloudFormation logical resource IDs must be alphanumeric** - no hyphens or special characters
@@ -230,10 +179,6 @@ This framework tests real AWS integrations using actual AWS resources configured
 - Each feature has its own markdown file with detailed implementation plans
 - Plans are marked as ROUGH and require step-by-step confirmation before implementation
 - Always check for existing feature plans before starting new work
-
-## Deployment Notes
-
-- To deploy the sandbox, you need to prefix the make command with an AWS_PROFILE environment variable and you need to provide a STACK_TEMPLATES_S3_BUCKET_NAME parameter. Use information from CLAUDE.local.md to determine correct values.
 
 ## Current Work - ECS Task Integration
 
