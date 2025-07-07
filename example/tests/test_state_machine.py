@@ -101,7 +101,7 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
 
     assert execution.name.startswith('test-')
 
-    execution.wait_for_completion()
+    execution.wait_for_completion(timeout_seconds=60)
     execution.assert_succeeded()
 
     final_state_output_data = execution.output_json

@@ -136,6 +136,7 @@ The framework supports several sophisticated testing patterns:
 - **Container Commands**: Tasks need explicit commands since most base images don't have default entrypoints
 - **Structured Output**: Container stdout should output JSON for Step Functions integration
 - **Step Functions Data Flow**: Use `ResultPath` to preserve original input when ECS task output becomes state output
+- **ECS Task Timing**: Fargate tasks have significant orchestration overhead (~30s provisioning + ~11s image pull + container runtime), unlike Lambda's faster execution model
 
 **ECS Task Definition Pattern:**
 ```python
@@ -201,8 +202,10 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **Do NOT add additional concerns, infrastructure, or complexity beyond what's needed for the current failure**
 - **Add additional features/infrastructure later when tests require them**
 - Implement the simplest code possible to make the test pass
-- Work from the outer layers of the code downwards
+- **Work outside-in from failing test through execution layers** - Start with the failing test and trace down through each layer of the execution path one step at a time
+- **Explain rationale before making changes** - Before implementing any change, clearly articulate why this specific change will advance the test beyond its current failure state
 - **Commit and capture learnings before proceeding to next development phase** - Document new ways of working and technical insights before implementing new features
+- **Always show commit details before pushing** - Display commit message and list of files changed, ask for approval before pushing to remote
 
 ### Debugging and Problem Solving
 - **When deployments fail, read CloudWatch logs instead of guessing** - especially for Lambda functions and macros
@@ -215,6 +218,8 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **Default capacity provider strategy is critical for ECS** - Must set `DefaultCapacityProviderStrategy` on cluster, not just `CapacityProviders`, to avoid "No Container Instances" errors
 - **ECS Task timeouts don't stop underlying containers** - Step Functions `TimeoutSeconds` fails executions but doesn't terminate ECS tasks; use task-level timeouts instead
 - **CloudWatch logging requires explicit configuration** - ECS tasks need `LogConfiguration` with specific log group patterns and IAM permissions for CloudWatch access
+- **Test timeout analysis requires end-to-end investigation** - When tests timeout, investigate the entire execution flow: Step Functions execution history, Lambda logs, SQS queues, and DynamoDB tables to identify where the workflow is hanging
+- **Lambda mocking requires sufficient test timeout** - Lambda functions polling DynamoDB for mock results need adequate time; test timeouts should account for Step Functions orchestration overhead plus Lambda execution time
 
 ### Naming and Standards
 - **Follow PascalCase for resource names** - consistent with existing resources like "InputTransformer", "Doubler"

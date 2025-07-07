@@ -89,6 +89,13 @@ deploy-example-sandbox:
 			SubnetIds=$$(jq -r '.subnetIds | join(",")' example/config.json) \
 			SecurityGroupIds=$$(jq -r '.securityGroupIds | join(",")' example/config.json)
 
+.PHONY: update-sandbox-state-machine
+update-sandbox-state-machine:
+	AWS_PROFILE=$$(jq -r '.awsDeploymentProfile' example/config.json) ./tools/update-state-machine.sh \
+		--cfn-stack $$(jq -r '.sandboxStackName' example/config.json) \
+		--cfn-resource ExampleStateMachine/StateMachine \
+		--definition example/example-state-machine/statemachine.asl.yaml
+
 .PHONY: test-example
 test-example:
 	uv run --directory example pytest tests
