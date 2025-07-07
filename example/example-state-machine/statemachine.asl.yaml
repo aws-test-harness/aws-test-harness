@@ -3,8 +3,11 @@ States:
   Check ECS Task:
     Type: Choice
     Choices:
-      - Variable: $.input.skipECSTask
-        BooleanEquals: true
+      - And:
+        - Variable: $.input.skipECSTask
+          IsPresent: true
+        - Variable: $.input.skipECSTask
+          BooleanEquals: true
         Next: DynamoDB GetItem
     Default: Process Data
   Process Data:

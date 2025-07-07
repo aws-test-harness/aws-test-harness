@@ -164,6 +164,7 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **CloudWatch logging requires explicit configuration** - ECS tasks need `LogConfiguration` with specific log group patterns and IAM permissions for CloudWatch access
 - **Test timeout analysis requires end-to-end investigation** - When tests timeout, investigate the entire execution flow: Step Functions execution history, Lambda logs, SQS queues, and DynamoDB tables to identify where the workflow is hanging
 - **Lambda mocking requires sufficient test timeout** - Lambda functions polling DynamoDB for mock results need adequate time; test timeouts should account for Step Functions orchestration overhead plus Lambda execution time
+- **Verify existing functionality after changes** - When modifying shared infrastructure (like state machine logic), immediately test that existing functionality still works as expected, especially performance characteristics like test execution times
 
 ### Security
 - **AWS Security**: Always maintain least privilege principles when configuring AWS resource access and IAM permissions
