@@ -1,5 +1,12 @@
-StartAt: Process Data
+StartAt: Check ECS Task
 States:
+  Check ECS Task:
+    Type: Choice
+    Choices:
+      - Variable: $.input.skipECSTask
+        BooleanEquals: true
+        Next: DynamoDB GetItem
+    Default: Process Data
   Process Data:
     Type: Task
     Resource: arn:aws:states:::ecs:runTask.sync

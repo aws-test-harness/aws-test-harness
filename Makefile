@@ -1,6 +1,7 @@
 VERSION := 0.0.1a22
 STACK_TEMPLATES_DIRECTORY := infrastructure/templates
 STACK_TEMPLATE_BUILD_TARGETS := $(shell find $(STACK_TEMPLATES_DIRECTORY) -type d -depth 1 -exec basename {} \; | sed 's/^/build-/' | sed 's/$$/-stack-template/')
+FORCE?=false
 
 .PHONY: default
 default: setup
@@ -94,7 +95,8 @@ update-sandbox-state-machine:
 	AWS_PROFILE=$$(jq -r '.awsDeploymentProfile' example/config.json) ./tools/update-state-machine.sh \
 		--cfn-stack $$(jq -r '.sandboxStackName' example/config.json) \
 		--cfn-resource ExampleStateMachine/StateMachine \
-		--definition example/example-state-machine/statemachine.asl.yaml
+		--definition example/example-state-machine/statemachine.asl.yaml \
+		$$([ "$(FORCE)" = "true" ] && echo '--force')
 
 .PHONY: test-example
 test-example:

@@ -164,9 +164,10 @@ def test_state_machine_retries_input_transformation_twice(mocking_engine: AWSRes
         'input': {
             'data': {'number': 1},
             'firstBucketKey': 'default-message',
-            'firstTableItemKey': 'any key'
+            'firstTableItemKey': 'any key',
+            'skipECSTask': True
         }
-    }, timeout_seconds=90)
+    })
 
     execution.assert_succeeded()
     assert execution.output_json['double']['result']['number'] == 2
@@ -193,9 +194,10 @@ def test_state_machine_retries_doubling_twice(mocking_engine: AWSResourceMocking
         'input': {
             'data': {'number': 1},
             'firstBucketKey': 'default-message',
-            'firstTableItemKey': 'any key'
+            'firstTableItemKey': 'any key',
+            'skipECSTask': True
         }
-    }, timeout_seconds=90)
+    })
 
     execution.assert_succeeded()
     assert execution.output_json['double']['result']['number'] == 2
@@ -222,9 +224,10 @@ def test_state_machine_retries_multiplying_twice(mocking_engine: AWSResourceMock
         'input': {
             'data': {'number': 1},
             'firstBucketKey': 'default-message',
-            'firstTableItemKey': 'any key'
+            'firstTableItemKey': 'any key',
+            'skipECSTask': True
         }
-    }, timeout_seconds=90)
+    })
 
     execution.assert_succeeded()
     assert execution.output_json['multiply']['result']['number'] == 6

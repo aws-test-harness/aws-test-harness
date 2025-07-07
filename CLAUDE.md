@@ -55,13 +55,11 @@ aws ecs describe-tasks --cluster <cluster-name> --tasks <task-arn>
 ### Fast State Machine Updates
 For faster iteration when only changing state machine ASL definitions:
 ```bash
-AWS_PROFILE=<profile> ./tools/update-state-machine.sh \
-  --cfn-stack <stack-name> \
-  --cfn-resource ExampleStateMachine/StateMachine \
-  --definition example/example-state-machine/statemachine.asl.yaml
+make update-sandbox-state-machine           # Review changes and confirm
+make update-sandbox-state-machine FORCE=true # Skip confirmation
 ```
 This bypasses CloudFormation deployment and directly updates the Step Functions definition.
-**Note**: Stack name is available in `example/config.json` under `sandboxStackName`.
+Uses deployment profile and stack name from `example/config.json`.
 
 ## Architecture Overview
 
