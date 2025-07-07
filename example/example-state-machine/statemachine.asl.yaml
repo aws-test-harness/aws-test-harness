@@ -12,6 +12,8 @@ States:
             - ${SubnetIds}
           SecurityGroups:
             - ${SecurityGroupIds}
+          AssignPublicIp: ENABLED
+    ResultPath: $.processData
     Next: DynamoDB GetItem
   DynamoDB GetItem:
     Type: Task
