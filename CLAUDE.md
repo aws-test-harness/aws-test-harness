@@ -132,8 +132,10 @@ The framework supports several sophisticated testing patterns:
 - **Default Capacity Provider Strategy Essential**: Must set `DefaultCapacityProviderStrategy` on cluster, not just `CapacityProviders` 
 - **Lightweight Base Images**: Use `python:3.11-slim` instead of Lambda images for containerized tasks
 - **VPC Configuration**: ECS tasks in `awsvpc` mode require NetworkConfiguration with subnets and security groups
+- **Public IP Assignment Critical**: Must set `AssignPublicIp: ENABLED` for Docker image pulls from public registries
 - **Container Commands**: Tasks need explicit commands since most base images don't have default entrypoints
 - **Structured Output**: Container stdout should output JSON for Step Functions integration
+- **Step Functions Data Flow**: Use `ResultPath` to preserve original input when ECS task output becomes state output
 
 **ECS Task Definition Pattern:**
 ```python
@@ -177,7 +179,11 @@ This framework tests real AWS integrations using actual AWS resources configured
 
 ## Commit Guidelines
 
-- Commit messages should not contain Claude as co-author or reference that claude was used
+- **Make small, frequent commits** - Commit each meaningful change separately rather than batching multiple changes
+- **Run `/learn` before committing** - Execute the custom Claude learn command to capture technical insights, then commit both the changes and updated project memory together
+- **Show commit details before pushing** - After each commit, show the commit message and files changed, then ask for approval before pushing
+- **Never include Claude co-author information** - Commit messages should not contain Claude as co-author or reference that Claude was used
+- **Always use AWS profiles** - Never rely on default AWS credentials; always specify AWS_PROFILE for all AWS CLI commands
 - **CRITICAL**: Never include sensitive information in commits, including:
   - AWS resource names (bucket names, VPC IDs, subnet IDs, etc.)
   - Account IDs, ARNs, or region-specific identifiers
@@ -196,6 +202,7 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **Add additional features/infrastructure later when tests require them**
 - Implement the simplest code possible to make the test pass
 - Work from the outer layers of the code downwards
+- **Commit and capture learnings before proceeding to next development phase** - Document new ways of working and technical insights before implementing new features
 
 ### Debugging and Problem Solving
 - **When deployments fail, read CloudWatch logs instead of guessing** - especially for Lambda functions and macros
@@ -206,6 +213,8 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **Inspect actual AWS service state for diagnosis** - Use ECS `describe-tasks`, Step Functions `get-execution-history`, etc. to understand what really happened vs assumptions
 - **Check Step Functions execution history** - Shows exact task progression, timing, and failure details with full AWS API responses
 - **Default capacity provider strategy is critical for ECS** - Must set `DefaultCapacityProviderStrategy` on cluster, not just `CapacityProviders`, to avoid "No Container Instances" errors
+- **ECS Task timeouts don't stop underlying containers** - Step Functions `TimeoutSeconds` fails executions but doesn't terminate ECS tasks; use task-level timeouts instead
+- **CloudWatch logging requires explicit configuration** - ECS tasks need `LogConfiguration` with specific log group patterns and IAM permissions for CloudWatch access
 
 ### Naming and Standards
 - **Follow PascalCase for resource names** - consistent with existing resources like "InputTransformer", "Doubler"
@@ -225,7 +234,7 @@ This framework tests real AWS integrations using actual AWS resources configured
 
 ## Current Work - ECS Task Integration
 
-**Status**: ECS infrastructure complete, investigating container exit and output capture
+**Status**: ECS infrastructure working, implementing mocking framework
 
 **Recent Progress**:
 - ✅ Added ECS task mocking support to test-doubles macro
@@ -235,17 +244,20 @@ This framework tests real AWS integrations using actual AWS resources configured
 - ✅ Deployed ECS execution role and fixed Fargate capacity provider strategy
 - ✅ Fixed task definition to use python:3.11-slim with JSON output command
 - ✅ Validated CloudFormation-based AWS resource inspection approach
+- ✅ Fixed ECS networking with AssignPublicIp: ENABLED for Docker image pulls
+- ✅ Fixed Step Functions data flow with ResultPath to preserve original input
+- ✅ ECS tasks now start, execute, and complete successfully
 
-**Current Investigation**:
-ECS tasks start successfully but Step Functions executions hang. Need to determine:
-1. **Does the container exit after printing output?** Container might stay alive indefinitely
-2. **Does Step Functions capture the printed output?** ECS runTask.sync may not return container stdout
+**Current Focus**:
+ECS infrastructure is working correctly. Need to implement the mocking framework integration:
+1. **Implement ECS message handling** in MessageListener for task invocation events
+2. **Connect mocking engine** to register ECS task handlers with message listener
+3. **Test mock assertions** to verify ECS tasks are called with expected parameters
 
 **Immediate Next Steps**:
-1. **Check task exit behavior**: Investigate if container terminates after print statement
-2. **Verify output capture**: Determine if Step Functions receives the JSON output from container stdout
-3. **Fix container exit**: Ensure container terminates properly after output
-4. **Test output flow**: Verify JSON flows back to Step Functions execution result
+1. **Add ECS message handling** to MessageListener class
+2. **Enable ECS mock registration** in AWSResourceMockingEngine (uncomment TODO)
+3. **Test ECS mocking** to verify mock.assert_called_once() works correctly
 
 **Technical Issue**: 
 ECS Fargate tasks were failing with "No Container Instances were found in your cluster" because they need an execution role. Added `ECSTaskExecutionRole` to the macro in test_doubles.py but haven't deployed it yet.

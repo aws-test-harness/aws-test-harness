@@ -49,6 +49,29 @@ def handler(event, _):
                 ),
                 ManagedPolicyArns=[
                     "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+                ],
+                Policies=[
+                    dict(
+                        PolicyName="CloudWatchLogsAccess",
+                        PolicyDocument=dict(
+                            Version="2012-10-17",
+                            Statement=[
+                                dict(
+                                    Effect="Allow",
+                                    Action="logs:CreateLogGroup",
+                                    Resource={"Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/ecs/test-harness/*"}
+                                ),
+                                dict(
+                                    Effect="Allow",
+                                    Action=[
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    Resource={"Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/ecs/test-harness/*:*"}
+                                )
+                            ]
+                        )
+                    )
                 ]
             )
         )
@@ -167,9 +190,21 @@ def create_minimal_ecs_task_definition(task_family):
                     Name=task_family,
                     Image='python:3.11-slim',
                     Essential=True,
+                    StopTimeout=10,
+                    LogConfiguration=dict(
+                        LogDriver='awslogs',
+                        Options=dict(
+                            **{
+                                'awslogs-group': f'/ecs/test-harness/{task_family}',
+                                'awslogs-region': {"Ref": "AWS::Region"},
+                                'awslogs-stream-prefix': f'{task_family}-task',
+                                'awslogs-create-group': 'true'
+                            }
+                        )
+                    ),
                     Command=[
                         'python', '-c',
-                        'import json; print(json.dumps({"status": "success", "result": "task_completed", "message": "ECS task mock executed successfully"}))'
+                        'import json; print("Starting ECS task..."); print(json.dumps({"status": "success", "result": "task_completed", "message": "ECS task mock executed successfully"})); print("Task completed")'
                     ]
                 )
             ]
