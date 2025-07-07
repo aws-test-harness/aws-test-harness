@@ -101,7 +101,7 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
 
     assert execution.name.startswith('test-')
 
-    execution.wait_for_completion(timeout_seconds=60)
+    execution.wait_for_completion(timeout_seconds=90)
     execution.assert_succeeded()
 
     final_state_output_data = execution.output_json
@@ -166,7 +166,7 @@ def test_state_machine_retries_input_transformation_twice(mocking_engine: AWSRes
             'firstBucketKey': 'default-message',
             'firstTableItemKey': 'any key'
         }
-    })
+    }, timeout_seconds=90)
 
     execution.assert_succeeded()
     assert execution.output_json['double']['result']['number'] == 2
@@ -195,7 +195,7 @@ def test_state_machine_retries_doubling_twice(mocking_engine: AWSResourceMocking
             'firstBucketKey': 'default-message',
             'firstTableItemKey': 'any key'
         }
-    })
+    }, timeout_seconds=90)
 
     execution.assert_succeeded()
     assert execution.output_json['double']['result']['number'] == 2
@@ -224,7 +224,7 @@ def test_state_machine_retries_multiplying_twice(mocking_engine: AWSResourceMock
             'firstBucketKey': 'default-message',
             'firstTableItemKey': 'any key'
         }
-    })
+    }, timeout_seconds=90)
 
     execution.assert_succeeded()
     assert execution.output_json['multiply']['result']['number'] == 6

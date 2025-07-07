@@ -13,9 +13,9 @@ class StateMachine:
         self.__arn = arn
         self.__sfn_client = boto_session.client('stepfunctions')
 
-    def execute(self, execution_input):
+    def execute(self, execution_input, timeout_seconds: float = 30):
         execution = self.start_execution(execution_input)
-        execution.wait_for_completion()
+        execution.wait_for_completion(timeout_seconds)
 
         return execution
 
