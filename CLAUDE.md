@@ -180,44 +180,6 @@ This framework tests real AWS integrations using actual AWS resources configured
 - Plans are marked as ROUGH and require step-by-step confirmation before implementation
 - Always check for existing feature plans before starting new work
 
-## Current Work - ECS Task Integration
+## Current Work
 
-**Status**: ECS infrastructure working, implementing mocking framework
-
-**Recent Progress**:
-- ✅ Added ECS task mocking support to test-doubles macro
-- ✅ Implemented VPC parameterization with config.json integration  
-- ✅ Updated Makefile to extract all deployment config from example/config.json
-- ✅ Added NetworkConfiguration for ECS tasks in ASL
-- ✅ Deployed ECS execution role and fixed Fargate capacity provider strategy
-- ✅ Fixed task definition to use python:3.11-slim with JSON output command
-- ✅ Validated CloudFormation-based AWS resource inspection approach
-- ✅ Fixed ECS networking with AssignPublicIp: ENABLED for Docker image pulls
-- ✅ Fixed Step Functions data flow with ResultPath to preserve original input
-- ✅ ECS tasks now start, execute, and complete successfully
-
-**Current Focus**:
-ECS infrastructure is working correctly. Need to implement the mocking framework integration:
-1. **Implement ECS message handling** in MessageListener for task invocation events
-2. **Connect mocking engine** to register ECS task handlers with message listener
-3. **Test mock assertions** to verify ECS tasks are called with expected parameters
-
-**Immediate Next Steps**:
-1. **Add ECS message handling** to MessageListener class
-2. **Enable ECS mock registration** in AWSResourceMockingEngine (uncomment TODO)
-3. **Test ECS mocking** to verify mock.assert_called_once() works correctly
-
-**Technical Issue**: 
-ECS Fargate tasks were failing with "No Container Instances were found in your cluster" because they need an execution role. Added `ECSTaskExecutionRole` to the macro in test_doubles.py but haven't deployed it yet.
-
-**Files Modified**:
-- `infrastructure/macros/src/test_doubles.py` - Added ECS execution role and updated task definition
-- `example/config.json` - Added VPC parameters and S3 bucket name
-- `example/example-state-machine/statemachine.asl.yaml` - Added NetworkConfiguration  
-- `Makefile` - Updated deploy-example-sandbox to use config.json values
-- All templates updated to pass VPC parameters through the chain
-
-**VPC Configuration**: Now fully parameterized via example/config.json with automatic extraction in Makefile.
-
-**Open Questions**:
-- **ECS Cluster Ownership**: Should library users supply their own ECS cluster ARN rather than the test harness creating one for them? Currently we auto-create a minimal Fargate cluster, but users might want to use existing clusters with specific configurations, capacity providers, or cost optimization settings. Consider adding an optional `ECSClusterArn` parameter alongside the current auto-creation approach.
+Current development work is documented in feature-specific files under the `features/` directory. Check `features/ecs-task-mocking.md` for the latest ECS task integration status and next steps.

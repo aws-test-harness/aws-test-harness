@@ -201,6 +201,103 @@ Users of the test harness will need to provide:
 2. Begin with acceptance test creation
 3. Implement incrementally with step-by-step confirmation
 
+## Current Status - ECS Task Integration
+
+**Status**: ECS infrastructure working, implementing mocking framework
+
+**Recent Progress**:
+- ✅ Added ECS task mocking support to test-doubles macro
+- ✅ Implemented VPC parameterization with config.json integration  
+- ✅ Updated Makefile to extract all deployment config from example/config.json
+- ✅ Added NetworkConfiguration for ECS tasks in ASL
+- ✅ Deployed ECS execution role and fixed Fargate capacity provider strategy
+- ✅ Fixed task definition to use python:3.11-slim with JSON output command
+- ✅ Validated CloudFormation-based AWS resource inspection approach
+- ✅ Fixed ECS networking with AssignPublicIp: ENABLED for Docker image pulls
+- ✅ Fixed Step Functions data flow with ResultPath to preserve original input
+- ✅ ECS tasks now start, execute, and complete successfully
+- ✅ Added conditional ECS execution with Choice step for test isolation
+- ✅ Tests 2-4 skip ECS task and run quickly (~40s vs 90s+)
+
+**Current Focus**:
+ECS infrastructure is working correctly. Need to implement the mocking framework integration:
+1. **Implement ECS message handling** in MessageListener for task invocation events
+2. **Connect mocking engine** to register ECS task handlers with message listener
+3. **Test mock assertions** to verify ECS tasks are called with expected parameters
+
+**Immediate Next Steps**:
+1. **Add ECS message handling** to MessageListener class
+2. **Enable ECS mock registration** in AWSResourceMockingEngine (uncomment TODO)
+3. **Test ECS mocking** to verify mock.assert_called_once() works correctly
+
+**Files Modified**:
+- `infrastructure/macros/src/test_doubles.py` - Added ECS execution role and updated task definition
+- `example/config.json` - Added VPC parameters and S3 bucket name
+- `example/example-state-machine/statemachine.asl.yaml` - Added NetworkConfiguration and Choice step for conditional execution
+- `Makefile` - Updated deploy-example-sandbox to use config.json values, added FORCE option
+- `example/tests/test_state_machine.py` - Tests 2-4 skip ECS task for fast execution
+- All templates updated to pass VPC parameters through the chain
+
+**VPC Configuration**: Now fully parameterized via example/config.json with automatic extraction in Makefile.
+
+**Test Status**:
+- ✅ Test 1: Still in progress (ECS mocking framework integration needed)
+- ✅ Tests 2-4: Pass quickly by skipping ECS task
+
+**Open Questions**:
+- **ECS Cluster Ownership**: Should library users supply their own ECS cluster ARN rather than the test harness creating one for them? Currently we auto-create a minimal Fargate cluster, but users might want to use existing clusters with specific configurations, capacity providers, or cost optimization settings. Consider adding an optional `ECSClusterArn` parameter alongside the current auto-creation approach.
+
+## ECS Integration Patterns
+
+**Key Implementation Insights:**
+- **ECS Execution Role Required**: Fargate tasks must have `ExecutionRoleArn` with `AmazonECSTaskExecutionRolePolicy` managed policy
+- **Default Capacity Provider Strategy Essential**: Must set `DefaultCapacityProviderStrategy` on cluster, not just `CapacityProviders` 
+- **Lightweight Base Images**: Use `python:3.11-slim` instead of Lambda images for containerized tasks
+- **VPC Configuration**: ECS tasks in `awsvpc` mode require NetworkConfiguration with subnets and security groups
+- **Public IP Assignment Critical**: Must set `AssignPublicIp: ENABLED` for Docker image pulls from public registries
+- **Container Commands**: Tasks need explicit commands since most base images don't have default entrypoints
+- **Structured Output**: Container stdout should output JSON for Step Functions integration
+- **Step Functions Data Flow**: Use `ResultPath` to preserve original input when ECS task output becomes state output
+- **ECS Task Timing**: Fargate tasks have significant orchestration overhead (~30s provisioning + ~11s image pull + container runtime), unlike Lambda's faster execution model
+- **Conditional workflow execution for test isolation**: Use Choice steps in state machines to conditionally skip expensive operations (like ECS tasks) based on input flags, allowing fast test execution while isolating complex infrastructure testing to specific scenarios
+- **Timeout optimization based on execution path**: Remove unnecessary long timeouts when expensive operations are skipped; use default timeouts for fast paths and extended timeouts only for complex infrastructure testing
+
+**ECS Task Definition Pattern:**
+```python
+# Minimal Fargate-compatible task definition
+{
+    'Type': 'AWS::ECS::TaskDefinition',
+    'Properties': {
+        'RequiresCompatibilities': ['FARGATE'],
+        'NetworkMode': 'awsvpc',
+        'Cpu': '256',
+        'Memory': '512', 
+        'ExecutionRoleArn': {'Fn::GetAtt': ['ECSTaskExecutionRole', 'Arn']},
+        'ContainerDefinitions': [{
+            'Name': task_family,
+            'Image': 'python:3.11-slim',
+            'Essential': True,
+            'Command': ['python', '-c', 'import json; print(json.dumps({"status": "success"}))']
+        }]
+    }
+}
+```
+
+**ECS Cluster Pattern:**
+```python
+# Cluster with default Fargate capacity provider
+{
+    'Type': 'AWS::ECS::Cluster',
+    'Properties': {
+        'CapacityProviders': ['FARGATE'],
+        'DefaultCapacityProviderStrategy': [{
+            'CapacityProvider': 'FARGATE',
+            'Weight': 1
+        }]
+    }
+}
+```
+
 ## Technical Debt
 
 - **ECS IAM PassRole Permissions**: The `iam:PassRole` permission in `example/example-state-machine/template.yaml` currently uses a wildcard resource (`"*"`). This should be restricted to only the specific execution role ARN that ECS tasks need to pass. Consider creating a specific ECS execution role in the test-doubles macro and referencing it explicitly in the permissions.
