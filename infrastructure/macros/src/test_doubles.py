@@ -191,6 +191,10 @@ def create_minimal_ecs_task_definition(task_family):
                     Image='python:3.11-slim',
                     Essential=True,
                     StopTimeout=10,
+                    Environment=[
+                        dict(Name='EVENTS_QUEUE_URL', Value={'Ref': 'EventsQueue'}),
+                        dict(Name='TEST_CONTEXT_BUCKET_NAME', Value={'Ref': 'TestContextBucket'})
+                    ],
                     LogConfiguration=dict(
                         LogDriver='awslogs',
                         Options=dict(

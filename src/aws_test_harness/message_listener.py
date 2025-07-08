@@ -95,6 +95,10 @@ class MessageListener(Thread):
         handler_id = self.__get_state_machine_execution_input_handler_id(state_machine_name)
         self.__event_handlers[handler_id] = execution_input_handler
 
+    def register_ecs_task_handler(self, task_family: str, task_handler: Callable[[Dict[str, any]], Dict[str, any]]):
+        handler_id = self.__get_ecs_task_handler_id(task_family)
+        self.__event_handlers[handler_id] = task_handler
+
     def __consume_message(self, message: Dict[str, Any]) -> None:
         event_message_payload = json.loads(message['Body'])
 
@@ -105,6 +109,8 @@ class MessageListener(Thread):
             item = self.__generate_result_record_for_state_machine_execution(event_message_payload)
         elif invocation_type == 'Lambda Function Invocation':
             item = self.__generate_result_record_for_lamdba_function_invocation(event_message_payload)
+        elif invocation_type == 'ECS Task Execution':
+            item = self.__generate_result_record_for_ecs_task_execution(event_message_payload)
         else:
             raise Exception(f'Unknown invocation type: "{invocation_type}"')
 
@@ -182,3 +188,11 @@ class MessageListener(Thread):
     @staticmethod
     def __get_state_machine_execution_input_handler_id(state_machine_name: str) -> str:
         return f'StateMachine::{state_machine_name}'
+
+    def __generate_result_record_for_ecs_task_execution(self, event_message_payload: Dict[str, Any]) -> Dict[str, Any]:
+        # Minimal implementation to see what the test expects
+        pass
+
+    @staticmethod
+    def __get_ecs_task_handler_id(task_family: str) -> str:
+        return f'ECSTask::{task_family}'

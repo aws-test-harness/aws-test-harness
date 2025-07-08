@@ -121,6 +121,11 @@ The framework supports several sophisticated testing patterns:
 
 This framework tests real AWS integrations using actual AWS resources configured as test doubles, rather than local mocks. Tests provision temporary AWS infrastructure, execute workflows, and verify behavior through message queues and result stores.
 
+## Custom Commands
+
+- **`/learn`** - Capture technical insights and update project memory before committing
+- **`/wow`** - Capture ways of working insights and development process improvements
+
 ## Commit Guidelines
 
 - **Make small, frequent commits** - Commit each meaningful change separately rather than batching multiple changes
@@ -144,9 +149,12 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **DO NOT skip ahead or assume what the next failure will be**
 - **Make ONLY the absolute minimum change required to get the test passing**
 - **Do NOT add additional concerns, infrastructure, or complexity beyond what's needed for the current failure**
+- **Don't implement methods until the test fails because they're missing** - Let the test drive exactly what needs to be implemented, rather than anticipating and building ahead of the actual failure
+- **Strict test-driven implementation discipline** - Only implement exactly what the current test failure demands, never anticipate future needs. This prevents over-engineering, ensures solving actual problems, maintains minimal focused code, preserves TDD discipline, prevents wasted effort, and drives better API design. Use this always during TDD, especially when tempted to "get ahead" of the current failure.
 - **Add additional features/infrastructure later when tests require them**
 - Implement the simplest code possible to make the test pass
 - **Work outside-in from failing test through execution layers** - Start with the failing test and trace down through each layer of the execution path one step at a time
+- **Write calling code first, even if called methods don't exist** - When implementing integration between components, write the code that calls the method you wish existed first, let it fail with AttributeError, then implement the missing method. This drives proper API design from the caller's perspective.
 - **Explain rationale before making changes** - Before implementing any change, clearly articulate why this specific change will advance the test beyond its current failure state
 - **Commit and capture learnings before proceeding to next development phase** - Document new ways of working and technical insights before implementing new features
 - **Always show commit details before pushing** - Display commit message and list of files changed, ask for approval before pushing to remote

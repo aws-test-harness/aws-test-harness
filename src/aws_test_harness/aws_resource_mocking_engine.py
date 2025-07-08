@@ -72,8 +72,7 @@ class AWSResourceMockingEngine:
         mock: Mock = create_autospec(ecs_task_handler, name=task_family)
         mock.side_effect = task_handler
 
-        # TODO: Register with message listener for ECS task events
-        # self.__message_listener.register_ecs_task_handler(task_family, mock)
+        self.__message_listener.register_ecs_task_handler(task_family, mock)
 
         mock_id = self.__get_ecs_task_mock_id(task_family)
         self.__mock_event_handlers[mock_id] = mock
