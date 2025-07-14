@@ -228,9 +228,8 @@ ECS infrastructure is working correctly. Need to implement the mocking framework
 3. **Test mock assertions** to verify ECS tasks are called with expected parameters
 
 **Immediate Next Steps**:
-1. **Add ECS message handling** to MessageListener class
-2. **Enable ECS mock registration** in AWSResourceMockingEngine (uncomment TODO)
-3. **Test ECS mocking** to verify mock.assert_called_once() works correctly
+1. **Extend ECS task exit code control** - Modify `ecs_task_runner.py` to support configurable exit codes based on mock handler return values
+2. **Pass all environment variables to mock handler** - Make all ECS task environment variables available to the local handler function so it can conditionally behave based on Step Functions state-specific environment variable values
 
 **Files Modified**:
 - `infrastructure/macros/src/test_doubles.py` - Added ECS execution role and updated task definition
