@@ -126,7 +126,7 @@ echo "Building and pushing ECS task test double Docker image..."
 aws ecr get-login-password --region "${aws_region}" | docker login --username AWS --password-stdin "${account_id}.dkr.ecr.${aws_region}.amazonaws.com"
 
 cd ecs-task-test-double
-docker build --platform linux/amd64 -t "${repository_uri}:latest" .
+docker build --platform linux/arm64 -t "${repository_uri}:latest" .
 docker push "${repository_uri}:latest"
 cd ..
 

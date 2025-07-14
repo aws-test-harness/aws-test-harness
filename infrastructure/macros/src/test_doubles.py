@@ -231,6 +231,10 @@ def create_minimal_ecs_task_definition(task_family):
             Memory='512',
             ExecutionRoleArn={"Fn::GetAtt": ["ECSTaskExecutionRole", "Arn"]},
             TaskRoleArn={"Fn::GetAtt": ["ECSTaskRole", "Arn"]},
+            RuntimePlatform=dict(
+                CpuArchitecture='ARM64',
+                OperatingSystemFamily='LINUX'
+            ),
             ContainerDefinitions=[
                 dict(
                     Name=task_family,

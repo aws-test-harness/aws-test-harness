@@ -178,6 +178,8 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **Explain rationale before making changes** - Before implementing any change, clearly articulate why this specific change will advance the test beyond its current failure state
 - **NEVER commit without explicit instruction** - Only create commits when the user explicitly instructs you to do so. Always verify changes work through testing before any commit consideration
 - **Always run tests before committing** - Execute `make test-example` to ensure all tests pass before creating any commit
+- **Never mention test status in commit messages** - Passing tests are an expected requirement for every commit, not something to highlight in the message
+- **Always test changes immediately** - After making any change, immediately test it to verify it works as expected before proceeding with additional changes
 - **Commit and capture learnings before proceeding to next development phase** - Document new ways of working and technical insights before implementing new features
 - **Always show commit details before pushing** - Display commit message and list of files changed, ask for approval before pushing to remote
 
