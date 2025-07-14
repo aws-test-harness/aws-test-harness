@@ -73,7 +73,24 @@ script_directory_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/nu
 
 cd "${script_directory_path}"
 
-echo "Preparing ECR repository configuration..."
+wait_for_ecr_repository() {
+  local repository_name="$1"
+  local region="$2"
+  local max_attempts=30
+  
+  for i in $(seq 1 $max_attempts); do
+    if aws ecr describe-repositories --repository-names "${repository_name}" --region "${region}" >/dev/null 2>&1; then
+      return 0
+    fi
+    echo "Waiting for repository to be ready (attempt $i/$max_attempts)..."
+    sleep 2
+    if [ $i -eq $max_attempts ]; then
+      echo "ERROR: ECR repository failed to become available after $max_attempts attempts"
+      return 1
+    fi
+  done
+}
+
 account_id=$(aws sts get-caller-identity --query Account --output text)
 repository_name="aws-test-harness/ecs-task-runner"
 repository_uri="${account_id}.dkr.ecr.${aws_region}.amazonaws.com/${repository_name}"
@@ -95,6 +112,8 @@ else
     --repository-name "${repository_name}" \
     --region "${aws_region}" \
     --image-scanning-configuration scanOnPush=true
+  
+  wait_for_ecr_repository "${repository_name}" "${aws_region}"
   
   echo "Setting lifecycle policy for ECR repository..."
   aws ecr put-lifecycle-policy \
