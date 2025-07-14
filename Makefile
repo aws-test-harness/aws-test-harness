@@ -25,7 +25,7 @@ build-tools:
 	tar -czf dist/tools.tar.gz tools
 
 .PHONY: build-infrastructure
-build-infrastructure: build-stack-templates build-macros-template copy-installation-script
+build-infrastructure: build-stack-templates build-macros-template copy-installation-script copy-ecs-task-test-double
 	tar -czf dist/infrastructure.tar.gz -C dist infrastructure && rm -rf dist/infrastructure
 
 .PHONY: create-infrastructure-dist-directory
@@ -51,6 +51,10 @@ create-templates-dist-directory:
 copy-installation-script: create-infrastructure-dist-directory
 	cp infrastructure/scripts/install.sh dist/infrastructure
 
+.PHONY: copy-ecs-task-test-double
+copy-ecs-task-test-double: create-infrastructure-dist-directory
+	cp -r infrastructure/ecs-task-test-double dist/infrastructure/
+
 .PHONY: build-library
 build-library:
 	uv build -o dist/library
@@ -69,6 +73,7 @@ deploy-infrastructure: build-infrastructure
 	AWS_PROFILE=$$(jq -r '.awsDeploymentProfile' example/config.json) ./dist/infrastructure/install.sh \
 		--macros-stack-name aws-test-harness-macros \
 		--stack-templates-s3-uri s3://$$(jq -r '.stackTemplatesS3BucketName' example/config.json)/aws-test-harness-templates \
+		--aws-region $$(jq -r '.awsRegion' example/config.json) \
 		--macro-names-prefix MacroNamesPrefix-
 
 .PHONY: deploy-example

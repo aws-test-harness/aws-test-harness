@@ -117,6 +117,15 @@ The framework supports several sophisticated testing patterns:
 - Session-based testing with automatic cleanup
 - No explicit linting/formatting configuration - follows Python standards
 
+## Code Quality Standards
+
+### Comments and Documentation
+- **Write self-documenting code** - Use clear method names, well-structured logic, and appropriate separation of concerns
+- **Comments explain "why" not "what"** - The code itself should reveal intent through good naming and design
+- **Useful comments explain reasoning** - Algorithm choices for performance, workarounds for third-party bugs, or non-obvious business logic
+- **Group cohesive logic together** - Keep related functionality and data together
+- **Separate unrelated concerns** - Isolate different responsibilities into distinct methods/classes
+
 ## Testing Philosophy
 
 This framework tests real AWS integrations using actual AWS resources configured as test doubles, rather than local mocks. Tests provision temporary AWS infrastructure, execute workflows, and verify behavior through message queues and result stores.
@@ -132,7 +141,8 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **Run `/learn` before committing** - Execute the custom Claude learn command to capture technical insights, then commit both the changes and updated project memory together
 - **Show commit details before pushing** - After each commit, show the commit message and files changed, then ask for approval before pushing
 - **Never include Claude co-author information** - Commit messages should not contain Claude as co-author or reference that Claude was used
-- **Always use AWS profiles** - Never rely on default AWS credentials; always specify AWS_PROFILE for all AWS CLI commands
+- **Always use AWS profiles for AWS CLI commands** - Never rely on default AWS credentials; always specify `--profile` flag after the AWS CLI subcommand to enable generic permission configuration in Claude settings while maintaining visibility of the profile being used. Note: This guidance applies only to AWS CLI commands, not to tools like pytest which use environment variables (AWS_PROFILE=profile-name)
+- **Check browser profile before AWS SSO login** - Always confirm the user's browser is focused on the correct profile (personal vs work) before attempting AWS SSO login, as login will use whichever profile is currently active in the browser
 - **CRITICAL**: Never include sensitive information in commits, including:
   - AWS resource names (bucket names, VPC IDs, subnet IDs, etc.)
   - Account IDs, ARNs, or region-specific identifiers
@@ -154,7 +164,9 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **Add additional features/infrastructure later when tests require them**
 - Implement the simplest code possible to make the test pass
 - **Work outside-in from failing test through execution layers** - Start with the failing test and trace down through each layer of the execution path one step at a time
-- **Write calling code first, even if called methods don't exist** - When implementing integration between components, write the code that calls the method you wish existed first, let it fail with AttributeError, then implement the missing method. This drives proper API design from the caller's perspective.
+- **Write calling code first, even if called methods don't exist** - When implementing integration between components, write the code that calls the method you wish existed first, let it fail with AttributeError, then implement the missing method. This drives proper API design from the caller's perspective. **CRITICAL DISCIPLINE:** When you know something is missing (like a code method or an ECR repository), first write code that references what you wish existed, let it fail with the specific error, then implement only what's needed to resolve that exact failure. This prevents guessing and ensures you build only what's actually required.
+- **Follow your nose vs. predetermined plans** - Treat implementation plans as speculative guidance rather than deterministic roadmaps. Instead of following a predetermined sequence of steps, "follow your nose" by making the first change that moves toward the solution, then responding to what breaks or is missing. This forces discovery of actual dependencies rather than assumed ones, generates immediate feedback on what's truly required, prevents speculative over-engineering, and drives minimal changes based on real failures. Start with the end goal and let failures cascade backward through the dependency chain.
+- **The test failure is your compass** - Trust the test to tell you exactly what needs to be implemented next, rather than trying to predict or plan ahead. Run the test to see the actual failure, implement only what's needed to fix that specific failure, don't anticipate what might be needed next, and let each failure cascade backward through the dependency chain. This approach prevents over-engineering, ensures you're always working on the most important blocking issue, creates a clear logical progression of development, and builds confidence that each step is necessary and correct.
 - **Explain rationale before making changes** - Before implementing any change, clearly articulate why this specific change will advance the test beyond its current failure state
 - **Commit and capture learnings before proceeding to next development phase** - Document new ways of working and technical insights before implementing new features
 - **Always show commit details before pushing** - Display commit message and list of files changed, ask for approval before pushing to remote

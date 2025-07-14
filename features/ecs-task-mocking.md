@@ -24,7 +24,8 @@ Key parameters: Cluster, TaskDefinition, ContainerOverrides, LaunchType (FARGATE
 
 ### Core Components
 - **Test Double ECS Tasks** - Containerized test doubles replacing real ECS tasks
-- **Lightweight Container** - Use public `python:3.11-slim` image with S3 code fetching
+- **Custom Docker Image** - Pre-built image with boto3 dependency
+- **ECR Repository** - Private container registry for test harness Docker images
 - **Message Flow** - Same SQS/DynamoDB pattern as existing mocks
 - **ECS Infrastructure** - Cluster, task definitions, IAM roles
 
@@ -54,10 +55,11 @@ mock_handler = mocking_engine.mock_an_ecs_task(
 - Add minimal IAM roles for ECS execution (hardcoded permissions)
 - Hardcode VPC parameters initially (use existing test infrastructure VPC/subnets)
 
-**1.3 Minimal Test Double Container**
-- Create S3-based Python script that fetches session ID and sends SQS message
-- Basic message format for ECS task invocation
-- Container exits with success code (0)
+**1.3 Custom Docker Image and ECR Repository**
+- Create ECR repository as part of infrastructure deployment
+- Build custom Docker image with boto3 pre-installed
+- Push image to ECR repository during infrastructure setup
+- Update task definition to use custom image from ECR
 
 **1.4 Minimal Mock Registration**
 - Add `mock_an_ecs_task()` method to AWSResourceMockingEngine
@@ -171,8 +173,8 @@ mock_handler = mocking_engine.mock_an_ecs_task(
 - **Use existing VPC infrastructure** - Accept VPC parameters, don't create/manage VPCs
 - **Use public subnets with assigned public IPs** - ECS tasks run in public subnets for direct internet access (no NAT Gateway needed)
 - **Simple networking approach** - Zero networking costs, direct access to Docker registries and AWS services
-- **Use lightweight public Python image** - Avoid custom Docker builds
-- **Fetch test double code from S3 at runtime** - Dynamic code execution
+- **Use custom Docker image with pre-installed dependencies** - Build image with boto3 dependency
+- **Store image in ECR repository** - Private container registry managed as part of infrastructure
 - **Minimal resource allocation** - 256 CPU / 512 MB memory for cost efficiency
 - Maintain message-based async communication
 - Support all Step Functions ECS integration patterns
@@ -247,56 +249,31 @@ ECS infrastructure is working correctly. Need to implement the mocking framework
 **Open Questions**:
 - **ECS Cluster Ownership**: Should library users supply their own ECS cluster ARN rather than the test harness creating one for them? Currently we auto-create a minimal Fargate cluster, but users might want to use existing clusters with specific configurations, capacity providers, or cost optimization settings. Consider adding an optional `ECSClusterArn` parameter alongside the current auto-creation approach.
 
-## ECS Integration Patterns
+## Custom Docker Image Architecture
 
-**Key Implementation Insights:**
-- **ECS Execution Role Required**: Fargate tasks must have `ExecutionRoleArn` with `AmazonECSTaskExecutionRolePolicy` managed policy
-- **Default Capacity Provider Strategy Essential**: Must set `DefaultCapacityProviderStrategy` on cluster, not just `CapacityProviders` 
-- **Lightweight Base Images**: Use `python:3.11-slim` instead of Lambda images for containerized tasks
-- **VPC Configuration**: ECS tasks in `awsvpc` mode require NetworkConfiguration with subnets and security groups
-- **Public IP Assignment Critical**: Must set `AssignPublicIp: ENABLED` for Docker image pulls from public registries
-- **Container Commands**: Tasks need explicit commands since most base images don't have default entrypoints
-- **Structured Output**: Container stdout should output JSON for Step Functions integration
-- **Step Functions Data Flow**: Use `ResultPath` to preserve original input when ECS task output becomes state output
-- **ECS Task Timing**: Fargate tasks have significant orchestration overhead (~30s provisioning + ~11s image pull + container runtime), unlike Lambda's faster execution model
-- **Conditional workflow execution for test isolation**: Use Choice steps in state machines to conditionally skip expensive operations (like ECS tasks) based on input flags, allowing fast test execution while isolating complex infrastructure testing to specific scenarios
-- **Timeout optimization based on execution path**: Remove unnecessary long timeouts when expensive operations are skipped; use default timeouts for fast paths and extended timeouts only for complex infrastructure testing
+### ECR Repository Creation
+- **ECR Repository** - Created as part of infrastructure deployment in test-doubles macro
+- **Repository Name Pattern** - `aws-test-harness/ecs-task-mock` or similar standardized naming
+- **Lifecycle Policy** - Auto-delete images older than 7 days to control costs
+- **Access Control** - IAM permissions for ECS task execution role to pull images
 
-**ECS Task Definition Pattern:**
-```python
-# Minimal Fargate-compatible task definition
-{
-    'Type': 'AWS::ECS::TaskDefinition',
-    'Properties': {
-        'RequiresCompatibilities': ['FARGATE'],
-        'NetworkMode': 'awsvpc',
-        'Cpu': '256',
-        'Memory': '512', 
-        'ExecutionRoleArn': {'Fn::GetAtt': ['ECSTaskExecutionRole', 'Arn']},
-        'ContainerDefinitions': [{
-            'Name': task_family,
-            'Image': 'python:3.11-slim',
-            'Essential': True,
-            'Command': ['python', '-c', 'import json; print(json.dumps({"status": "success"}))']
-        }]
-    }
-}
-```
+### Docker Image Build Process
+- **Base Image** - `python:3.11-slim` for minimal size and security
+- **Pre-installed Dependencies** - boto3, urllib3, and other required packages
+- **Mocking Framework Code** - Embedded Python script for message sending and session handling
+- **Build Integration** - Docker build and push as part of `make deploy-infrastructure`
 
-**ECS Cluster Pattern:**
-```python
-# Cluster with default Fargate capacity provider
-{
-    'Type': 'AWS::ECS::Cluster',
-    'Properties': {
-        'CapacityProviders': ['FARGATE'],
-        'DefaultCapacityProviderStrategy': [{
-            'CapacityProvider': 'FARGATE',
-            'Weight': 1
-        }]
-    }
-}
-```
+### Infrastructure Integration
+- **Build Script** - Add Docker build to existing infrastructure deployment process
+- **Image URI Reference** - Task definitions reference ECR image URI dynamically
+- **Version Management** - Use deployment timestamp or commit hash as image tags
+
+### Deployment Flow
+1. **Infrastructure Deploy** - Create ECR repository first
+2. **Docker Build** - Build image with latest mocking framework code
+3. **Image Push** - Push to ECR repository with appropriate tag
+4. **Task Definition Update** - Update ECS task definitions to use new image URI
+5. **CloudFormation Deploy** - Deploy updated task definitions
 
 ## Technical Debt
 

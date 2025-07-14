@@ -181,6 +181,30 @@ class MessageListener(Thread):
             ttl=int((datetime.now() + timedelta(hours=12)).timestamp())
         )
 
+    def __generate_result_record_for_ecs_task_execution(self, event_message_payload: Dict[str, Any]) -> Dict[str, Any]:
+        task_input = event_message_payload['input']
+        invocation_id = event_message_payload['invocationId']
+        task_family = event_message_payload['taskFamily']
+
+        print(f"{task_family} task execution with invocation ID {invocation_id} "
+              f"received input {task_input}")
+
+        handler_id = self.__get_ecs_task_handler_id(task_family)
+        task_handler = self.__event_handlers[handler_id]
+        task_result = task_handler(task_input)
+
+        result = dict(exitCode=0, result=task_result)
+        print(f'Returning result: {json.dumps(result)}')
+
+        return dict(
+            partitionKey=f'{task_family}#{invocation_id}',
+            result=result,
+            taskFamily=task_family,
+            invocationId=invocation_id,
+            taskInput=task_input,
+            ttl=int((datetime.now() + timedelta(hours=12)).timestamp())
+        )
+
     @staticmethod
     def __get_lambda_function_event_handler_id(function_name: str) -> str:
         return f'LambdaFunction::{function_name}'
@@ -188,10 +212,6 @@ class MessageListener(Thread):
     @staticmethod
     def __get_state_machine_execution_input_handler_id(state_machine_name: str) -> str:
         return f'StateMachine::{state_machine_name}'
-
-    def __generate_result_record_for_ecs_task_execution(self, event_message_payload: Dict[str, Any]) -> Dict[str, Any]:
-        # Minimal implementation to see what the test expects
-        pass
 
     @staticmethod
     def __get_ecs_task_handler_id(task_family: str) -> str:

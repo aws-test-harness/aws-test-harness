@@ -3,7 +3,7 @@
 set -o nounset -o errexit -o pipefail;
 
 usage() {
-  echo "Usage: $0 [--help] --macros-stack-name stack_name --stack-templates-s3-uri s3_uri [--macro-names-prefix macro_names_prefix]"
+  echo "Usage: $0 [--help] --macros-stack-name stack_name --stack-templates-s3-uri s3_uri --aws-region region [--macro-names-prefix macro_names_prefix]"
   exit 1
 }
 
@@ -36,6 +36,16 @@ while [[ "${1:-}" != "" ]]; do
 
             stack_templates_s3_uri="${1}"
             ;;
+        --aws-region )
+            shift
+
+            if [ -z "${1:-}" ]; then
+              echo "Missing argument for --aws-region"
+              usage
+            fi
+
+            aws_region="${1}"
+            ;;
         * )
             echo "Unknown option: ${1}"
             usage
@@ -54,6 +64,11 @@ if [ -z "${stack_templates_s3_uri:-}" ]; then
   usage
 fi
 
+if [ -z "${aws_region:-}" ]; then
+  echo "Missing required argument: --aws-region"
+  usage
+fi
+
 script_directory_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 cd "${script_directory_path}"
@@ -64,6 +79,17 @@ aws cloudformation deploy \
   --template-file macros.yaml \
   --capabilities CAPABILITY_IAM \
   --parameter-overrides MacroNamesPrefix="${macro_names_prefix}"
+
+echo "Building and pushing ECS task test double Docker image..."
+account_id=$(aws sts get-caller-identity --query Account --output text)
+repository_uri="${account_id}.dkr.ecr.${aws_region}.amazonaws.com/aws-test-harness/ecs-task-runner"
+
+aws ecr get-login-password --region "${aws_region}" | docker login --username AWS --password-stdin "${account_id}.dkr.ecr.${aws_region}.amazonaws.com"
+
+cd ecs-task-test-double
+docker build --platform linux/amd64 -t "${repository_uri}:latest" .
+docker push "${repository_uri}:latest"
+cd ..
 
 working_directory_path=$(mktemp -d)
 

@@ -34,6 +34,28 @@ def handler(event, _):
     
     # Create ECS cluster and execution role if any task families are defined
     if ecs_task_families:
+        new_resources['ECSTaskMockRepository'] = dict(
+            Type='AWS::ECR::Repository',
+            Properties=dict(
+                RepositoryName='aws-test-harness/ecs-task-runner',
+                LifecyclePolicy=dict(
+                    LifecyclePolicyText=json.dumps({
+                        "rules": [
+                            {
+                                "rulePriority": 1,
+                                "description": "Keep last 2 images",
+                                "selection": {
+                                    "tagStatus": "any",
+                                    "countType": "imageCountMoreThan",
+                                    "countNumber": 2
+                                },
+                                "action": {"type": "expire"}
+                            }
+                        ]
+                    })
+                )
+            )
+        )
         new_resources['ECSTaskExecutionRole'] = dict(
             Type='AWS::IAM::Role',
             Properties=dict(
@@ -68,6 +90,49 @@ def handler(event, _):
                                         "logs:PutLogEvents"
                                     ],
                                     Resource={"Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/ecs/test-harness/*:*"}
+                                )
+                            ]
+                        )
+                    )
+                ]
+            )
+        )
+        new_resources['ECSTaskRole'] = dict(
+            Type='AWS::IAM::Role',
+            Properties=dict(
+                AssumeRolePolicyDocument=dict(
+                    Version="2012-10-17",
+                    Statement=[
+                        dict(
+                            Effect="Allow",
+                            Principal=dict(Service="ecs-tasks.amazonaws.com"),
+                            Action="sts:AssumeRole"
+                        )
+                    ]
+                ),
+                Policies=[
+                    dict(
+                        PolicyName="SQSAccess",
+                        PolicyDocument=dict(
+                            Version="2012-10-17",
+                            Statement=[
+                                dict(
+                                    Effect="Allow",
+                                    Action="sqs:SendMessage",
+                                    Resource={"Fn::GetAtt": ["EventsQueue", "Arn"]}
+                                )
+                            ]
+                        )
+                    ),
+                    dict(
+                        PolicyName="S3Access",
+                        PolicyDocument=dict(
+                            Version="2012-10-17",
+                            Statement=[
+                                dict(
+                                    Effect="Allow",
+                                    Action="s3:GetObject",
+                                    Resource={"Fn::Sub": "${TestContextBucket.Arn}/*"}
                                 )
                             ]
                         )
@@ -185,10 +250,11 @@ def create_minimal_ecs_task_definition(task_family):
             Cpu='256',
             Memory='512',
             ExecutionRoleArn={"Fn::GetAtt": ["ECSTaskExecutionRole", "Arn"]},
+            TaskRoleArn={"Fn::GetAtt": ["ECSTaskRole", "Arn"]},
             ContainerDefinitions=[
                 dict(
                     Name=task_family,
-                    Image='python:3.11-slim',
+                    Image={"Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/aws-test-harness/ecs-task-runner:latest"},
                     Essential=True,
                     StopTimeout=10,
                     Environment=[
@@ -205,11 +271,7 @@ def create_minimal_ecs_task_definition(task_family):
                                 'awslogs-create-group': 'true'
                             }
                         )
-                    ),
-                    Command=[
-                        'python', '-c',
-                        'import json; print("Starting ECS task..."); print(json.dumps({"status": "success", "result": "task_completed", "message": "ECS task mock executed successfully"})); print("Task completed")'
-                    ]
+                    )
                 )
             ]
         )
