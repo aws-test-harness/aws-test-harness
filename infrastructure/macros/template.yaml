@@ -4,6 +4,9 @@ Parameters:
     Type: String
     Description: Optional prefix for all macro names
     Default: ""
+  ECSTaskRepositoryUri:
+    Type: String
+    Description: ECR repository URI for ECS task test doubles
 Resources:
   OutOfBandDeploymentSupportMacro:
     Type: AWS::CloudFormation::Macro
@@ -53,6 +56,9 @@ Resources:
       Role: !GetAtt LambdaFunctionExecutionRole.Arn
       Runtime: python3.12
       Timeout: 5
+      Environment:
+        Variables:
+          ECS_TASK_REPOSITORY_URI: !Ref ECSTaskRepositoryUri
   LambdaFunctionExecutionRole:
     Type: AWS::IAM::Role
     Properties:

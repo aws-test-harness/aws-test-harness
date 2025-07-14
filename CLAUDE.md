@@ -126,6 +126,13 @@ The framework supports several sophisticated testing patterns:
 - **Group cohesive logic together** - Keep related functionality and data together
 - **Separate unrelated concerns** - Isolate different responsibilities into distinct methods/classes
 
+### Eliminating Duplication
+- **Single source of truth** - Define each piece of knowledge in exactly one location in the codebase
+- **Parameter propagation** - Pass values through CloudFormation parameters, environment variables, or function arguments rather than hardcoding in multiple places
+- **Centralized configuration** - Use configuration files, environment variables, or parameters to define values that need to be consistent across components
+- **No defaults for parameterized values** - When removing duplication by parameterizing, avoid providing default values that would recreate the duplication problem
+- **Update all references** - When centralizing a value, ensure all previous hardcoded references are updated to use the centralized source
+
 ## Testing Philosophy
 
 This framework tests real AWS integrations using actual AWS resources configured as test doubles, rather than local mocks. Tests provision temporary AWS infrastructure, execute workflows, and verify behavior through message queues and result stores.
@@ -169,6 +176,8 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **Follow your nose vs. predetermined plans** - Treat implementation plans as speculative guidance rather than deterministic roadmaps. Instead of following a predetermined sequence of steps, "follow your nose" by making the first change that moves toward the solution, then responding to what breaks or is missing. This forces discovery of actual dependencies rather than assumed ones, generates immediate feedback on what's truly required, prevents speculative over-engineering, and drives minimal changes based on real failures. Start with the end goal and let failures cascade backward through the dependency chain.
 - **The test failure is your compass** - Trust the test to tell you exactly what needs to be implemented next, rather than trying to predict or plan ahead. Run the test to see the actual failure, implement only what's needed to fix that specific failure, don't anticipate what might be needed next, and let each failure cascade backward through the dependency chain. This approach prevents over-engineering, ensures you're always working on the most important blocking issue, creates a clear logical progression of development, and builds confidence that each step is necessary and correct.
 - **Explain rationale before making changes** - Before implementing any change, clearly articulate why this specific change will advance the test beyond its current failure state
+- **NEVER commit without explicit instruction** - Only create commits when the user explicitly instructs you to do so. Always verify changes work through testing before any commit consideration
+- **Always run tests before committing** - Execute `make test-example` to ensure all tests pass before creating any commit
 - **Commit and capture learnings before proceeding to next development phase** - Document new ways of working and technical insights before implementing new features
 - **Always show commit details before pushing** - Display commit message and list of files changed, ask for approval before pushing to remote
 

@@ -73,17 +73,37 @@ script_directory_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/nu
 
 cd "${script_directory_path}"
 
+echo "Preparing ECR repository configuration..."
+account_id=$(aws sts get-caller-identity --query Account --output text)
+repository_name="aws-test-harness/ecs-task-runner"
+repository_uri="${account_id}.dkr.ecr.${aws_region}.amazonaws.com/${repository_name}"
+
 echo "Deploying macros..."
 aws cloudformation deploy \
   --stack-name "${macros_stack_name}" \
   --template-file macros.yaml \
   --capabilities CAPABILITY_IAM \
-  --parameter-overrides MacroNamesPrefix="${macro_names_prefix}"
+  --parameter-overrides MacroNamesPrefix="${macro_names_prefix}" ECSTaskRepositoryUri="${repository_uri}:latest"
+
+echo "Ensuring ECR repository exists for ECS task test double..."
+
+if aws ecr describe-repositories --repository-names "${repository_name}" --region "${aws_region}" >/dev/null 2>&1; then
+  echo "ECR repository ${repository_name} already exists"
+else
+  echo "Creating ECR repository ${repository_name}..."
+  aws ecr create-repository \
+    --repository-name "${repository_name}" \
+    --region "${aws_region}" \
+    --image-scanning-configuration scanOnPush=true
+  
+  echo "Setting lifecycle policy for ECR repository..."
+  aws ecr put-lifecycle-policy \
+    --repository-name "${repository_name}" \
+    --region "${aws_region}" \
+    --lifecycle-policy-text '{"rules":[{"rulePriority":1,"description":"Keep last 2 images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":2},"action":{"type":"expire"}}]}'
+fi
 
 echo "Building and pushing ECS task test double Docker image..."
-account_id=$(aws sts get-caller-identity --query Account --output text)
-repository_uri="${account_id}.dkr.ecr.${aws_region}.amazonaws.com/aws-test-harness/ecs-task-runner"
-
 aws ecr get-login-password --region "${aws_region}" | docker login --username AWS --password-stdin "${account_id}.dkr.ecr.${aws_region}.amazonaws.com"
 
 cd ecs-task-test-double

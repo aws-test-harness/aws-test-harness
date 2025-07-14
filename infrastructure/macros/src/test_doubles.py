@@ -1,4 +1,5 @@
 import json
+import os
 from copy import deepcopy
 
 
@@ -34,28 +35,6 @@ def handler(event, _):
     
     # Create ECS cluster and execution role if any task families are defined
     if ecs_task_families:
-        new_resources['ECSTaskMockRepository'] = dict(
-            Type='AWS::ECR::Repository',
-            Properties=dict(
-                RepositoryName='aws-test-harness/ecs-task-runner',
-                LifecyclePolicy=dict(
-                    LifecyclePolicyText=json.dumps({
-                        "rules": [
-                            {
-                                "rulePriority": 1,
-                                "description": "Keep last 2 images",
-                                "selection": {
-                                    "tagStatus": "any",
-                                    "countType": "imageCountMoreThan",
-                                    "countNumber": 2
-                                },
-                                "action": {"type": "expire"}
-                            }
-                        ]
-                    })
-                )
-            )
-        )
         new_resources['ECSTaskExecutionRole'] = dict(
             Type='AWS::IAM::Role',
             Properties=dict(
@@ -242,6 +221,7 @@ def create_table_resource_definition(table_config):
 
 
 def create_minimal_ecs_task_definition(task_family):
+    repository_uri = os.environ.get('ECS_TASK_REPOSITORY_URI')
     return dict(
         Type='AWS::ECS::TaskDefinition',
         Properties=dict(
@@ -254,7 +234,7 @@ def create_minimal_ecs_task_definition(task_family):
             ContainerDefinitions=[
                 dict(
                     Name=task_family,
-                    Image={"Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/aws-test-harness/ecs-task-runner:latest"},
+                    Image=repository_uri,
                     Essential=True,
                     StopTimeout=10,
                     Environment=[
