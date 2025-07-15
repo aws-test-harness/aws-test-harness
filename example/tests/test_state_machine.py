@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from aws_test_harness.a_state_machine_execution_failure import a_state_machine_execution_failure
 from aws_test_harness.a_thrown_exception import an_exception_thrown_with_message
+from aws_test_harness.exit_code import an_exit_code, ExitCode
 from aws_test_harness.aws_resource_driver import AWSResourceDriver
 from aws_test_harness.aws_resource_mocking_engine import AWSResourceMockingEngine
 from aws_test_harness.aws_test_double_driver import AWSTestDoubleDriver
@@ -22,10 +23,9 @@ def reset_database(test_double_driver: AWSTestDoubleDriver):
 @pytest.fixture(scope="function", autouse=True)
 def setup_default_mock_behaviour(mocking_engine: AWSResourceMockingEngine,
                                  test_double_driver: AWSTestDoubleDriver):
-    # Mock ECS task as the first state in our step function
     mocking_engine.mock_an_ecs_task(
         'DataProcessor',
-        lambda task_input: {'result': 'processed', 'status': 'success'}
+        lambda task_input: an_exit_code(0)
     )
 
     mocking_engine.mock_a_lambda_function(
@@ -49,9 +49,16 @@ def setup_default_mock_behaviour(mocking_engine: AWSResourceMockingEngine,
 
 def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine, resource_driver: AWSResourceDriver,
                                         test_double_driver: AWSTestDoubleDriver):
-    first_bucket = test_double_driver.get_s3_bucket('First')
+    data_processor_ecs_task = mocking_engine.get_mock_ecs_task('DataProcessor')
+
     first_bucket_key = f'data/message-{uuid4()}'
-    first_bucket.put_object(first_bucket_key, 'This is the message retrieved from S3')
+    first_bucket = test_double_driver.get_s3_bucket('First')
+
+    def data_processor_ecs_task_handler(task_input):
+        first_bucket.put_object(first_bucket_key, 'This is the message retrieved from S3')
+        return an_exit_code(0)
+
+    data_processor_ecs_task.side_effect = data_processor_ecs_task_handler
 
     first_table = test_double_driver.get_dynamodb_table('First')
     first_table_item_key = str(uuid4())
@@ -137,10 +144,7 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
     item = second_table.get_item(dict(ID=record_key_from_result))
     assert item['message'] == 'Number passed to doubler function: 2'
 
-    # Assert ECS task was called
-    ecs_task = mocking_engine.get_mock_ecs_task('DataProcessor')
-    ecs_task.assert_called_once()
-
+    data_processor_ecs_task.assert_called_once()
     input_transformer_function.assert_called_with({'data': {'number': 1}})
     doubler_function.assert_called_with({'number': 2})
 
@@ -149,11 +153,10 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
     assert second_bucket_key in second_bucket.list_objects()
 
 
-def test_state_machine_retries_input_transformation_twice(mocking_engine: AWSResourceMockingEngine,
-                                                          resource_driver: AWSResourceDriver):
+def test_state_machine_retries_input_transformation_once(mocking_engine: AWSResourceMockingEngine,
+                                                         resource_driver: AWSResourceDriver):
     input_transformer_function = mocking_engine.get_mock_lambda_function('InputTransformer')
     input_transformer_function.side_effect = [
-        an_exception_thrown_with_message("the error message"),
         an_exception_thrown_with_message("the error message"),
         {'number': 2},
     ]
@@ -174,16 +177,14 @@ def test_state_machine_retries_input_transformation_twice(mocking_engine: AWSRes
 
     input_transformer_function.assert_has_calls([
         call({'data': {'number': 1}}),
-        call({'data': {'number': 1}}),
         call({'data': {'number': 1}})
     ])
 
 
-def test_state_machine_retries_doubling_twice(mocking_engine: AWSResourceMockingEngine,
-                                              resource_driver: AWSResourceDriver):
+def test_state_machine_retries_doubling_once(mocking_engine: AWSResourceMockingEngine,
+                                             resource_driver: AWSResourceDriver):
     doubler_function = mocking_engine.get_mock_lambda_function('Doubler')
     doubler_function.side_effect = [
-        an_exception_thrown_with_message("the error message"),
         an_exception_thrown_with_message("the error message"),
         {'number': 2},
     ]
@@ -204,16 +205,14 @@ def test_state_machine_retries_doubling_twice(mocking_engine: AWSResourceMocking
 
     doubler_function.assert_has_calls([
         call({'number': 1}),
-        call({'number': 1}),
         call({'number': 1})
     ])
 
 
-def test_state_machine_retries_multiplying_twice(mocking_engine: AWSResourceMockingEngine,
-                                                 resource_driver: AWSResourceDriver):
+def test_state_machine_retries_multiplying_once(mocking_engine: AWSResourceMockingEngine,
+                                                resource_driver: AWSResourceDriver):
     multiplier_state_machine = mocking_engine.get_mock_state_machine('Multiplier')
     multiplier_state_machine.side_effect = [
-        a_state_machine_execution_failure(error="TheErrorCode", cause="the failure cause"),
         a_state_machine_execution_failure(error="TheErrorCode", cause="the failure cause"),
         {'number': 6},
     ]
@@ -231,4 +230,26 @@ def test_state_machine_retries_multiplying_twice(mocking_engine: AWSResourceMock
 
     execution.assert_succeeded()
     assert execution.output_json['multiply']['result']['number'] == 6
-    assert multiplier_state_machine.call_count == 3
+    assert multiplier_state_machine.call_count == 2
+
+
+def test_state_machine_retries_ecs_task_once(mocking_engine: AWSResourceMockingEngine,
+                                             resource_driver: AWSResourceDriver):
+    ecs_task = mocking_engine.get_mock_ecs_task('DataProcessor')
+    ecs_task.side_effect = [
+        ExitCode(1),
+        ExitCode(0),
+    ]
+
+    state_machine = resource_driver.get_state_machine("ExampleStateMachine::StateMachine")
+
+    execution = state_machine.execute({
+        'input': {
+            'data': {'number': 1},
+            'firstBucketKey': 'default-message',
+            'firstTableItemKey': 'any key'
+        }
+    }, timeout_seconds=240)
+
+    execution.assert_succeeded()
+    assert ecs_task.call_count == 2

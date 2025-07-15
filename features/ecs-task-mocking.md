@@ -228,8 +228,10 @@ ECS infrastructure is working correctly. Need to implement the mocking framework
 3. **Test mock assertions** to verify ECS tasks are called with expected parameters
 
 **Immediate Next Steps**:
-1. **Extend ECS task exit code control** - Modify `ecs_task_runner.py` to support configurable exit codes based on mock handler return values
+1. **Extend ECS task exit code control** - Modify `ecs_task_runner.py` to support configurable exit codes based on mock handler return values ✅ COMPLETED
 2. **Pass all environment variables to mock handler** - Make all ECS task environment variables available to the local handler function so it can conditionally behave based on Step Functions state-specific environment variable values
+3. **Provide script parameters to mock handler** - Pass any command-line arguments/parameters provided to the Python script to the mock handler for additional conditional behavior control
+4. **Test command override behavior** - Add test to verify that Step Functions can pass arguments via ContainerOverrides.Command and that the ECS task runner receives and processes them correctly (enabled by ENTRYPOINT change)
 
 **Files Modified**:
 - `infrastructure/macros/src/test_doubles.py` - Added ECS execution role and updated task definition
@@ -247,6 +249,13 @@ ECS infrastructure is working correctly. Need to implement the mocking framework
 
 **Open Questions**:
 - **ECS Cluster Ownership**: Should library users supply their own ECS cluster ARN rather than the test harness creating one for them? Currently we auto-create a minimal Fargate cluster, but users might want to use existing clusters with specific configurations, capacity providers, or cost optimization settings. Consider adding an optional `ECSClusterArn` parameter alongside the current auto-creation approach.
+
+- **Environment Variable Override Support**: How to support passing overridden environment variables to ECS tasks from Step Functions, whilst still relying on environment variables for events queue URL, task family, etc? This would enable tests to pass dynamic data to ECS tasks while maintaining the infrastructure-provided configuration. Potential approaches:
+  - Use Step Functions ContainerOverrides.Environment to pass test-specific variables
+  - Merge infrastructure env vars (EVENTS_QUEUE_URL, TASK_FAMILY) with test-provided overrides
+  - Consider namespace separation (e.g., TEST_* prefix for overrideable variables)
+  - Ensure infrastructure variables remain protected and cannot be overridden
+  - **Note**: Command override support (via ENTRYPOINT) provides one approach, but consumers may still need env var overrides to test real-world scenarios where their Step Functions interact with ECS tasks this way
 
 ## Custom Docker Image Architecture
 

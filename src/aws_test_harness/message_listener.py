@@ -3,7 +3,7 @@ import sys
 import traceback
 from datetime import datetime, timedelta
 from threading import Thread
-from typing import Dict, Callable, Any
+from typing import Dict, Callable, Any, cast
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -12,6 +12,7 @@ from mypy_boto3_sqs import SQSClient
 
 from .a_state_machine_execution_failure import AStateMachineExecutionFailure
 from .a_thrown_exception import AThrownException
+from .exit_code import ExitCode
 from .aws_test_double_driver import AWSTestDoubleDriver
 
 
@@ -191,9 +192,12 @@ class MessageListener(Thread):
 
         handler_id = self.__get_ecs_task_handler_id(task_family)
         task_handler = self.__event_handlers[handler_id]
-        task_result = task_handler(task_input)
 
-        result = dict(exitCode=0, result=task_result)
+        task_result = task_handler(task_input)
+        assert isinstance(task_result, ExitCode)
+        exit_code = cast(ExitCode, task_result)
+
+        result = dict(exitCode=exit_code.value)
         print(f'Returning result: {json.dumps(result)}')
 
         return dict(

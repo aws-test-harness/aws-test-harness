@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from boto3 import Session
 
+from .exit_code import ExitCode
 from .aws_test_double_driver import AWSTestDoubleDriver
 from .message_listener import MessageListener
 
@@ -65,8 +66,8 @@ class AWSResourceMockingEngine:
         return mock
 
     def mock_an_ecs_task(self, task_family: str,
-                         task_handler: Callable[[Dict[str, any]], Dict[str, any]]) -> Mock:
-        def ecs_task_handler(_: Dict[str, any]) -> Dict[str, any]:
+                         task_handler: Callable[[Dict[str, any]], ExitCode]) -> Mock:
+        def ecs_task_handler(_: Dict[str, any]) -> ExitCode:
             pass
 
         mock: Mock = create_autospec(ecs_task_handler, name=task_family)

@@ -24,6 +24,10 @@ States:
             - ${SecurityGroupIds}
           AssignPublicIp: ENABLED
     ResultPath: $.processData
+    Retry:
+      - ErrorEquals:
+          - States.TaskFailed
+        MaxAttempts: 1
     Next: DynamoDB GetItem
   DynamoDB GetItem:
     Type: Task
@@ -50,7 +54,7 @@ States:
     Retry:
       - ErrorEquals:
           - States.TaskFailed
-        MaxAttempts: 2
+        MaxAttempts: 1
     Next: Get Object
   Get Object:
     Type: Task
@@ -74,7 +78,7 @@ States:
     Retry:
       - ErrorEquals:
           - States.TaskFailed
-        MaxAttempts: 2
+        MaxAttempts: 1
     Next: Multiply
   Multiply:
     Type: Task
@@ -92,5 +96,5 @@ States:
     Retry:
       - ErrorEquals:
           - States.TaskFailed
-        MaxAttempts: 2
+        MaxAttempts: 1
     End: true

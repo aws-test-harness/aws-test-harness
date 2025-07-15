@@ -105,4 +105,4 @@ update-sandbox-state-machine:
 
 .PHONY: test-example
 test-example:
-	uv run --directory example pytest tests
+	uv run --directory example pytest -v tests

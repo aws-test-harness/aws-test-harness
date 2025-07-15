@@ -115,6 +115,19 @@ def handler(event, _):
                                 )
                             ]
                         )
+                    ),
+                    dict(
+                        PolicyName="DynamoDBAccess",
+                        PolicyDocument=dict(
+                            Version="2012-10-17",
+                            Statement=[
+                                dict(
+                                    Effect="Allow",
+                                    Action="dynamodb:GetItem",
+                                    Resource={"Fn::GetAtt": ["ResultsTable", "Arn"]}
+                                )
+                            ]
+                        )
                     )
                 ]
             )
@@ -243,7 +256,9 @@ def create_minimal_ecs_task_definition(task_family):
                     StopTimeout=10,
                     Environment=[
                         dict(Name='EVENTS_QUEUE_URL', Value={'Ref': 'EventsQueue'}),
-                        dict(Name='TEST_CONTEXT_BUCKET_NAME', Value={'Ref': 'TestContextBucket'})
+                        dict(Name='TEST_CONTEXT_BUCKET_NAME', Value={'Ref': 'TestContextBucket'}),
+                        dict(Name='RESULTS_TABLE_NAME', Value={'Ref': 'ResultsTable'}),
+                        dict(Name='TASK_FAMILY', Value=task_family)
                     ],
                     LogConfiguration=dict(
                         LogDriver='awslogs',
