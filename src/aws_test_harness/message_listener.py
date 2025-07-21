@@ -202,7 +202,7 @@ class MessageListener(Thread):
 
         task_context = TaskContext(
             task_context_data['commandArgs'],
-            task_context_data['environmentVars']
+            task_context_data['environmentVariables']
         )
         task_result = task_handler(task_context)
         assert isinstance(task_result, ExitCode)

@@ -54,12 +54,19 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
     first_bucket = test_double_driver.get_s3_bucket('First')
 
     def data_processor_ecs_task_handler(task_context):
-        bucket_key = task_context.command_args[0]
-        greeting_template = task_context.command_args[1]
-        first_name = task_context.environment_vars['FIRST_NAME']
-        last_name = task_context.environment_vars['LAST_NAME']
-        personalized_greeting = greeting_template.format(first_name=first_name, last_name=last_name)
-        first_bucket.put_object(bucket_key, personalized_greeting)
+        task_command_args = task_context.command_args
+        task_env_vars = task_context.env_vars
+
+        greeting_template = task_command_args[1]
+
+        first_bucket.put_object(
+            key=task_command_args[0],
+            content=greeting_template.format(
+                first_name=task_env_vars['FIRST_NAME'],
+                last_name=task_env_vars['LAST_NAME']
+            )
+        )
+
         return ExitCode(0)
 
     data_processor_ecs_task.side_effect = data_processor_ecs_task_handler

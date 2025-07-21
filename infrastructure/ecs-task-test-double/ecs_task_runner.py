@@ -13,10 +13,6 @@ def main():
     test_context_bucket_name = os.environ.get('TEST_CONTEXT_BUCKET_NAME')
     results_table_name = os.environ.get('RESULTS_TABLE_NAME')
     
-    print(f"Events queue URL: {events_queue_url}")
-    print(f"Test context bucket: {test_context_bucket_name}")
-    print(f"Results table name: {results_table_name}")
-    
     s3 = boto3.client('s3')
     get_object_response = s3.get_object(Bucket=test_context_bucket_name, Key='test-id')
     mocking_session_id = get_object_response['Body'].read().decode('utf-8')
@@ -28,23 +24,15 @@ def main():
     
     invocation_id = str(uuid4())
     task_family = os.environ['TASK_FAMILY']
-    
-    command_args = sys.argv[1:]  # Get command line arguments
-    print(f"Command arguments: {command_args}")
-    
-    environment_vars = dict(os.environ)  # Capture all environment variables
-    print(f"Environment variables: {environment_vars}")
-    
-    task_context = {
-        'commandArgs': command_args,
-        'environmentVars': environment_vars
-    }
-    
-    message_body = json.dumps({
-        'taskContext': task_context,
-        'invocationId': invocation_id,
-        'taskFamily': task_family
-    })
+
+    message_body = json.dumps(dict(
+        taskContext=dict(
+            commandArgs=sys.argv[1:],
+            environmentVariables=dict(os.environ)
+        ),
+        invocationId=invocation_id,
+        taskFamily=task_family
+    ))
     
     sqs.send_message(
         QueueUrl=events_queue_url,
@@ -62,7 +50,8 @@ def main():
         }
     )
     
-    print(f"Message sent to events queue with invocaiton ID {invocation_id}, polling for result...")
+    print(f"Message sent to events queue with invocaiton ID {invocation_id}: {message_body}")
+    print("Polling for result...")
     
     # Poll DynamoDB for the result record with 10-second timeout
     start_time = time()
