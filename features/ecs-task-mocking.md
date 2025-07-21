@@ -230,8 +230,8 @@ ECS infrastructure is working correctly. Need to implement the mocking framework
 **Immediate Next Steps**:
 1. **Extend ECS task exit code control** - Modify `ecs_task_runner.py` to support configurable exit codes based on mock handler return values ✅ COMPLETED
 2. **Pass all environment variables to mock handler** - Make all ECS task environment variables available to the local handler function so it can conditionally behave based on Step Functions state-specific environment variable values
-3. **Provide script parameters to mock handler** - Pass any command-line arguments/parameters provided to the Python script to the mock handler for additional conditional behavior control
-4. **Test command override behavior** - Add test to verify that Step Functions can pass arguments via ContainerOverrides.Command and that the ECS task runner receives and processes them correctly (enabled by ENTRYPOINT change)
+3. **Provide script parameters to mock handler** - Pass any command-line arguments/parameters provided to the Python script to the mock handler for additional conditional behavior control ✅ COMPLETED
+4. **Test command override behavior** - Add test to verify that Step Functions can pass arguments via ContainerOverrides.Command and that the ECS task runner receives and processes them correctly (enabled by ENTRYPOINT change) ✅ COMPLETED
 
 **Files Modified**:
 - `infrastructure/macros/src/test_doubles.py` - Added ECS execution role and updated task definition
@@ -256,32 +256,7 @@ ECS infrastructure is working correctly. Need to implement the mocking framework
   - Consider namespace separation (e.g., TEST_* prefix for overrideable variables)
   - Ensure infrastructure variables remain protected and cannot be overridden
   - **Note**: Command override support (via ENTRYPOINT) provides one approach, but consumers may still need env var overrides to test real-world scenarios where their Step Functions interact with ECS tasks this way
-
-## Custom Docker Image Architecture
-
-### ECR Repository Creation
-- **ECR Repository** - Created as part of infrastructure deployment in test-doubles macro
-- **Repository Name Pattern** - `aws-test-harness/ecs-task-mock` or similar standardized naming
-- **Lifecycle Policy** - Auto-delete images older than 7 days to control costs
-- **Access Control** - IAM permissions for ECS task execution role to pull images
-
-### Docker Image Build Process
-- **Base Image** - `python:3.11-slim` for minimal size and security
-- **Pre-installed Dependencies** - boto3, urllib3, and other required packages
-- **Mocking Framework Code** - Embedded Python script for message sending and session handling
-- **Build Integration** - Docker build and push as part of `make deploy-infrastructure`
-
-### Infrastructure Integration
-- **Build Script** - Add Docker build to existing infrastructure deployment process
-- **Image URI Reference** - Task definitions reference ECR image URI dynamically
-- **Version Management** - Use deployment timestamp or commit hash as image tags
-
-### Deployment Flow
-1. **Infrastructure Deploy** - Create ECR repository first
-2. **Docker Build** - Build image with latest mocking framework code
-3. **Image Push** - Push to ECR repository with appropriate tag
-4. **Task Definition Update** - Update ECS task definitions to use new image URI
-5. **CloudFormation Deploy** - Deploy updated task definitions
+- **Custom Docker Image** - ✅ COMPLETED: Custom image with boto3 and ecs_task_runner.py deployed via ECR repository
 
 ## Technical Debt
 
