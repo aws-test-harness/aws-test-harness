@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 from unittest.mock import Mock, create_autospec
 from uuid import uuid4
 
@@ -66,8 +66,8 @@ class AWSResourceMockingEngine:
         return mock
 
     def mock_an_ecs_task(self, task_family: str,
-                         task_handler: Callable[[Dict[str, any]], ExitCode]) -> Mock:
-        def ecs_task_handler(_: Dict[str, any]) -> ExitCode:
+                         task_handler: Callable[[List[str]], ExitCode]) -> Mock:
+        def ecs_task_handler(_: List[str]) -> ExitCode:
             pass
 
         mock: Mock = create_autospec(ecs_task_handler, name=task_family)

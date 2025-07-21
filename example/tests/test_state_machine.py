@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from aws_test_harness.a_state_machine_execution_failure import a_state_machine_execution_failure
 from aws_test_harness.a_thrown_exception import an_exception_thrown_with_message
-from aws_test_harness.exit_code import an_exit_code, ExitCode
+from aws_test_harness.exit_code import ExitCode
 from aws_test_harness.aws_resource_driver import AWSResourceDriver
 from aws_test_harness.aws_resource_mocking_engine import AWSResourceMockingEngine
 from aws_test_harness.aws_test_double_driver import AWSTestDoubleDriver
@@ -25,7 +25,7 @@ def setup_default_mock_behaviour(mocking_engine: AWSResourceMockingEngine,
                                  test_double_driver: AWSTestDoubleDriver):
     mocking_engine.mock_an_ecs_task(
         'DataProcessor',
-        lambda task_input: an_exit_code(0)
+        lambda command_args: ExitCode(0)
     )
 
     mocking_engine.mock_a_lambda_function(
@@ -54,9 +54,11 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
     first_bucket_key = f'data/message-{uuid4()}'
     first_bucket = test_double_driver.get_s3_bucket('First')
 
-    def data_processor_ecs_task_handler(task_input):
-        first_bucket.put_object(first_bucket_key, 'This is the message retrieved from S3')
-        return an_exit_code(0)
+    def data_processor_ecs_task_handler(command_args):
+        bucket_key = command_args[0]
+        content = command_args[1]
+        first_bucket.put_object(bucket_key, content)
+        return ExitCode(0)
 
     data_processor_ecs_task.side_effect = data_processor_ecs_task_handler
 
@@ -102,7 +104,8 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
         'input': {
             'data': {'number': 1},
             'firstBucketKey': first_bucket_key,
-            'firstTableItemKey': first_table_item_key
+            'firstTableItemKey': first_table_item_key,
+            'firstObjectContent': 'Content provided for first S3 object'
         }
     })
 
@@ -131,7 +134,7 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
 
     assert 'getObject' in final_state_output_data
     assert 'result' in final_state_output_data['getObject']
-    assert final_state_output_data['getObject']['result'] == 'This is the message retrieved from S3'
+    assert final_state_output_data['getObject']['result'] == 'Content provided for first S3 object'
     assert final_state_output_data['getItem']['Item']['message']['S'] == 'This is the message retrieved from DynamoDB'
 
     assert 'objectKey' in final_state_output_data['double']['result']

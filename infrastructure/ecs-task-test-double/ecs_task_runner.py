@@ -29,8 +29,11 @@ def main():
     invocation_id = str(uuid4())
     task_family = os.environ['TASK_FAMILY']
     
+    command_args = sys.argv[1:]  # Get command line arguments
+    print(f"Command arguments: {command_args}")
+    
     message_body = json.dumps({
-        'input': {'test': 'data'},
+        'commandArgs': command_args,
         'invocationId': invocation_id,
         'taskFamily': task_family
     })

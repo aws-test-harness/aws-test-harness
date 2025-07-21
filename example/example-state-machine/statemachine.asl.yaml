@@ -16,6 +16,10 @@ States:
     Parameters:
       Cluster: ${ECSClusterArn}
       TaskDefinition: ${DataProcessorTaskDefinitionArn}
+      Overrides:
+        ContainerOverrides:
+          - Name: DataProcessor
+            Command.$: "States.Array($.input.firstBucketKey, $.input.firstObjectContent)"
       NetworkConfiguration:
         AwsvpcConfiguration:
           Subnets:

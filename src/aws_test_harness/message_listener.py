@@ -3,7 +3,7 @@ import sys
 import traceback
 from datetime import datetime, timedelta
 from threading import Thread
-from typing import Dict, Callable, Any, cast
+from typing import Dict, Callable, Any, cast, List
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -17,7 +17,7 @@ from .aws_test_double_driver import AWSTestDoubleDriver
 
 
 class MessageListener(Thread):
-    __event_handlers: Dict[str, Callable[[Dict[str, any]], Any]] = {}
+    __event_handlers: Dict[str, Callable[..., Any]] = {}
     __stop_waiting: bool = False
 
     def __init__(self, test_double_driver: AWSTestDoubleDriver, boto_session: Session,
@@ -96,7 +96,7 @@ class MessageListener(Thread):
         handler_id = self.__get_state_machine_execution_input_handler_id(state_machine_name)
         self.__event_handlers[handler_id] = execution_input_handler
 
-    def register_ecs_task_handler(self, task_family: str, task_handler: Callable[[Dict[str, any]], Dict[str, any]]):
+    def register_ecs_task_handler(self, task_family: str, task_handler: Callable[[List[str]], ExitCode]):
         handler_id = self.__get_ecs_task_handler_id(task_family)
         self.__event_handlers[handler_id] = task_handler
 
@@ -128,14 +128,17 @@ class MessageListener(Thread):
 
         handler_id = self.__get_lambda_function_event_handler_id(function_name)
         event_handler = self.__event_handlers[handler_id]
-        function_result = event_handler(function_event)
+        event_handler_result = event_handler(function_event)
+        assert isinstance(event_handler_result, dict) or isinstance(event_handler_result, AThrownException)
 
-        result = dict(raiseException=False)
+        result: Dict[str, Any] = dict(raiseException=False)
 
-        if isinstance(function_result, AThrownException):
+        if isinstance(event_handler_result, AThrownException):
+            function_result = cast(AThrownException, event_handler_result)
             result['raiseException'] = True
             result['exceptionMessage'] = function_result.message
         else:
+            function_result = cast(Dict[str, Any], event_handler_result)
             result['payload'] = json.dumps(function_result)
 
         print(f'Returning result: {json.dumps(result)}')
@@ -160,15 +163,18 @@ class MessageListener(Thread):
 
         handler_id = self.__get_state_machine_execution_input_handler_id(state_machine_arn)
         execution_input_handler = self.__event_handlers[handler_id]
-        state_machine_result = execution_input_handler(execution_input)
+        handler_result = execution_input_handler(execution_input)
+        assert isinstance(handler_result, dict) or isinstance(handler_result, AStateMachineExecutionFailure)
 
-        result = dict(failExecution=False)
+        result: Dict[str, Any] = dict(failExecution=False)
 
-        if isinstance(state_machine_result, AStateMachineExecutionFailure):
+        if isinstance(handler_result, AStateMachineExecutionFailure):
+            state_machine_result = cast(AStateMachineExecutionFailure, handler_result)
             result['failExecution'] = True
             result['error'] = state_machine_result.error
             result['cause'] = state_machine_result.cause
         else:
+            state_machine_result = cast(Dict[str, Any], handler_result)
             result['payload'] = json.dumps(state_machine_result)
 
         print(f'Returning result: {json.dumps(result)}')
@@ -183,21 +189,21 @@ class MessageListener(Thread):
         )
 
     def __generate_result_record_for_ecs_task_execution(self, event_message_payload: Dict[str, Any]) -> Dict[str, Any]:
-        task_input = event_message_payload['input']
+        command_args = event_message_payload['commandArgs']
         invocation_id = event_message_payload['invocationId']
         task_family = event_message_payload['taskFamily']
 
         print(f"{task_family} task execution with invocation ID {invocation_id} "
-              f"received input {task_input}")
+              f"received command args {command_args}")
 
         handler_id = self.__get_ecs_task_handler_id(task_family)
         task_handler = self.__event_handlers[handler_id]
 
-        task_result = task_handler(task_input)
+        task_result = task_handler(command_args)
         assert isinstance(task_result, ExitCode)
         exit_code = cast(ExitCode, task_result)
 
-        result = dict(exitCode=exit_code.value)
+        result: Dict[str, Any] = dict(exitCode=exit_code.value)
         print(f'Returning result: {json.dumps(result)}')
 
         return dict(
@@ -205,7 +211,7 @@ class MessageListener(Thread):
             result=result,
             taskFamily=task_family,
             invocationId=invocation_id,
-            taskInput=task_input,
+            commandArgs=command_args,
             ttl=int((datetime.now() + timedelta(hours=12)).timestamp())
         )
 
