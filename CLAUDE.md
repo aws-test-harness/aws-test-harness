@@ -146,6 +146,7 @@ This framework tests real AWS integrations using actual AWS resources configured
 
 - **Make small, frequent commits** - Commit each meaningful change separately rather than batching multiple changes
 - **Commit all related changes together** - Always check `git status` and include ALL modified files that belong to the current work unless explicitly instructed to separate them. Use `git add .` or individually add all relevant files before committing
+- **Focus commit messages on behavior, not implementation** - Describe the new state of the codebase in terms of its behavior rather than detailing implementation changes in bullet points. The code changes are inherently included in the commit content, so the message should communicate what the system can now do rather than how it was changed
 - **Run `/learn` before committing** - Execute the custom Claude learn command to capture technical insights, then commit both the changes and updated project memory together
 - **Show commit details before pushing** - After each commit, show the commit message and files changed, then ask for approval before pushing
 - **Never include Claude co-author information** - Commit messages should not contain Claude as co-author or reference that Claude was used
