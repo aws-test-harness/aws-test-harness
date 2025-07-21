@@ -51,7 +51,6 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
                                         test_double_driver: AWSTestDoubleDriver):
     data_processor_ecs_task = mocking_engine.get_mock_ecs_task('DataProcessor')
 
-    first_bucket_key = f'data/message-{uuid4()}'
     first_bucket = test_double_driver.get_s3_bucket('First')
 
     def data_processor_ecs_task_handler(command_args):
@@ -100,12 +99,14 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
 
     state_machine = resource_driver.get_state_machine("ExampleStateMachine::StateMachine")
 
+    first_bucket_key = f'data/message-{uuid4()}'
+
     execution = state_machine.start_execution({
         'input': {
             'data': {'number': 1},
             'firstBucketKey': first_bucket_key,
+            'firstObjectContent': 'Content provided for first S3 object',
             'firstTableItemKey': first_table_item_key,
-            'firstObjectContent': 'Content provided for first S3 object'
         }
     })
 
