@@ -122,6 +122,7 @@ The framework supports several sophisticated testing patterns:
 ### Comments and Documentation
 - **Write self-documenting code** - Use clear method names, well-structured logic, and appropriate separation of concerns
 - **Comments explain "why" not "what"** - The code itself should reveal intent through good naming and design
+- **Remove comments that document obvious code** - Don't add comments that simply restate what the code already clearly expresses (e.g., `# Get command line arguments` when code says `command_args = sys.argv[1:]`)
 - **Useful comments explain reasoning** - Algorithm choices for performance, workarounds for third-party bugs, or non-obvious business logic
 - **Group cohesive logic together** - Keep related functionality and data together
 - **Separate unrelated concerns** - Isolate different responsibilities into distinct methods/classes
@@ -153,7 +154,9 @@ This framework tests real AWS integrations using actual AWS resources configured
 - **Commit all related changes together** - Always check `git status` and include ALL modified files that belong to the current work unless explicitly instructed to separate them. Use `git add .` or individually add all relevant files before committing
 - **Focus commit messages on behavior, not implementation** - Describe the new state of the codebase in terms of its behavior rather than detailing implementation changes in bullet points. The code changes are inherently included in the commit content, so the message should communicate what the system can now do rather than how it was changed
 - **Run `/learn` before committing** - Execute the custom Claude learn command to capture technical insights, then commit both the changes and updated project memory together
-- **Show commit message and diff for approval before committing** - Before creating any commit, show the proposed commit message and complete diff of ALL staged changes (via `git diff --cached`). Only after receiving user approval, complete the commit and push in one operation
+- **Always show complete commit diff before approval** - Before creating any commit, show the proposed commit message and complete diff of ALL staged changes (via `git diff --cached`). Never proceed with a commit without showing this diff first, regardless of how obvious the changes seem
+- **Keep commit messages concise** - Focus on behavioral changes in a few short lines maximum. Avoid verbose technical explanations and implementation details
+- **Auto-push after commit confirmation** - Once user confirms a commit, automatically push to remote without additional permission requests
 - **Never include Claude co-author information** - Commit messages should not contain Claude as co-author or reference that Claude was used
 - **Always use AWS profiles for AWS CLI commands** - Never rely on default AWS credentials; always specify `--profile` flag after the AWS CLI subcommand to enable generic permission configuration in Claude settings while maintaining visibility of the profile being used. Note: This guidance applies only to AWS CLI commands, not to tools like pytest which use environment variables (AWS_PROFILE=profile-name)
 - **Check browser profile before AWS SSO login** - Always confirm the user's browser is focused on the correct profile (personal vs work) before attempting AWS SSO login, as login will use whichever profile is currently active in the browser
