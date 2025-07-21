@@ -32,8 +32,12 @@ def main():
     command_args = sys.argv[1:]  # Get command line arguments
     print(f"Command arguments: {command_args}")
     
+    task_context = {
+        'commandArgs': command_args
+    }
+    
     message_body = json.dumps({
-        'commandArgs': command_args,
+        'taskContext': task_context,
         'invocationId': invocation_id,
         'taskFamily': task_family
     })

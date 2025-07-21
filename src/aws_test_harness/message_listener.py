@@ -14,6 +14,7 @@ from .a_state_machine_execution_failure import AStateMachineExecutionFailure
 from .a_thrown_exception import AThrownException
 from .exit_code import ExitCode
 from .aws_test_double_driver import AWSTestDoubleDriver
+from .task_context import TaskContext
 
 
 class MessageListener(Thread):
@@ -189,17 +190,18 @@ class MessageListener(Thread):
         )
 
     def __generate_result_record_for_ecs_task_execution(self, event_message_payload: Dict[str, Any]) -> Dict[str, Any]:
-        command_args = event_message_payload['commandArgs']
+        task_context_data = event_message_payload['taskContext']
         invocation_id = event_message_payload['invocationId']
         task_family = event_message_payload['taskFamily']
 
         print(f"{task_family} task execution with invocation ID {invocation_id} "
-              f"received command args {command_args}")
+              f"received task context {task_context_data}")
 
         handler_id = self.__get_ecs_task_handler_id(task_family)
         task_handler = self.__event_handlers[handler_id]
 
-        task_result = task_handler(command_args)
+        task_context = TaskContext(task_context_data['commandArgs'])
+        task_result = task_handler(task_context)
         assert isinstance(task_result, ExitCode)
         exit_code = cast(ExitCode, task_result)
 
@@ -211,7 +213,7 @@ class MessageListener(Thread):
             result=result,
             taskFamily=task_family,
             invocationId=invocation_id,
-            commandArgs=command_args,
+            taskContext=task_context_data,
             ttl=int((datetime.now() + timedelta(hours=12)).timestamp())
         )
 

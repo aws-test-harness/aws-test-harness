@@ -53,9 +53,9 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
 
     first_bucket = test_double_driver.get_s3_bucket('First')
 
-    def data_processor_ecs_task_handler(command_args):
-        bucket_key = command_args[0]
-        content = command_args[1]
+    def data_processor_ecs_task_handler(task_context):
+        bucket_key = task_context.command_args[0]
+        content = task_context.command_args[1]
         first_bucket.put_object(bucket_key, content)
         return ExitCode(0)
 
