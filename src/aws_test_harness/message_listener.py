@@ -200,7 +200,10 @@ class MessageListener(Thread):
         handler_id = self.__get_ecs_task_handler_id(task_family)
         task_handler = self.__event_handlers[handler_id]
 
-        task_context = TaskContext(task_context_data['commandArgs'])
+        task_context = TaskContext(
+            task_context_data['commandArgs'],
+            task_context_data['environmentVars']
+        )
         task_result = task_handler(task_context)
         assert isinstance(task_result, ExitCode)
         exit_code = cast(ExitCode, task_result)

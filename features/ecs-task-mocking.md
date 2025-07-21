@@ -229,9 +229,12 @@ ECS infrastructure is working correctly. Need to implement the mocking framework
 
 **Immediate Next Steps**:
 1. **Extend ECS task exit code control** - Modify `ecs_task_runner.py` to support configurable exit codes based on mock handler return values ✅ COMPLETED
-2. **Pass all environment variables to mock handler** - Make all ECS task environment variables available to the local handler function so it can conditionally behave based on Step Functions state-specific environment variable values
-3. **Provide script parameters to mock handler** - Pass any command-line arguments/parameters provided to the Python script to the mock handler for additional conditional behavior control ✅ COMPLETED
+2. **Pass all environment variables to mock handler** - Make all ECS task environment variables available to the local handler function so it can conditionally behave based on Step Functions state-specific environment variable values ✅ COMPLETED
+3. **Provide script parameters to mock handler** - Pass any command-line arguments/parameters provided to the Python script to the mock handler for additional conditional behavior control ✅ COMPLETED  
 4. **Test command override behavior** - Add test to verify that Step Functions can pass arguments via ContainerOverrides.Command and that the ECS task runner receives and processes them correctly (enabled by ENTRYPOINT change) ✅ COMPLETED
+
+**Outstanding Work**:
+1. **Protect infrastructure environment variables** - Implement safeguards to prevent users from overriding critical infrastructure environment variables (EVENTS_QUEUE_URL, RESULTS_TABLE_NAME, TEST_CONTEXT_BUCKET_NAME, TASK_FAMILY) through ContainerOverrides.Environment, which could break the mocking framework's operation
 
 **Files Modified**:
 - `infrastructure/macros/src/test_doubles.py` - Added ECS execution role and updated task definition

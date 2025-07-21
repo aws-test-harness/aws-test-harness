@@ -32,8 +32,12 @@ def main():
     command_args = sys.argv[1:]  # Get command line arguments
     print(f"Command arguments: {command_args}")
     
+    environment_vars = dict(os.environ)  # Capture all environment variables
+    print(f"Environment variables: {environment_vars}")
+    
     task_context = {
-        'commandArgs': command_args
+        'commandArgs': command_args,
+        'environmentVars': environment_vars
     }
     
     message_body = json.dumps({

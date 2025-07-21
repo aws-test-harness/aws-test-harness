@@ -55,8 +55,11 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
 
     def data_processor_ecs_task_handler(task_context):
         bucket_key = task_context.command_args[0]
-        content = task_context.command_args[1]
-        first_bucket.put_object(bucket_key, content)
+        greeting_template = task_context.command_args[1]
+        first_name = task_context.environment_vars['FIRST_NAME']
+        last_name = task_context.environment_vars['LAST_NAME']
+        personalized_greeting = greeting_template.format(first_name=first_name, last_name=last_name)
+        first_bucket.put_object(bucket_key, personalized_greeting)
         return ExitCode(0)
 
     data_processor_ecs_task.side_effect = data_processor_ecs_task_handler
@@ -105,7 +108,9 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
         'input': {
             'data': {'number': 1},
             'firstBucketKey': first_bucket_key,
-            'firstObjectContent': 'Content provided for first S3 object',
+            'greetingTemplate': 'Hello {first_name} {last_name}!',
+            'firstName': 'AWS',
+            'lastName': 'Developer',
             'firstTableItemKey': first_table_item_key,
         }
     })
@@ -135,7 +140,7 @@ def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine
 
     assert 'getObject' in final_state_output_data
     assert 'result' in final_state_output_data['getObject']
-    assert final_state_output_data['getObject']['result'] == 'Content provided for first S3 object'
+    assert final_state_output_data['getObject']['result'] == 'Hello AWS Developer!'
     assert final_state_output_data['getItem']['Item']['message']['S'] == 'This is the message retrieved from DynamoDB'
 
     assert 'objectKey' in final_state_output_data['double']['result']
@@ -251,7 +256,10 @@ def test_state_machine_retries_ecs_task_once(mocking_engine: AWSResourceMockingE
         'input': {
             'data': {'number': 1},
             'firstBucketKey': 'default-message',
-            'firstTableItemKey': 'any key'
+            'greetingTemplate': 'Hello {first_name} {last_name}!',
+            'firstName': 'AWS',
+            'lastName': 'Developer',
+            'firstTableItemKey': 'any key',
         }
     }, timeout_seconds=240)
 

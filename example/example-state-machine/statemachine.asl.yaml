@@ -19,7 +19,12 @@ States:
       Overrides:
         ContainerOverrides:
           - Name: DataProcessor
-            Command.$: "States.Array($.input.firstBucketKey, $.input.firstObjectContent)"
+            Command.$: "States.Array($.input.firstBucketKey, $.input.greetingTemplate)"
+            Environment:
+              - Name: FIRST_NAME
+                Value.$: $.input.firstName
+              - Name: LAST_NAME
+                Value.$: $.input.lastName
       NetworkConfiguration:
         AwsvpcConfiguration:
           Subnets:
