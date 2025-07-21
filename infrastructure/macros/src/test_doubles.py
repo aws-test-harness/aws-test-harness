@@ -255,10 +255,9 @@ def create_minimal_ecs_task_definition(task_family):
                     Essential=True,
                     StopTimeout=10,
                     Environment=[
-                        dict(Name='EVENTS_QUEUE_URL', Value={'Ref': 'EventsQueue'}),
-                        dict(Name='TEST_CONTEXT_BUCKET_NAME', Value={'Ref': 'TestContextBucket'}),
-                        dict(Name='RESULTS_TABLE_NAME', Value={'Ref': 'ResultsTable'}),
-                        dict(Name='TASK_FAMILY', Value=task_family)
+                        dict(Name='__AWS_TEST_HARNESS__EVENTS_QUEUE_URL', Value={'Ref': 'EventsQueue'}),
+                        dict(Name='__AWS_TEST_HARNESS__TEST_CONTEXT_BUCKET_NAME', Value={'Ref': 'TestContextBucket'}),
+                        dict(Name='__AWS_TEST_HARNESS__RESULTS_TABLE_NAME', Value={'Ref': 'ResultsTable'})
                     ],
                     LogConfiguration=dict(
                         LogDriver='awslogs',

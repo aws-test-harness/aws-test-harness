@@ -91,14 +91,14 @@ class MessageListener(Thread):
 
     def register_state_machine_execution_input_handler(
             self,
-            state_machine_name: str,
+            state_machine_arn: str,
             execution_input_handler: Callable[[Dict[str, any]], Dict[str, any]]
     ):
-        handler_id = self.__get_state_machine_execution_input_handler_id(state_machine_name)
+        handler_id = self.__get_state_machine_execution_input_handler_id(state_machine_arn)
         self.__event_handlers[handler_id] = execution_input_handler
 
-    def register_ecs_task_handler(self, task_family: str, task_handler: Callable[[List[str]], ExitCode]):
-        handler_id = self.__get_ecs_task_handler_id(task_family)
+    def register_ecs_task_handler(self, task_definition_arn: str, task_handler: Callable[[List[str]], ExitCode]):
+        handler_id = self.__get_ecs_task_handler_id(task_definition_arn)
         self.__event_handlers[handler_id] = task_handler
 
     def __consume_message(self, message: Dict[str, Any]) -> None:
@@ -192,12 +192,12 @@ class MessageListener(Thread):
     def __generate_result_record_for_ecs_task_execution(self, event_message_payload: Dict[str, Any]) -> Dict[str, Any]:
         task_context_data = event_message_payload['taskContext']
         invocation_id = event_message_payload['invocationId']
-        task_family = event_message_payload['taskFamily']
+        task_definition_arn = event_message_payload['taskDefinitionArn']
 
-        print(f"{task_family} task execution with invocation ID {invocation_id} "
+        print(f"{task_definition_arn} task execution with invocation ID {invocation_id} "
               f"received task context {task_context_data}")
 
-        handler_id = self.__get_ecs_task_handler_id(task_family)
+        handler_id = self.__get_ecs_task_handler_id(task_definition_arn)
         task_handler = self.__event_handlers[handler_id]
 
         task_context = TaskContext(
@@ -212,9 +212,9 @@ class MessageListener(Thread):
         print(f'Returning result: {json.dumps(result)}')
 
         return dict(
-            partitionKey=f'{task_family}#{invocation_id}',
+            partitionKey=f'{task_definition_arn}#{invocation_id}',
             result=result,
-            taskFamily=task_family,
+            taskFamily=task_definition_arn,
             invocationId=invocation_id,
             taskContext=task_context_data,
             ttl=int((datetime.now() + timedelta(hours=12)).timestamp())
@@ -225,9 +225,9 @@ class MessageListener(Thread):
         return f'LambdaFunction::{function_name}'
 
     @staticmethod
-    def __get_state_machine_execution_input_handler_id(state_machine_name: str) -> str:
-        return f'StateMachine::{state_machine_name}'
+    def __get_state_machine_execution_input_handler_id(state_machine_arn: str) -> str:
+        return f'StateMachine::{state_machine_arn}'
 
     @staticmethod
-    def __get_ecs_task_handler_id(task_family: str) -> str:
-        return f'ECSTask::{task_family}'
+    def __get_ecs_task_handler_id(task_definition_arn: str) -> str:
+        return f'ECSTask::{task_definition_arn}'

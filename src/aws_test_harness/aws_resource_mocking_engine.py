@@ -56,7 +56,7 @@ class AWSResourceMockingEngine:
         mock.side_effect = handle_execution_input
 
         self.__message_listener.register_state_machine_execution_input_handler(
-            self.__test_double_driver.get_state_machine_name(state_machine_id),
+            self.__test_double_driver.get_state_machine_arn(state_machine_id),
             mock
         )
 
@@ -65,17 +65,18 @@ class AWSResourceMockingEngine:
 
         return mock
 
-    def mock_an_ecs_task(self, task_family: str,
+    def mock_an_ecs_task(self, task_definition_id: str,
                          task_handler: Callable[[List[str]], ExitCode]) -> Mock:
         def ecs_task_handler(_: List[str]) -> ExitCode:
             pass
 
-        mock: Mock = create_autospec(ecs_task_handler, name=task_family)
+        mock: Mock = create_autospec(ecs_task_handler, name=task_definition_id)
         mock.side_effect = task_handler
 
-        self.__message_listener.register_ecs_task_handler(task_family, mock)
+        task_definition_arn = self.__test_double_driver.get_task_definition_arn(task_definition_id)
+        self.__message_listener.register_ecs_task_handler(task_definition_arn, mock)
 
-        mock_id = self.__get_ecs_task_mock_id(task_family)
+        mock_id = self.__get_ecs_task_mock_id(task_definition_id)
         self.__mock_event_handlers[mock_id] = mock
 
         return mock

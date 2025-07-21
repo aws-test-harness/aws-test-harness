@@ -2,16 +2,30 @@ import json
 import os
 import sys
 import boto3
+import requests
 from time import sleep, time
 from uuid import uuid4
+
+
+def fetch_task_metadata():
+    response = requests.get(f"{os.environ['ECS_CONTAINER_METADATA_URI_V4']}/task", timeout=5)
+    response.raise_for_status()
+    task_metadata = response.json()
+
+    task_family = task_metadata['Family']
+    arn_parts = task_metadata['TaskARN'].split(':')
+    arn_prefix = ':'.join(arn_parts[:5])
+    task_definition_arn = f"{arn_prefix}:task-definition/{task_family}:{task_metadata['Revision']}"
+
+    return task_definition_arn, task_family
 
 
 def main():
     print("ECS Task Runner starting...")
     
-    events_queue_url = os.environ.get('EVENTS_QUEUE_URL')
-    test_context_bucket_name = os.environ.get('TEST_CONTEXT_BUCKET_NAME')
-    results_table_name = os.environ.get('RESULTS_TABLE_NAME')
+    events_queue_url = os.environ.get('__AWS_TEST_HARNESS__EVENTS_QUEUE_URL')
+    test_context_bucket_name = os.environ.get('__AWS_TEST_HARNESS__TEST_CONTEXT_BUCKET_NAME')
+    results_table_name = os.environ.get('__AWS_TEST_HARNESS__RESULTS_TABLE_NAME')
     
     s3 = boto3.client('s3')
     get_object_response = s3.get_object(Bucket=test_context_bucket_name, Key='test-id')
@@ -23,7 +37,7 @@ def main():
     results_table = boto3.resource('dynamodb').Table(results_table_name)
     
     invocation_id = str(uuid4())
-    task_family = os.environ['TASK_FAMILY']
+    task_definition_arn, task_family = fetch_task_metadata()
 
     message_body = json.dumps(dict(
         taskContext=dict(
@@ -31,13 +45,13 @@ def main():
             environmentVariables=dict(os.environ)
         ),
         invocationId=invocation_id,
-        taskFamily=task_family
+        taskDefinitionArn=task_definition_arn
     ))
     
     sqs.send_message(
         QueueUrl=events_queue_url,
         MessageBody=message_body,
-        MessageGroupId=task_family,
+        MessageGroupId=task_family, # Cannot use task ARN due to constraints on MessageGroupId values
         MessageAttributes={
             'InvocationType': {
                 'StringValue': 'ECS Task Execution',
@@ -61,7 +75,7 @@ def main():
         print("Polling for result...")
         
         get_item_result = results_table.get_item(
-            Key={'partitionKey': f'{task_family}#{invocation_id}'}
+            Key={'partitionKey': f'{task_definition_arn}#{invocation_id}'}
         )
         
         if 'Item' in get_item_result:
