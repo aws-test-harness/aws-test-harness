@@ -1,19 +1,19 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Parameters:
-  InputTransformerFunctionName:
-    Type: String
-  DoublerFunctionName:
-    Type: String
   FirstTableName:
+    Type: String
+  SecondTableName:
     Type: String
   FirstBucketName:
     Type: String
   SecondBucketName:
     Type: String
-  MultiplierStateMachineArn:
+  FirstFunctionName:
     Type: String
-  DataProcessorTaskDefinitionArn:
+  FirstStateMachineArn:
+    Type: String
+  FirstTaskDefinitionArn:
     Type: String
   ECSClusterArn:
     Type: String
@@ -36,35 +36,35 @@ Resources:
     Properties:
       DefinitionUri: statemachine.asl.yaml
       DefinitionSubstitutions:
-        InputTransformerFunctionName: !Ref InputTransformerFunctionName
-        DoublerFunctionName: !Ref DoublerFunctionName
         FirstTableName: !Ref FirstTableName
+        SecondTableName: !Ref SecondTableName
         FirstBucketName: !Ref FirstBucketName
         SecondBucketName: !Ref SecondBucketName
-        MultiplierStateMachineArn: !Ref MultiplierStateMachineArn
-        DataProcessorTaskDefinitionArn: !Ref DataProcessorTaskDefinitionArn
+        FirstFunctionName: !Ref FirstFunctionName
+        FirstStateMachineArn: !Ref FirstStateMachineArn
+        FirstTaskDefinitionArn: !Ref FirstTaskDefinitionArn
         ECSClusterArn: !Ref ECSClusterArn
         VpcId: !Ref VpcId
         SubnetIds: !Ref SubnetIds
         SecurityGroupIds: !Ref SecurityGroupIds
       Policies:
-        - LambdaInvokePolicy:
-            FunctionName: !Ref InputTransformerFunctionName
-        - LambdaInvokePolicy:
-            FunctionName: !Ref DoublerFunctionName
         - S3ReadPolicy:
             BucketName: !Ref FirstBucketName
         - S3WritePolicy:
             BucketName: !Ref SecondBucketName
         - DynamoDBReadPolicy:
             TableName: !Ref FirstTableName
+        - DynamoDBWritePolicy:
+            TableName: !Ref SecondTableName
+        - LambdaInvokePolicy:
+            FunctionName: !Ref FirstFunctionName
         - Version: 2012-10-17
           Statement:
             - Effect: Allow
               Action:
                 - states:StartExecution
               Resource:
-                - !Ref MultiplierStateMachineArn
+                - !Ref FirstStateMachineArn
         - Version: 2012-10-17
           Statement:
             - Effect: Allow
@@ -72,13 +72,14 @@ Resources:
                 - states:DescribeExecution
                 - states:StopExecution
               Resource:
-                - !Sub ${MultiplierStateMachineArn}:*
+                - !Sub ${FirstStateMachineArn}:*
         - Version: 2012-10-17
           Statement:
             - Effect: Allow
               Action:
                 - ecs:RunTask
-              Resource: !Ref DataProcessorTaskDefinitionArn
+              Resource:
+                - !Ref FirstTaskDefinitionArn
             - Effect: Allow
               Action:
                 - iam:PassRole

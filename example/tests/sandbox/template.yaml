@@ -39,10 +39,10 @@ Resources:
               PartitionKey:
                 Name: ID
                 Type: S
-        LambdaFunctionNames: InputTransformer, Doubler
-        StateMachineNames: Multiplier
+        LambdaFunctionNames: First, Second
+        StateMachineNames: First, Second
         S3BucketNames: First, Second
-        ECSTaskFamilies: DataProcessor
+        ECSTaskFamilies: First, Second
       TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/aws-test-harness-templates/test-doubles.yaml
   ExampleStateMachine:
     Type: AWS::Serverless::Application
@@ -50,13 +50,13 @@ Resources:
       Location: ../../example-state-machine/template.yaml
       Parameters:
         OutOfBandDeploymentSupport: "true"
-        InputTransformerFunctionName: !GetAtt AWSTestHarnessTestDoubles.Outputs.InputTransformerLambdaFunctionName
-        DoublerFunctionName: !GetAtt AWSTestHarnessTestDoubles.Outputs.DoublerLambdaFunctionName
         FirstTableName: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstDynamoDBTableName
+        SecondTableName: !GetAtt AWSTestHarnessTestDoubles.Outputs.SecondDynamoDBTableName
         FirstBucketName: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstS3BucketName
         SecondBucketName: !GetAtt AWSTestHarnessTestDoubles.Outputs.SecondS3BucketName
-        MultiplierStateMachineArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.MultiplierStateMachineArn
-        DataProcessorTaskDefinitionArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.DataProcessorTaskDefinitionArn
+        FirstFunctionName: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstLambdaFunctionName
+        FirstStateMachineArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstStateMachineArn
+        FirstTaskDefinitionArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstTaskDefinitionArn
         ECSClusterArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.ECSClusterArn
         VpcId: !Ref VpcId
         SubnetIds: !Join [",", !Ref SubnetIds]

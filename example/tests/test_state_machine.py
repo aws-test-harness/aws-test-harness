@@ -1,274 +1,258 @@
+import json
 import pytest
 from datetime import datetime, timedelta
-from unittest.mock import call
+from typing import cast
+from unittest.mock import ANY
 from uuid import uuid4
 
 from aws_test_harness.a_state_machine_execution_failure import a_state_machine_execution_failure
 from aws_test_harness.a_thrown_exception import an_exception_thrown_with_message
-from aws_test_harness.exit_code import ExitCode
 from aws_test_harness.aws_resource_driver import AWSResourceDriver
 from aws_test_harness.aws_resource_mocking_engine import AWSResourceMockingEngine
 from aws_test_harness.aws_test_double_driver import AWSTestDoubleDriver
+from aws_test_harness.exit_code import ExitCode
+from aws_test_harness.state_machine import StateMachine
+from aws_test_harness.task_context import TaskContext
 
 
-@pytest.fixture(scope="session", autouse=True)
-def reset_database(test_double_driver: AWSTestDoubleDriver):
-    first_table = test_double_driver.get_dynamodb_table('First')
-    first_table.empty()
-
-    second_table = test_double_driver.get_dynamodb_table('Second')
-    second_table.empty()
+@pytest.fixture(scope="function")
+def state_machine(resource_driver: AWSResourceDriver):
+    return resource_driver.get_state_machine("ExampleStateMachine::StateMachine")
 
 
-@pytest.fixture(scope="function", autouse=True)
-def setup_default_mock_behaviour(mocking_engine: AWSResourceMockingEngine,
-                                 test_double_driver: AWSTestDoubleDriver):
-    mocking_engine.mock_an_ecs_task(
-        'DataProcessor',
-        lambda command_args: ExitCode(0)
+def test_lambda_function_test_double(
+        mocking_engine: AWSResourceMockingEngine,
+        state_machine: StateMachine
+):
+    test_double = mocking_engine.mock_a_lambda_function(
+        "First",
+        lambda event: {"value": event["value"] * 2}
     )
 
-    mocking_engine.mock_a_lambda_function(
-        'InputTransformer',
-        lambda event: {'number': event['data']['number']}
+    execution = state_machine.execute({
+        "input": {
+            "integrationType": "LAMBDA_INVOKE",
+            "value": 10
+        }
+    })
+
+    execution.assert_succeeded()
+    assert execution.output_json["lambdaFunctionInvoke"]["result"]["value"] == 20
+    test_double.assert_called_once_with({"value": 10})
+
+
+def test_instructing_lambda_function_test_double_to_fail(
+        mocking_engine: AWSResourceMockingEngine,
+        state_machine: StateMachine
+):
+    test_double = mocking_engine.mock_a_lambda_function(
+        'First',
+        lambda _: an_exception_thrown_with_message("the error message")
     )
 
-    mocking_engine.mock_a_lambda_function(
-        'Doubler',
-        lambda event: {'number': event['number'], 'objectKey': 'any-object-key'}
+    execution = state_machine.execute({
+        "input": {
+            "integrationType": "LAMBDA_INVOKE",
+            "value": 10
+        }
+    })
+
+    assert execution.failed
+    assert execution.failure_error == "Exception"
+    failure_cause_data = json.loads(execution.failure_cause)
+    assert failure_cause_data['errorMessage'] == "the error message"
+
+
+def test_state_machine_test_double_with_start_execution_sync_integration(
+        mocking_engine: AWSResourceMockingEngine,
+        state_machine: StateMachine
+):
+    test_double = mocking_engine.mock_a_state_machine(
+        "First",
+        lambda execution_input: dict(result=execution_input["value"] * 3)
     )
 
+    execution = state_machine.execute({
+        "input": {
+            "integrationType": "STATES_START_EXECUTION_SYNC",
+            "value": 4
+        }
+    })
+
+    execution.assert_succeeded()
+    assert execution.output_json["statesStartExecutionSync"]["result"] == 12
+    test_double.assert_called_once_with({
+        "value": 4,
+        "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID": ANY
+    })
+
+
+def test_instructing_state_machine_test_double_to_fail(
+        mocking_engine: AWSResourceMockingEngine,
+        state_machine: StateMachine
+):
     mocking_engine.mock_a_state_machine(
-        'Multiplier',
-        lambda execution_input: {'number': execution_input['number'] * execution_input['factor']}
+        'First',
+        lambda _: a_state_machine_execution_failure(error="TheErrorCode", cause="the failure cause")
     )
 
-    first_bucket = test_double_driver.get_s3_bucket('First')
-    first_bucket.put_object('default-message', 'default message')
+    execution = state_machine.execute({
+        "input": {
+            "integrationType": "STATES_START_EXECUTION_SYNC",
+            "value": 0
+        }
+    })
+
+    assert execution.failed
+    assert execution.failure_error == "States.TaskFailed"
+
+    failure_cause_data = json.loads(execution.failure_cause)
+    assert failure_cause_data['Error'] == "TheErrorCode"
+    assert failure_cause_data['Cause'] == "the failure cause"
 
 
-def test_state_machine_transforms_input(mocking_engine: AWSResourceMockingEngine, resource_driver: AWSResourceDriver,
-                                        test_double_driver: AWSTestDoubleDriver):
-    data_processor_ecs_task = mocking_engine.get_mock_ecs_task('DataProcessor')
+def test_dynamodb_test_double(
+        mocking_engine: AWSResourceMockingEngine,
+        test_double_driver: AWSTestDoubleDriver,
+        state_machine: StateMachine
+):
+    first_test_double = test_double_driver.get_dynamodb_table("First")
+    first_item_key = str(uuid4())
+    first_item_sort_key = str(uuid4())
+    dynamodb_record_ttl = int((datetime.now() + timedelta(hours=1)).timestamp())
 
-    first_bucket = test_double_driver.get_s3_bucket('First')
+    first_test_double.put_item(
+        {
+            "PK": first_item_key,
+            "SK": first_item_sort_key,
+            "message": "Hello World!",
+            "TTL": dynamodb_record_ttl,
+        }
+    )
 
-    def data_processor_ecs_task_handler(task_context):
-        task_command_args = task_context.command_args
-        task_env_vars = task_context.env_vars
+    second_item_key = str(uuid4())
 
-        greeting_template = task_command_args[1]
+    execution = state_machine.execute(
+        {
+            "input": {
+                "integrationType": "DYNAMODB",
+                "firstKey": first_item_key,
+                "sortKey": first_item_sort_key,
+                "secondKey": second_item_key,
+                "textToAppend": " - Processed",
+                "dynamodbRecordTTL": dynamodb_record_ttl,
+            }
+        }
+    )
 
-        first_bucket.put_object(
-            key=task_command_args[0],
+    execution.assert_succeeded()
+
+    second_test_double = test_double_driver.get_dynamodb_table("Second")
+    second_item = second_test_double.get_item({"ID": second_item_key})
+    assert second_item["message"] == "Hello World! - Processed"
+
+
+def test_s3_test_double(
+        mocking_engine: AWSResourceMockingEngine,
+        test_double_driver: AWSTestDoubleDriver,
+        state_machine: StateMachine
+):
+    first_test_double = test_double_driver.get_s3_bucket("First")
+    first_object_key = f"input/{uuid4()}.txt"
+    first_test_double.put_object(first_object_key, "Hello S3 World!")
+
+    second_object_key = f"output/{uuid4()}.txt"
+
+    execution = state_machine.execute(
+        {
+            "input": {
+                "integrationType": "S3",
+                "firstKey": first_object_key,
+                "secondKey": second_object_key,
+                "textToAppend": " - Processed",
+            }
+        }
+    )
+
+    execution.assert_succeeded()
+
+    second_test_double = test_double_driver.get_s3_bucket("Second")
+    output_content = second_test_double.get_object(second_object_key)
+    assert output_content == '"Hello S3 World! - Processed"'
+
+
+def test_ecs_task_test_double_with_run_task_sync_integration(
+        mocking_engine: AWSResourceMockingEngine,
+        test_double_driver: AWSTestDoubleDriver,
+        state_machine: StateMachine
+):
+    bucket = test_double_driver.get_s3_bucket("First")
+
+    def ecs_task_handler(task_context):
+        s3_object_key = task_context.command_args[0]
+        greeting_template = task_context.command_args[1]
+
+        bucket.put_object(
+            key=s3_object_key,
             content=greeting_template.format(
-                first_name=task_env_vars['FIRST_NAME'],
-                last_name=task_env_vars['LAST_NAME']
+                first_name=task_context.env_vars["FIRST_NAME"],
+                last_name=task_context.env_vars["LAST_NAME"],
             )
         )
 
         return ExitCode(0)
 
-    data_processor_ecs_task.side_effect = data_processor_ecs_task_handler
+    test_double = mocking_engine.mock_an_ecs_task("First", ecs_task_handler)
 
-    first_table = test_double_driver.get_dynamodb_table('First')
-    first_table_item_key = str(uuid4())
-    first_table.put_item({
-        'PK': first_table_item_key,
-        'SK': '1',
-        'TTL': int((datetime.now() + timedelta(hours=1)).timestamp()),
-        'message': 'This is the message retrieved from DynamoDB',
-    })
+    output_key = f"{uuid4()}.txt"
 
-    input_transformer_function = mocking_engine.get_mock_lambda_function('InputTransformer')
-    input_transformer_function.side_effect = lambda event: {'number': event['data']['number'] + 1}
-
-    doubler_function = mocking_engine.get_mock_lambda_function('Doubler')
-
-    second_bucket = test_double_driver.get_s3_bucket('Second')
-    second_table = test_double_driver.get_dynamodb_table('Second')
-
-    second_bucket_key = None
-
-    def doubler_function_handler(event):
-        nonlocal second_bucket_key
-
-        number = event["number"]
-        second_bucket_key = str(uuid4())
-        second_bucket.put_object(second_bucket_key, f'Number passed to doubler function: {number}')
-        record_key = str(uuid4())
-        second_table.put_item({
-            'ID': record_key,
-            'TTL': int((datetime.now() + timedelta(hours=1)).timestamp()),
-            'message': f'Number passed to doubler function: {number}',
-        })
-
-        return {'number': number * 2, 'objectKey': second_bucket_key, 'recordKey': record_key}
-
-    doubler_function.side_effect = doubler_function_handler
-
-    state_machine = resource_driver.get_state_machine("ExampleStateMachine::StateMachine")
-
-    first_bucket_key = f'data/message-{uuid4()}'
-
-    execution = state_machine.start_execution({
-        'input': {
-            'data': {'number': 1},
-            'firstBucketKey': first_bucket_key,
-            'greetingTemplate': 'Hello {first_name} {last_name}!',
-            'firstName': 'AWS',
-            'lastName': 'Developer',
-            'firstTableItemKey': first_table_item_key,
-        }
-    })
-
-    assert execution.name.startswith('test-')
-
-    execution.wait_for_completion(timeout_seconds=90)
-    execution.assert_succeeded()
-
-    final_state_output_data = execution.output_json
-
-    multiplier_state_machine = mocking_engine.get_mock_state_machine('Multiplier')
-    multiplier_state_machine.assert_called_once()
-    multiplier_state_machine_input = multiplier_state_machine.call_args[0][0]
-    assert multiplier_state_machine_input['number'] == 4
-    assert multiplier_state_machine_input['factor'] == 3
-
-    assert 'multiply' in final_state_output_data
-    assert 'result' in final_state_output_data['multiply']
-    assert 'number' in final_state_output_data['multiply']['result']
-    assert final_state_output_data['multiply']['result']['number'] == 12
-
-    assert 'double' in final_state_output_data
-    assert 'result' in final_state_output_data['double']
-    assert 'number' in final_state_output_data['double']['result']
-    assert final_state_output_data['double']['result']['number'] == 4
-
-    assert 'getObject' in final_state_output_data
-    assert 'result' in final_state_output_data['getObject']
-    assert final_state_output_data['getObject']['result'] == 'Hello AWS Developer!'
-    assert final_state_output_data['getItem']['Item']['message']['S'] == 'This is the message retrieved from DynamoDB'
-
-    assert 'objectKey' in final_state_output_data['double']['result']
-    object_key_from_result = final_state_output_data['double']['result']['objectKey']
-    object_content = second_bucket.get_object(object_key_from_result)
-    assert object_content == 'Number passed to doubler function: 2'
-
-    assert 'recordKey' in final_state_output_data['double']['result']
-    record_key_from_result = final_state_output_data['double']['result']['recordKey']
-    item = second_table.get_item(dict(ID=record_key_from_result))
-    assert item['message'] == 'Number passed to doubler function: 2'
-
-    data_processor_ecs_task.assert_called_once()
-    input_transformer_function.assert_called_with({'data': {'number': 1}})
-    doubler_function.assert_called_with({'number': 2})
-
-    assert first_bucket_key in first_bucket.list_objects(prefix='data/')
-    assert first_bucket.list_objects(prefix='data2/') == []
-    assert second_bucket_key in second_bucket.list_objects()
-
-
-def test_state_machine_retries_input_transformation_once(mocking_engine: AWSResourceMockingEngine,
-                                                         resource_driver: AWSResourceDriver):
-    input_transformer_function = mocking_engine.get_mock_lambda_function('InputTransformer')
-    input_transformer_function.side_effect = [
-        an_exception_thrown_with_message("the error message"),
-        {'number': 2},
-    ]
-
-    state_machine = resource_driver.get_state_machine("ExampleStateMachine::StateMachine")
-
-    execution = state_machine.execute({
-        'input': {
-            'data': {'number': 1},
-            'firstBucketKey': 'default-message',
-            'firstTableItemKey': 'any key',
-            'skipECSTask': True
-        }
-    })
+    execution = state_machine.execute(
+        {
+            "input": {
+                "integrationType": "ECS_RUN_TASK_SYNC",
+                "outputKey": output_key,
+                "greetingTemplate": "Hello {first_name} {last_name}!",
+                "firstName": "ECS",
+                "lastName": "Developer",
+            }
+        },
+        timeout_seconds=60
+    )
 
     execution.assert_succeeded()
-    assert execution.output_json['double']['result']['number'] == 2
+    assert execution.output_json["ecsRunTaskSync"]["Containers"][0]["ExitCode"] == 0
 
-    input_transformer_function.assert_has_calls([
-        call({'data': {'number': 1}}),
-        call({'data': {'number': 1}})
-    ])
+    test_double.assert_called_once_with(TaskContext(
+        command_args=[output_key, "Hello {first_name} {last_name}!"],
+        env_vars=ANY
+    ))
 
-
-def test_state_machine_retries_doubling_once(mocking_engine: AWSResourceMockingEngine,
-                                             resource_driver: AWSResourceDriver):
-    doubler_function = mocking_engine.get_mock_lambda_function('Doubler')
-    doubler_function.side_effect = [
-        an_exception_thrown_with_message("the error message"),
-        {'number': 2},
-    ]
-
-    state_machine = resource_driver.get_state_machine("ExampleStateMachine::StateMachine")
-
-    execution = state_machine.execute({
-        'input': {
-            'data': {'number': 1},
-            'firstBucketKey': 'default-message',
-            'firstTableItemKey': 'any key',
-            'skipECSTask': True
-        }
-    })
-
-    execution.assert_succeeded()
-    assert execution.output_json['double']['result']['number'] == 2
-
-    doubler_function.assert_has_calls([
-        call({'number': 1}),
-        call({'number': 1})
-    ])
+    ecs_task_arg = cast(TaskContext, test_double.call_args.args[0])
+    assert ecs_task_arg.env_vars['FIRST_NAME'] == "ECS"
+    assert ecs_task_arg.env_vars['LAST_NAME'] == "Developer"
+    assert bucket.get_object(output_key) == "Hello ECS Developer!"
 
 
-def test_state_machine_retries_multiplying_once(mocking_engine: AWSResourceMockingEngine,
-                                                resource_driver: AWSResourceDriver):
-    multiplier_state_machine = mocking_engine.get_mock_state_machine('Multiplier')
-    multiplier_state_machine.side_effect = [
-        a_state_machine_execution_failure(error="TheErrorCode", cause="the failure cause"),
-        {'number': 6},
-    ]
+def test_instructing_ecs_task_test_double_to_fail(
+        mocking_engine: AWSResourceMockingEngine,
+        state_machine: StateMachine
+):
+    mocking_engine.mock_an_ecs_task('First', lambda _: ExitCode(1))
 
-    state_machine = resource_driver.get_state_machine("ExampleStateMachine::StateMachine")
+    execution = state_machine.execute(
+        {
+            "input": {
+                "integrationType": "ECS_RUN_TASK_SYNC",
+                "outputKey": 'any-output-key.txt',
+                "greetingTemplate": "any greeting template",
+                "firstName": "any first name",
+                "lastName": "any last name",
+            }
+        },
+        timeout_seconds=60
+    )
 
-    execution = state_machine.execute({
-        'input': {
-            'data': {'number': 1},
-            'firstBucketKey': 'default-message',
-            'firstTableItemKey': 'any key',
-            'skipECSTask': True
-        }
-    })
-
-    execution.assert_succeeded()
-    assert execution.output_json['multiply']['result']['number'] == 6
-    assert multiplier_state_machine.call_count == 2
-
-
-def test_state_machine_retries_ecs_task_once(mocking_engine: AWSResourceMockingEngine,
-                                             resource_driver: AWSResourceDriver):
-    ecs_task = mocking_engine.get_mock_ecs_task('DataProcessor')
-    ecs_task.side_effect = [
-        ExitCode(1),
-        ExitCode(0),
-    ]
-
-    state_machine = resource_driver.get_state_machine("ExampleStateMachine::StateMachine")
-
-    execution = state_machine.execute({
-        'input': {
-            'data': {'number': 1},
-            'firstBucketKey': 'default-message',
-            'greetingTemplate': 'Hello {first_name} {last_name}!',
-            'firstName': 'AWS',
-            'lastName': 'Developer',
-            'firstTableItemKey': 'any key',
-        }
-    }, timeout_seconds=240)
-
-    execution.assert_succeeded()
-    assert ecs_task.call_count == 2
+    assert execution.failed
+    assert execution.failure_error == "States.TaskFailed"
+    failure_cause_data = json.loads(execution.failure_cause)
+    assert failure_cause_data["Containers"][0]["ExitCode"] == 1

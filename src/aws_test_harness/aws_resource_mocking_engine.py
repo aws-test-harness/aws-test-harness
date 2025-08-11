@@ -4,9 +4,12 @@ from uuid import uuid4
 
 from boto3 import Session
 
+from .a_state_machine_execution_failure import AStateMachineExecutionFailure
+from .a_thrown_exception import AThrownException
 from .exit_code import ExitCode
 from .aws_test_double_driver import AWSTestDoubleDriver
 from .message_listener import MessageListener
+from .task_context import TaskContext
 
 
 class AWSResourceMockingEngine:
@@ -30,8 +33,8 @@ class AWSResourceMockingEngine:
         self.__message_listener.start()
 
     def mock_a_lambda_function(self, function_id: str,
-                               event_handler: Callable[[Dict[str, any]], Dict[str, any]]) -> Mock:
-        def lambda_handler(_: Dict[str, any]) -> Dict[str, any]:
+                               event_handler: Callable[[Dict[str, any]], Dict[str, any] | AThrownException]) -> Mock:
+        def lambda_handler(_: Dict[str, any]) -> Dict[str, any] | AThrownException:
             pass
 
         mock_event_handler: Mock = create_autospec(lambda_handler, name=function_id)
@@ -48,8 +51,9 @@ class AWSResourceMockingEngine:
         return mock_event_handler
 
     def mock_a_state_machine(self, state_machine_id,
-                             handle_execution_input: Callable[[Dict[str, any]], Dict[str, any]]) -> Mock:
-        def execution_input_handler(_: Dict[str, any]) -> Dict[str, any]:
+                             handle_execution_input: Callable[
+                                 [Dict[str, any]], Dict[str, any] | AStateMachineExecutionFailure]) -> Mock:
+        def execution_input_handler(_: Dict[str, any]) -> Dict[str, any] | AStateMachineExecutionFailure:
             pass
 
         mock: Mock = create_autospec(execution_input_handler, name=state_machine_id)
@@ -66,7 +70,7 @@ class AWSResourceMockingEngine:
         return mock
 
     def mock_an_ecs_task(self, task_definition_id: str,
-                         task_handler: Callable[[List[str]], ExitCode]) -> Mock:
+                         task_handler: Callable[[TaskContext], ExitCode]) -> Mock:
         def ecs_task_handler(_: List[str]) -> ExitCode:
             pass
 

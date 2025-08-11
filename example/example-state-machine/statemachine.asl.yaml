@@ -1,25 +1,102 @@
-StartAt: Check ECS Task
+StartAt: Select Integration
 States:
-  Check ECS Task:
+  Select Integration:
     Type: Choice
     Choices:
-      - And:
-        - Variable: $.input.skipECSTask
-          IsPresent: true
-        - Variable: $.input.skipECSTask
-          BooleanEquals: true
-        Next: DynamoDB GetItem
-    Default: Process Data
-  Process Data:
+      - Variable: $.input.integrationType
+        StringEquals: "LAMBDA_INVOKE"
+        Next: Lambda Function Invoke
+      - Variable: $.input.integrationType
+        StringEquals: "STATES_START_EXECUTION_SYNC"
+        Next: States Start Execution Sync
+      - Variable: $.input.integrationType
+        StringEquals: "DYNAMODB"
+        Next: DynamoDB Get Item
+      - Variable: $.input.integrationType
+        StringEquals: "S3"
+        Next: S3 Get Object
+      - Variable: $.input.integrationType
+        StringEquals: "ECS_RUN_TASK_SYNC"
+        Next: ECS Run Task Sync
+    Default: Succeed
+  Lambda Function Invoke:
+    Type: Task
+    Resource: arn:aws:states:::lambda:invoke
+    Parameters:
+      Payload:
+        "value.$": "$.input.value"
+      FunctionName: ${FirstFunctionName}
+    ResultPath: "$.lambdaFunctionInvoke"
+    ResultSelector:
+      "result.$": "$.Payload"
+    End: true
+  States Start Execution Sync:
+    Type: Task
+    Resource: arn:aws:states:::states:startExecution.sync:2
+    Parameters:
+      StateMachineArn: ${FirstStateMachineArn}
+      Input:
+        value.$: $.input.value
+        AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
+    ResultPath: "$.statesStartExecutionSync"
+    ResultSelector:
+      "result.$": "$.Output.result"
+    End: true
+  DynamoDB Get Item:
+    Type: Task
+    Resource: arn:aws:states:::dynamodb:getItem
+    Parameters:
+      TableName: ${FirstTableName}
+      Key:
+        PK:
+          S.$: $.input.firstKey
+        SK:
+          S.$: $.input.sortKey
+    ResultPath: $.firstTableItem
+    ResultSelector:
+      message.$: $.Item.message.S
+    Next: DynamoDB Put Item
+  DynamoDB Put Item:
+    Type: Task
+    Resource: arn:aws:states:::dynamodb:putItem
+    Parameters:
+      TableName: ${SecondTableName}
+      Item:
+        ID:
+          S.$: $.input.secondKey
+        message:
+          S.$: States.Format('{}{}', $.firstTableItem.message, $.input.textToAppend)
+        TTL:
+          N.$: States.Format('{}', $.input.dynamodbRecordTTL)
+    End: true
+  S3 Get Object:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:s3:getObject
+    Parameters:
+      Bucket: ${FirstBucketName}
+      Key.$: $.input.firstKey
+    ResultPath: $.firstBucketObject
+    ResultSelector:
+      content.$: $.Body
+    Next: S3 Put Object
+  S3 Put Object:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:s3:putObject
+    Parameters:
+      Bucket: ${SecondBucketName}
+      Key.$: $.input.secondKey
+      Body.$: States.Format('{}{}', $.firstBucketObject.content, $.input.textToAppend)
+    End: true
+  ECS Run Task Sync:
     Type: Task
     Resource: arn:aws:states:::ecs:runTask.sync
     Parameters:
       Cluster: ${ECSClusterArn}
-      TaskDefinition: ${DataProcessorTaskDefinitionArn}
+      TaskDefinition: ${FirstTaskDefinitionArn}
       Overrides:
         ContainerOverrides:
-          - Name: DataProcessor
-            Command.$: "States.Array($.input.firstBucketKey, $.input.greetingTemplate)"
+          - Name: First
+            Command.$: States.Array($.input.outputKey, $.input.greetingTemplate)
             Environment:
               - Name: FIRST_NAME
                 Value.$: $.input.firstName
@@ -32,78 +109,7 @@ States:
           SecurityGroups:
             - ${SecurityGroupIds}
           AssignPublicIp: ENABLED
-    ResultPath: $.processData
-    Retry:
-      - ErrorEquals:
-          - States.TaskFailed
-        MaxAttempts: 1
-    Next: DynamoDB GetItem
-  DynamoDB GetItem:
-    Type: Task
-    Resource: arn:aws:states:::dynamodb:getItem
-    Parameters:
-      TableName: ${FirstTableName}
-      Key:
-        PK:
-          S.$: $.input.firstTableItemKey
-        SK:
-          S: "1"
-    Next: Transform Input
-    ResultPath: $.getItem
-  Transform Input:
-    Type: Task
-    Resource: arn:aws:states:::lambda:invoke
-    Parameters:
-      Payload:
-        "data.$": "$.input.data"
-      FunctionName: ${InputTransformerFunctionName}
-    ResultPath: "$.transformInput"
-    ResultSelector:
-      "result.$": "$.Payload"
-    Retry:
-      - ErrorEquals:
-          - States.TaskFailed
-        MaxAttempts: 1
-    Next: Get Object
-  Get Object:
-    Type: Task
-    Parameters:
-      Bucket: ${FirstBucketName}
-      Key.$: $.input.firstBucketKey
-    Resource: arn:aws:states:::aws-sdk:s3:getObject
-    Next: Double
-    ResultPath: "$.getObject"
-    ResultSelector:
-      "result.$": "$.Body"
-  Double:
-    Type: Task
-    Resource: arn:aws:states:::lambda:invoke
-    Parameters:
-      Payload.$: $.transformInput.result
-      FunctionName: ${DoublerFunctionName}
-    ResultPath: "$.double"
-    ResultSelector:
-      "result.$": "$.Payload"
-    Retry:
-      - ErrorEquals:
-          - States.TaskFailed
-        MaxAttempts: 1
-    Next: Multiply
-  Multiply:
-    Type: Task
-    Resource: arn:aws:states:::states:startExecution.sync:2
-    Parameters:
-      StateMachineArn: ${MultiplierStateMachineArn}
-      Input:
-        number.$: $.double.result.number
-        factor: 3
-        # Associates nested workflow execution with the parent execution (https://docs.aws.amazon.com/step-functions/latest/dg/connect-stepfunctions.html#stepfunctions-iam)
-        AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
-    ResultPath: "$.multiply"
-    ResultSelector:
-      "result.$": "$.Output"
-    Retry:
-      - ErrorEquals:
-          - States.TaskFailed
-        MaxAttempts: 1
+    ResultPath: $.ecsRunTaskSync
     End: true
+  Succeed:
+    Type: Succeed

@@ -76,13 +76,6 @@ deploy-infrastructure: build-infrastructure
 		--aws-region $$(jq -r '.awsRegion' example/config.json) \
 		--macro-names-prefix MacroNamesPrefix-
 
-.PHONY: deploy-example
-deploy-example:
-	sam deploy \
-		--profile $$(jq -r '.awsDeploymentProfile' example/config.json) \
-		--template example/template.yaml \
-		--config-file samconfig.toml
-
 .PHONY: deploy-example-sandbox
 deploy-example-sandbox:
 	sam deploy \
