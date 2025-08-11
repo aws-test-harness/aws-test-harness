@@ -45,7 +45,7 @@ def test_instructing_lambda_function_test_double_to_fail(
         mocking_engine: AWSResourceMockingEngine,
         state_machine: StateMachine
 ):
-    test_double = mocking_engine.mock_a_lambda_function(
+    mocking_engine.mock_a_lambda_function(
         'First',
         lambda _: an_exception_thrown_with_message("the error message")
     )

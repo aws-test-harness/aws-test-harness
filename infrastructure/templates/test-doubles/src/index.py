@@ -22,7 +22,7 @@ def handler(event, _):
 
     invocation_context = dict(invocationId=invocation_id, mockingSessionId=mocking_session_id)
 
-    logger.info(f'Test double invocation started', extra=dict(**invocation_context, event=event))
+    logger.info('Test double invocation started', extra=dict(**invocation_context, event=event))
 
     message_payload = dict(
         event=json.dumps(event),
@@ -47,7 +47,7 @@ def handler(event, _):
     )
 
     logger.info(
-        f'Message sent to events queue',
+        'Message sent to events queue',
         extra=dict(
             **invocation_context,
             messagePayload=message_payload,
@@ -76,7 +76,7 @@ def handler(event, _):
                 exception_message = result['exceptionMessage']
 
                 logger.info(
-                    f'Result instructs function to throw exception',
+                    'Result instructs function to throw exception',
                     extra=dict(**invocation_context, exceptionMessage=exception_message, result=result)
                 )
 
@@ -85,7 +85,7 @@ def handler(event, _):
                 payload = json.loads(result['payload'])
 
                 logger.info(
-                    f'Result instructs function to return payload',
+                    'Result instructs function to return payload',
                     extra=dict(**invocation_context, payload=payload, result=result)
                 )
 
