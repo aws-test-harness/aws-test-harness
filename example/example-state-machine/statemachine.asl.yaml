@@ -1,4 +1,5 @@
 StartAt: Select Integration
+TimeoutSeconds: 60
 States:
   Select Integration:
     Type: Choice
@@ -18,6 +19,9 @@ States:
       - Variable: $.input.integrationType
         StringEquals: "ECS_RUN_TASK_SYNC"
         Next: ECS Run Task Sync
+      - Variable: $.input.integrationType
+        StringEquals: "ECS_RUN_TASK_CALLBACK"
+        Next: ECS Run Task Callback
     Default: Succeed
   Lambda Function Invoke:
     Type: Task
@@ -110,6 +114,32 @@ States:
             - ${SecurityGroupIds}
           AssignPublicIp: ENABLED
     ResultPath: $.ecsRunTaskSync
+    End: true
+  ECS Run Task Callback:
+    Type: Task
+    Resource: arn:aws:states:::ecs:runTask.waitForTaskToken
+    Parameters:
+      Cluster: ${ECSClusterArn}
+      TaskDefinition: ${FirstTaskDefinitionArn}
+      Overrides:
+        ContainerOverrides:
+          - Name: First
+            Command.$: States.Array($.input.outputKey, $.input.greetingTemplate)
+            Environment:
+              - Name: FIRST_NAME
+                Value.$: $.input.firstName
+              - Name: LAST_NAME
+                Value.$: $.input.lastName
+              - Name: AWS_STEP_FUNCTIONS_TASK_TOKEN
+                Value.$: $$.Task.Token
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - ${SubnetIds}
+          SecurityGroups:
+            - ${SecurityGroupIds}
+          AssignPublicIp: ENABLED
+    ResultPath: $.ecsRunTaskCallback
     End: true
   Succeed:
     Type: Succeed

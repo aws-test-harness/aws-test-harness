@@ -25,3 +25,9 @@ class StateMachine:
         )
 
         return StateMachineExecution(response["executionArn"], self.__sfn_client)
+
+    def send_task_success(self, task_token: str, output: dict):
+        self.__sfn_client.send_task_success(
+            taskToken=task_token,
+            output=json.dumps(output)
+        )

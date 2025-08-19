@@ -256,3 +256,38 @@ def test_instructing_ecs_task_test_double_to_fail(
     assert execution.failure_error == "States.TaskFailed"
     failure_cause_data = json.loads(execution.failure_cause)
     assert failure_cause_data["Containers"][0]["ExitCode"] == 1
+
+
+def test_ecs_task_callback_pattern_returns_processed_greeting(
+        mocking_engine: AWSResourceMockingEngine,
+        state_machine: StateMachine
+):
+    def ecs_callback_handler(task_context):
+        task_token = task_context.env_vars.get("AWS_STEP_FUNCTIONS_TASK_TOKEN")
+        greeting_template = task_context.command_args[1]
+
+        rendered_greeting = greeting_template.format(
+            first_name=task_context.env_vars["FIRST_NAME"],
+            last_name=task_context.env_vars["LAST_NAME"],
+        )
+
+        state_machine.send_task_success(task_token, {"greeting": rendered_greeting})
+        return ExitCode(0)
+
+    mocking_engine.mock_an_ecs_task("First", ecs_callback_handler)
+
+    execution = state_machine.execute(
+        {
+            "input": {
+                "integrationType": "ECS_RUN_TASK_CALLBACK",
+                "outputKey": "test-output.txt",
+                "greetingTemplate": "Hello {first_name} {last_name}!",
+                "firstName": "Test",
+                "lastName": "User",
+            }
+        },
+        timeout_seconds=60
+    )
+
+    execution.assert_succeeded()
+    assert execution.output_json["ecsRunTaskCallback"]["greeting"] == "Hello Test User!"

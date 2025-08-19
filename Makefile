@@ -82,6 +82,7 @@ deploy-example-sandbox:
 		--profile $$(jq -r '.awsDeploymentProfile' example/config.json) \
 		--template example/tests/sandbox/template.yaml \
 		--config-file samconfig.toml \
+		--max-wait-duration 5 \
 		--parameter-overrides \
 			StackTemplatesS3BucketName=$$(jq -r '.stackTemplatesS3BucketName' example/config.json) \
 			VpcId=$$(jq -r '.vpcId' example/config.json) \

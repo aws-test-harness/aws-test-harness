@@ -34,3 +34,8 @@ Resources:
                   - ExecutionArnPrefix: !Join
                     - ":execution:"
                     - !Split [":stateMachine:", !Ref StateMachineArn]
+              - Effect: Allow
+                Action:
+                  - states:SendTaskSuccess
+                  - states:SendTaskFailure
+                Resource: "*"
