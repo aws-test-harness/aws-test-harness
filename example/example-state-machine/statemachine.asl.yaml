@@ -124,12 +124,8 @@ States:
       Overrides:
         ContainerOverrides:
           - Name: First
-            Command.$: States.Array($.input.outputKey, $.input.greetingTemplate)
+            Command.$: States.Array($.input.data)
             Environment:
-              - Name: FIRST_NAME
-                Value.$: $.input.firstName
-              - Name: LAST_NAME
-                Value.$: $.input.lastName
               - Name: AWS_STEP_FUNCTIONS_TASK_TOKEN
                 Value.$: $$.Task.Token
       NetworkConfiguration:
