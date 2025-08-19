@@ -283,3 +283,30 @@ def test_ecs_task_callback_pattern_with_success(
 
     execution.assert_succeeded()
     assert execution.output_json["ecsRunTaskCallback"]["result"] == "processed-test-input"
+
+
+def test_ecs_task_callback_pattern_with_failure(
+        mocking_engine: AWSResourceMockingEngine,
+        state_machine: StateMachine
+):
+    def ecs_failure_callback_handler(task_context):
+        task_token = task_context.env_vars.get("AWS_STEP_FUNCTIONS_TASK_TOKEN")
+        
+        state_machine.send_task_failure(task_token, "ProcessingError", "Failed to process input data")
+        return ExitCode(0)
+
+    mocking_engine.mock_an_ecs_task("First", ecs_failure_callback_handler)
+
+    execution = state_machine.execute(
+        {
+            "input": {
+                "integrationType": "ECS_RUN_TASK_CALLBACK",
+                "data": "invalid-input"
+            }
+        },
+        timeout_seconds=60
+    )
+
+    assert execution.failed
+    assert execution.failure_error == "ProcessingError"
+    assert execution.failure_cause == "Failed to process input data"
