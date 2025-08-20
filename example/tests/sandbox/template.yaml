@@ -42,7 +42,16 @@ Resources:
         LambdaFunctionNames: First, Second
         StateMachineNames: First, Second
         S3BucketNames: First, Second
-        ECSTaskFamilies: First, Second
+        ECSTaskFamilies:
+          Fn::ToJsonString:
+            First:
+              Containers:
+                - Blue
+                - Yellow
+            Second:
+              Containers:
+                - Orange
+                - Green
       TemplateURL: !Sub https://${StackTemplatesS3BucketName}.s3.${AWS::Region}.amazonaws.com/aws-test-harness-templates/test-doubles.yaml
   ExampleStateMachine:
     Type: AWS::Serverless::Application

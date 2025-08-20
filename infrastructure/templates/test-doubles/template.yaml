@@ -18,8 +18,8 @@ Parameters:
     Type: CommaDelimitedList
     Default: ""
   ECSTaskFamilies:
-    Type: CommaDelimitedList
-    Default: ""
+    Type: String
+    Default: "{}"
 Resources:
   TestDoubleManagerRole:
     Type: AWS::IAM::Role

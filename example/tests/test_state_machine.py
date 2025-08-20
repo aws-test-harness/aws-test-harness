@@ -187,8 +187,9 @@ def test_ecs_task_test_double_with_run_task_sync_integration(
         state_machine: StateMachine
 ):
     bucket = test_double_driver.get_s3_bucket("First")
+    table = test_double_driver.get_dynamodb_table("First")
 
-    def ecs_task_handler(task_context):
+    def blue_container_handler(task_context):
         s3_object_key = task_context.command_args[0]
         greeting_template = task_context.command_args[1]
 
@@ -202,7 +203,25 @@ def test_ecs_task_test_double_with_run_task_sync_integration(
 
         return ExitCode(0)
 
-    test_double = mocking_engine.mock_an_ecs_task("First", ecs_task_handler)
+    def yellow_container_handler(task_context):
+        partition_key = task_context.command_args[0]
+        greeting_template = task_context.command_args[1]
+
+        table.put_item({
+            "PK": partition_key,
+            "SK": "processed",
+            "message": greeting_template.format(
+                first_name=task_context.env_vars["FIRST_NAME"],
+                last_name=task_context.env_vars["LAST_NAME"],
+            )
+        })
+
+        return ExitCode(0)
+
+    blue_test_double = mocking_engine.mock_an_ecs_task_container(task="First", container="Blue",
+                                                                 handler=blue_container_handler)
+    yellow_test_double = mocking_engine.mock_an_ecs_task_container(task="First", container="Yellow",
+                                                                   handler=yellow_container_handler)
 
     output_key = f"{uuid4()}.txt"
 
@@ -216,28 +235,44 @@ def test_ecs_task_test_double_with_run_task_sync_integration(
                 "lastName": "Developer",
             }
         },
-        timeout_seconds=60
+        timeout_seconds=120
     )
 
     execution.assert_succeeded()
-    assert execution.output_json["ecsRunTaskSync"]["Containers"][0]["ExitCode"] == 0
+    containers = execution.output_json["ecsRunTaskSync"]["Containers"]
 
-    test_double.assert_called_once_with(TaskContext(
+    blue_container = get_container("Blue", containers)
+    assert blue_container["ExitCode"] == 0
+
+    yellow_container = get_container("Yellow", containers)
+    assert yellow_container["ExitCode"] == 0
+
+    blue_test_double.assert_called_once_with(TaskContext(
         command_args=[output_key, "Hello {first_name} {last_name}!"],
         env_vars=ANY
     ))
-
-    ecs_task_arg = cast(TaskContext, test_double.call_args.args[0])
-    assert ecs_task_arg.env_vars['FIRST_NAME'] == "ECS"
-    assert ecs_task_arg.env_vars['LAST_NAME'] == "Developer"
+    blue_task_context = cast(TaskContext, blue_test_double.call_args.args[0])
+    assert blue_task_context.env_vars['FIRST_NAME'] == "ECS"
+    assert blue_task_context.env_vars['LAST_NAME'] == "Developer"
     assert bucket.get_object(output_key) == "Hello ECS Developer!"
+
+    yellow_test_double.assert_called_once_with(TaskContext(
+        command_args=[output_key, "Hello {first_name} {last_name}!"],
+        env_vars=ANY
+    ))
+    yellow_task_context = cast(TaskContext, yellow_test_double.call_args.args[0])
+    assert yellow_task_context.env_vars['FIRST_NAME'] == "ECS"
+    assert yellow_task_context.env_vars['LAST_NAME'] == "Developer"
+    table_item = table.get_item({"PK": output_key, "SK": "processed"})
+    assert table_item["message"] == "Hello ECS Developer!"
 
 
 def test_instructing_ecs_task_test_double_to_fail(
         mocking_engine: AWSResourceMockingEngine,
         state_machine: StateMachine
 ):
-    mocking_engine.mock_an_ecs_task('First', lambda _: ExitCode(1))
+    mocking_engine.mock_an_ecs_task_container(task='First', container='Blue', handler=lambda _: ExitCode(1))
+    mocking_engine.mock_an_ecs_task_container(task='First', container='Yellow', handler=lambda _: ExitCode(0))
 
     execution = state_machine.execute(
         {
@@ -249,13 +284,19 @@ def test_instructing_ecs_task_test_double_to_fail(
                 "lastName": "any last name",
             }
         },
-        timeout_seconds=60
+        timeout_seconds=120
     )
 
     assert execution.failed
     assert execution.failure_error == "States.TaskFailed"
     failure_cause_data = json.loads(execution.failure_cause)
-    assert failure_cause_data["Containers"][0]["ExitCode"] == 1
+    containers = failure_cause_data["Containers"]
+
+    blue_container = get_container('Blue', containers)
+    assert blue_container["ExitCode"] == 1
+
+    yellow_container = get_container('Yellow', containers)
+    assert yellow_container["ExitCode"] == 0
 
 
 def test_ecs_task_callback_pattern_with_success(
@@ -269,7 +310,8 @@ def test_ecs_task_callback_pattern_with_success(
         state_machine.send_task_success(task_token, {"result": f"processed-{input_data}"})
         return ExitCode(0)
 
-    mocking_engine.mock_an_ecs_task("First", ecs_callback_handler)
+    mocking_engine.mock_an_ecs_task_container(task="First", container="Blue", handler=ecs_callback_handler)
+    mocking_engine.mock_an_ecs_task_container(task="First", container="Yellow", handler=lambda _: ExitCode(0))
 
     execution = state_machine.execute(
         {
@@ -278,7 +320,7 @@ def test_ecs_task_callback_pattern_with_success(
                 "data": "test-input"
             }
         },
-        timeout_seconds=60
+        timeout_seconds=120
     )
 
     execution.assert_succeeded()
@@ -291,11 +333,12 @@ def test_ecs_task_callback_pattern_with_failure(
 ):
     def ecs_failure_callback_handler(task_context):
         task_token = task_context.env_vars.get("AWS_STEP_FUNCTIONS_TASK_TOKEN")
-        
+
         state_machine.send_task_failure(task_token, "ProcessingError", "Failed to process input data")
         return ExitCode(0)
 
-    mocking_engine.mock_an_ecs_task("First", ecs_failure_callback_handler)
+    mocking_engine.mock_an_ecs_task_container(task="First", container="Blue", handler=ecs_failure_callback_handler)
+    mocking_engine.mock_an_ecs_task_container(task="First", container="Yellow", handler=lambda _: ExitCode(0))
 
     execution = state_machine.execute(
         {
@@ -304,9 +347,13 @@ def test_ecs_task_callback_pattern_with_failure(
                 "data": "invalid-input"
             }
         },
-        timeout_seconds=60
+        timeout_seconds=120
     )
 
     assert execution.failed
     assert execution.failure_error == "ProcessingError"
     assert execution.failure_cause == "Failed to process input data"
+
+
+def get_container(container_name, containers):
+    return [container for container in containers if container["Name"] == container_name][0]

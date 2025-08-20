@@ -97,8 +97,8 @@ class MessageListener(Thread):
         handler_id = self.__get_state_machine_execution_input_handler_id(state_machine_arn)
         self.__event_handlers[handler_id] = execution_input_handler
 
-    def register_ecs_task_handler(self, task_definition_arn: str, task_handler: Callable[[List[str]], ExitCode]):
-        handler_id = self.__get_ecs_task_handler_id(task_definition_arn)
+    def register_ecs_task_container_handler(self, task_definition_arn: str, container_name: str, task_handler: Callable[[List[str]], ExitCode]):
+        handler_id = self.__get_ecs_task_container_handler_id(task_definition_arn, container_name)
         self.__event_handlers[handler_id] = task_handler
 
     def __consume_message(self, message: Dict[str, Any]) -> None:
@@ -112,7 +112,7 @@ class MessageListener(Thread):
         elif invocation_type == 'Lambda Function Invocation':
             item = self.__generate_result_record_for_lamdba_function_invocation(event_message_payload)
         elif invocation_type == 'ECS Task Execution':
-            item = self.__generate_result_record_for_ecs_task_execution(event_message_payload)
+            item = self.__generate_result_record_for_ecs_task_container_execution(event_message_payload)
         else:
             raise Exception(f'Unknown invocation type: "{invocation_type}"')
 
@@ -189,22 +189,23 @@ class MessageListener(Thread):
             ttl=int((datetime.now() + timedelta(hours=12)).timestamp())
         )
 
-    def __generate_result_record_for_ecs_task_execution(self, event_message_payload: Dict[str, Any]) -> Dict[str, Any]:
+    def __generate_result_record_for_ecs_task_container_execution(self, event_message_payload: Dict[str, Any]) -> Dict[str, Any]:
         task_context_data = event_message_payload['taskContext']
         invocation_id = event_message_payload['invocationId']
         task_definition_arn = event_message_payload['taskDefinitionArn']
+        container_name = event_message_payload['containerName']
 
-        print(f"{task_definition_arn} task execution with invocation ID {invocation_id} "
+        print(f"{task_definition_arn} task ({container_name} container) execution with invocation ID {invocation_id} "
               f"received task context {task_context_data}")
 
-        handler_id = self.__get_ecs_task_handler_id(task_definition_arn)
-        task_handler = self.__event_handlers[handler_id]
+        handler_id = self.__get_ecs_task_container_handler_id(task_definition_arn, container_name)
+        handler = self.__event_handlers[handler_id]
 
         task_context = TaskContext(
             task_context_data['commandArgs'],
             task_context_data['environmentVariables']
         )
-        task_result = task_handler(task_context)
+        task_result = handler(task_context)
         assert isinstance(task_result, ExitCode)
         exit_code = cast(ExitCode, task_result)
 
@@ -215,8 +216,8 @@ class MessageListener(Thread):
             partitionKey=f'{task_definition_arn}#{invocation_id}',
             result=result,
             taskFamily=task_definition_arn,
+            containerName=container_name,
             invocationId=invocation_id,
-            taskContext=task_context_data,
             ttl=int((datetime.now() + timedelta(hours=12)).timestamp())
         )
 
@@ -229,5 +230,5 @@ class MessageListener(Thread):
         return f'StateMachine::{state_machine_arn}'
 
     @staticmethod
-    def __get_ecs_task_handler_id(task_definition_arn: str) -> str:
-        return f'ECSTask::{task_definition_arn}'
+    def __get_ecs_task_container_handler_id(task_definition_arn: str, container_name: str) -> str:
+        return f'ECSTask::{task_definition_arn}#{container_name}'

@@ -11,7 +11,8 @@ def handler(event, _):
     template_parameters = event['templateParameterValues']
 
     dynamodb_tables_config = json.loads(template_parameters['DynamoDBTables'])
-    ecs_task_families = template_parameters.get('ECSTaskFamilies', [])
+    ecs_task_families_param = template_parameters.get('ECSTaskFamilies', '{}')
+    ecs_task_families = json.loads(ecs_task_families_param) if ecs_task_families_param else {}
 
     new_resources = {}
     new_outputs = {}
@@ -25,14 +26,14 @@ def handler(event, _):
             Value={"Ref": f"{table_name}Table"}
         )
 
-    # Create minimal ECS task definitions
-    for task_family in ecs_task_families:
-        task_family = task_family.strip()
-        if task_family:
+    # Create ECS task definitions with multiple containers
+    for task_family, task_config in ecs_task_families.items():
+        containers = task_config.get('Containers', [])
+        if containers:
             task_def_logical_id = f'{task_family}TaskDefinition'
-            new_resources[task_def_logical_id] = create_minimal_ecs_task_definition(task_family)
+            new_resources[task_def_logical_id] = create_ecs_task_definition_with_containers(task_family, containers)
             new_outputs[f'{task_family}TaskDefinitionArn'] = dict(Value={"Ref": task_def_logical_id})
-    
+
     # Create ECS cluster and execution role if any task families are defined
     if ecs_task_families:
         new_resources['ECSTaskExecutionRole'] = dict(
@@ -60,7 +61,7 @@ def handler(event, _):
                                 dict(
                                     Effect="Allow",
                                     Action="logs:CreateLogGroup",
-                                    Resource={"Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/ecs/test-harness/*"}
+                                    Resource={"Fn::Sub": "*"}
                                 ),
                                 dict(
                                     Effect="Allow",
@@ -68,7 +69,7 @@ def handler(event, _):
                                         "logs:CreateLogStream",
                                         "logs:PutLogEvents"
                                     ],
-                                    Resource={"Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/ecs/test-harness/*:*"}
+                                    Resource={"Fn::Sub": "*"}
                                 )
                             ]
                         )
@@ -233,8 +234,33 @@ def create_table_resource_definition(table_config):
     )
 
 
-def create_minimal_ecs_task_definition(task_family):
+def create_container_definition(task_family, container_name):
     repository_uri = os.environ.get('ECS_TASK_REPOSITORY_URI')
+    return dict(
+        Name=container_name,
+        Image=repository_uri,
+        Essential=True,
+        StopTimeout=10,
+        Environment=[
+            dict(Name='__AWS_TEST_HARNESS__EVENTS_QUEUE_URL', Value={'Ref': 'EventsQueue'}),
+            dict(Name='__AWS_TEST_HARNESS__TEST_CONTEXT_BUCKET_NAME', Value={'Ref': 'TestContextBucket'}),
+            dict(Name='__AWS_TEST_HARNESS__RESULTS_TABLE_NAME', Value={'Ref': 'ResultsTable'})
+        ],
+        LogConfiguration=dict(
+            LogDriver='awslogs',
+            Options=dict(
+                **{
+                    'awslogs-group': f'/aws-test-harness/ecs',
+                    'awslogs-region': {"Ref": "AWS::Region"},
+                    'awslogs-stream-prefix': task_family,
+                    'awslogs-create-group': 'true'
+                }
+            )
+        )
+    )
+
+
+def create_ecs_task_definition_with_containers(task_family, containers):
     return dict(
         Type='AWS::ECS::TaskDefinition',
         Properties=dict(
@@ -249,28 +275,8 @@ def create_minimal_ecs_task_definition(task_family):
                 OperatingSystemFamily='LINUX'
             ),
             ContainerDefinitions=[
-                dict(
-                    Name=task_family,
-                    Image=repository_uri,
-                    Essential=True,
-                    StopTimeout=10,
-                    Environment=[
-                        dict(Name='__AWS_TEST_HARNESS__EVENTS_QUEUE_URL', Value={'Ref': 'EventsQueue'}),
-                        dict(Name='__AWS_TEST_HARNESS__TEST_CONTEXT_BUCKET_NAME', Value={'Ref': 'TestContextBucket'}),
-                        dict(Name='__AWS_TEST_HARNESS__RESULTS_TABLE_NAME', Value={'Ref': 'ResultsTable'})
-                    ],
-                    LogConfiguration=dict(
-                        LogDriver='awslogs',
-                        Options=dict(
-                            **{
-                                'awslogs-group': f'/ecs/test-harness/{task_family}',
-                                'awslogs-region': {"Ref": "AWS::Region"},
-                                'awslogs-stream-prefix': f'{task_family}-task',
-                                'awslogs-create-group': 'true'
-                            }
-                        )
-                    )
-                )
+                create_container_definition(task_family, container_name)
+                for container_name in containers
             ]
         )
     )

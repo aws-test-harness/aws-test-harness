@@ -8,16 +8,21 @@ from uuid import uuid4
 
 
 def fetch_task_metadata():
-    response = requests.get(f"{os.environ['ECS_CONTAINER_METADATA_URI_V4']}/task", timeout=5)
-    response.raise_for_status()
-    task_metadata = response.json()
+    container_response = requests.get(f"{os.environ['ECS_CONTAINER_METADATA_URI_V4']}", timeout=5)
+    container_response.raise_for_status()
+    container_metadata = container_response.json()
+
+    task_response = requests.get(f"{os.environ['ECS_CONTAINER_METADATA_URI_V4']}/task", timeout=5)
+    task_response.raise_for_status()
+    task_metadata = task_response.json()
 
     task_family = task_metadata['Family']
+    container_name = container_metadata['Name']
     arn_parts = task_metadata['TaskARN'].split(':')
     arn_prefix = ':'.join(arn_parts[:5])
     task_definition_arn = f"{arn_prefix}:task-definition/{task_family}:{task_metadata['Revision']}"
 
-    return task_definition_arn, task_family
+    return task_definition_arn, task_family, container_name
 
 
 def main():
@@ -37,7 +42,7 @@ def main():
     results_table = boto3.resource('dynamodb').Table(results_table_name)
     
     invocation_id = str(uuid4())
-    task_definition_arn, task_family = fetch_task_metadata()
+    task_definition_arn, task_family, container_name = fetch_task_metadata()
 
     message_body = json.dumps(dict(
         taskContext=dict(
@@ -45,13 +50,14 @@ def main():
             environmentVariables=dict(os.environ)
         ),
         invocationId=invocation_id,
-        taskDefinitionArn=task_definition_arn
+        taskDefinitionArn=task_definition_arn,
+        containerName=container_name
     ))
     
     sqs.send_message(
         QueueUrl=events_queue_url,
         MessageBody=message_body,
-        MessageGroupId=task_family, # Cannot use task ARN due to constraints on MessageGroupId values
+        MessageGroupId=f"{task_family}-{container_name}", # Use container-specific ID to allow parallel processing
         MessageAttributes={
             'InvocationType': {
                 'StringValue': 'ECS Task Execution',

@@ -69,18 +69,18 @@ class AWSResourceMockingEngine:
 
         return mock
 
-    def mock_an_ecs_task(self, task_definition_id: str,
-                         task_handler: Callable[[TaskContext], ExitCode]) -> Mock:
+    def mock_an_ecs_task_container(self, task: str, container: str,
+                                   handler: Callable[[TaskContext], ExitCode]) -> Mock:
         def ecs_task_handler(_: List[str]) -> ExitCode:
             pass
 
-        mock: Mock = create_autospec(ecs_task_handler, name=task_definition_id)
-        mock.side_effect = task_handler
+        mock: Mock = create_autospec(ecs_task_handler, name=task)
+        mock.side_effect = handler
 
-        task_definition_arn = self.__test_double_driver.get_task_definition_arn(task_definition_id)
-        self.__message_listener.register_ecs_task_handler(task_definition_arn, mock)
+        task_definition_arn = self.__test_double_driver.get_task_definition_arn(task)
+        self.__message_listener.register_ecs_task_container_handler(task_definition_arn, container, mock)
 
-        mock_id = self.__get_ecs_task_mock_id(task_definition_id)
+        mock_id = self.__get_ecs_task_container_mock_id(task, container)
         self.__mock_event_handlers[mock_id] = mock
 
         return mock
@@ -98,8 +98,8 @@ class AWSResourceMockingEngine:
         mock_id = self.__get_state_machine_mock_id(state_machine_id)
         return self.__mock_event_handlers[mock_id]
 
-    def get_mock_ecs_task(self, task_family: str) -> Mock:
-        mock_id = self.__get_ecs_task_mock_id(task_family)
+    def get_mock_ecs_task_container(self, task: str, container: str) -> Mock:
+        mock_id = self.__get_ecs_task_container_mock_id(task, container)
         return self.__mock_event_handlers[mock_id]
 
     @staticmethod
@@ -111,5 +111,5 @@ class AWSResourceMockingEngine:
         return f'StateMachine::{state_machine_id}'
 
     @staticmethod
-    def __get_ecs_task_mock_id(task_family: str) -> str:
-        return f'ECSTask::{task_family}'
+    def __get_ecs_task_container_mock_id(task_family: str, container: str) -> str:
+        return f'ECSTask::{task_family}#{container}'
