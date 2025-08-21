@@ -4,11 +4,15 @@ Parameters:
     Type: String
     Description: Optional prefix for all macro names
     Default: ""
+  ImageRepositoryNamesPrefix:
+    Type: String
+    Description: Optional prefix for all image repository names
+    Default: ""
 Resources:
   ECSTaskContainerTestDoubleRepository:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: aws-test-harness/ecs-task-container
+      RepositoryName: !Sub "${ImageRepositoryNamesPrefix}aws-test-harness/ecs-task-container"
       ImageScanningConfiguration:
         ScanOnPush: true
       LifecyclePolicy:

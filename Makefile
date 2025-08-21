@@ -74,7 +74,8 @@ deploy-infrastructure: build-infrastructure
 		--macros-stack-name aws-test-harness-macros \
 		--stack-templates-s3-uri s3://$$(jq -r '.stackTemplatesS3BucketName' example/config.json)/aws-test-harness-templates \
 		--aws-region $$(jq -r '.awsRegion' example/config.json) \
-		--macro-names-prefix MacroNamesPrefix-
+		--macro-names-prefix MacroNamesPrefix- \
+		--image-repository-names-prefix "image-repository-names-prefix/"
 
 .PHONY: deploy-example-sandbox
 deploy-example-sandbox:
