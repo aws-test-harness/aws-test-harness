@@ -73,61 +73,30 @@ script_directory_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/nu
 
 cd "${script_directory_path}"
 
-wait_for_ecr_repository() {
-  local repository_name="$1"
-  local region="$2"
-  local max_attempts=30
-  
-  for i in $(seq 1 $max_attempts); do
-    if aws ecr describe-repositories --repository-names "${repository_name}" --region "${region}" >/dev/null 2>&1; then
-      return 0
-    fi
-    echo "Waiting for repository to be ready (attempt $i/$max_attempts)..."
-    sleep 2
-    if [ $i -eq $max_attempts ]; then
-      echo "ERROR: ECR repository failed to become available after $max_attempts attempts"
-      return 1
-    fi
-  done
-}
-
-account_id=$(aws sts get-caller-identity --query Account --output text)
-repository_name="aws-test-harness/ecs-task-runner"
-repository_uri="${account_id}.dkr.ecr.${aws_region}.amazonaws.com/${repository_name}"
-
 echo "Deploying macros..."
 aws cloudformation deploy \
   --stack-name "${macros_stack_name}" \
   --template-file macros.yaml \
   --capabilities CAPABILITY_IAM \
-  --parameter-overrides MacroNamesPrefix="${macro_names_prefix}" ECSTaskRepositoryUri="${repository_uri}:latest"
+  --parameter-overrides MacroNamesPrefix="${macro_names_prefix}"
 
-echo "Ensuring ECR repository exists for ECS task test double..."
+repository_uri=$(aws cloudformation describe-stacks \
+  --stack-name "${macros_stack_name}" \
+  --query 'Stacks[0].Outputs[?OutputKey==`ECSTaskContainerRepositoryUri`].OutputValue' \
+  --output text)
 
-if aws ecr describe-repositories --repository-names "${repository_name}" --region "${aws_region}" >/dev/null 2>&1; then
-  echo "ECR repository ${repository_name} already exists"
-else
-  echo "Creating ECR repository ${repository_name}..."
-  aws ecr create-repository \
-    --repository-name "${repository_name}" \
-    --region "${aws_region}" \
-    --image-scanning-configuration scanOnPush=true
-  
-  wait_for_ecr_repository "${repository_name}" "${aws_region}"
-  
-  echo "Setting lifecycle policy for ECR repository..."
-  aws ecr put-lifecycle-policy \
-    --repository-name "${repository_name}" \
-    --region "${aws_region}" \
-    --lifecycle-policy-text '{"rules":[{"rulePriority":1,"description":"Keep last 2 images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":2},"action":{"type":"expire"}}]}'
+if [ -z "${repository_uri}" ]; then
+  echo "ERROR: Could not retrieve ECS task repository URI from CloudFormation stack ${macros_stack_name}"
+  exit 1
 fi
 
 echo "Building and pushing ECS task test double Docker image..."
+account_id=$(aws sts get-caller-identity --query Account --output text)
 aws ecr get-login-password --region "${aws_region}" | docker login --username AWS --password-stdin "${account_id}.dkr.ecr.${aws_region}.amazonaws.com"
 
 cd ecs-task-test-double
-docker build --platform linux/arm64 -t "${repository_uri}:latest" .
-docker push "${repository_uri}:latest"
+docker build --platform linux/arm64 -t "${repository_uri}" .
+docker push "${repository_uri}"
 cd ..
 
 working_directory_path=$(mktemp -d)

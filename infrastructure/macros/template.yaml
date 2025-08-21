@@ -4,10 +4,31 @@ Parameters:
     Type: String
     Description: Optional prefix for all macro names
     Default: ""
-  ECSTaskRepositoryUri:
-    Type: String
-    Description: ECR repository URI for ECS task test doubles
 Resources:
+  ECSTaskContainerTestDoubleRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: aws-test-harness/ecs-task-container
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last 2 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 2
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }
   OutOfBandDeploymentSupportMacro:
     Type: AWS::CloudFormation::Macro
     Properties:
@@ -58,7 +79,7 @@ Resources:
       Timeout: 5
       Environment:
         Variables:
-          ECS_TASK_REPOSITORY_URI: !Ref ECSTaskRepositoryUri
+          ECS_TASK_REPOSITORY_URI: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECSTaskContainerTestDoubleRepository}:latest"
   LambdaFunctionExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -73,3 +94,7 @@ Resources:
                 - lambda.amazonaws.com
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+Outputs:
+  ECSTaskContainerRepositoryUri:
+    Description: ECR repository URI for ECS task container test doubles
+    Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECSTaskContainerTestDoubleRepository}:latest"
