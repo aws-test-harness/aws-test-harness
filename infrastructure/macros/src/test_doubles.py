@@ -8,143 +8,47 @@ def handler(event, _):
 
     original_fragment = event['fragment']
 
-    template_parameters = event['templateParameterValues']
-
-    dynamodb_tables_config = json.loads(template_parameters['DynamoDBTables'])
-    ecs_task_families_param = template_parameters.get('ECSTaskFamilies', '{}')
-    ecs_task_families = json.loads(ecs_task_families_param) if ecs_task_families_param else {}
-
     new_resources = {}
     new_outputs = {}
 
+    template_parameters = event['templateParameterValues']
+
+    dynamodb_tables_config = json.loads(template_parameters.get('DynamoDBTables', '{}'))
+
     for table_name, table_config in dynamodb_tables_config.items():
         table_logical_id = f'{table_name}Table'
-        new_resources[table_logical_id] = create_table_resource_definition(table_config)
-        new_resources[f'{table_name}TableInteractionRolePolicy'] = create_table_interaction_role_policy(table_name,
-                                                                                                        table_logical_id)
+        new_resources[table_logical_id] = dynamodb_table(table_config)
+        new_resources[f'{table_name}TableInteractionRolePolicy'] = dynamodb_table_interaction_role_policy_on(
+            "TestDoubleManagerRole", table_name, table_logical_id
+        )
         new_outputs[f'{table_name}DynamoDBTableName'] = dict(
             Value={"Ref": f"{table_name}Table"}
         )
 
-    # Create ECS task definitions with multiple containers
-    for task_family, task_config in ecs_task_families.items():
+    ecs_task_families_config = json.loads(template_parameters.get('ECSTaskFamilies', '{}'))
+
+    create_ecs_task_dependencies = False
+
+    ecs_task_execution_role_logical_id = "ECSTaskExecutionRole"
+    ecs_task_role_logical_id = "ECSTaskRole"
+    container_image = os.environ.get('ECS_TASK_REPOSITORY_URI')
+
+    for task_family, task_config in ecs_task_families_config.items():
         containers = task_config.get('Containers', [])
         if containers:
+            create_ecs_task_dependencies = True
             task_def_logical_id = f'{task_family}TaskDefinition'
-            new_resources[task_def_logical_id] = create_ecs_task_definition_with_containers(task_family, containers)
+            new_resources[task_def_logical_id] = ecs_task_definition_with_containers(
+                task_family, containers, container_image,
+                ecs_task_role_logical_id, ecs_task_execution_role_logical_id
+            )
             new_outputs[f'{task_family}TaskDefinitionArn'] = dict(Value={"Ref": task_def_logical_id})
 
-    # Create ECS cluster and execution role if any task families are defined
-    if ecs_task_families:
-        new_resources['ECSTaskExecutionRole'] = dict(
-            Type='AWS::IAM::Role',
-            Properties=dict(
-                AssumeRolePolicyDocument=dict(
-                    Version="2012-10-17",
-                    Statement=[
-                        dict(
-                            Effect="Allow",
-                            Principal=dict(Service="ecs-tasks.amazonaws.com"),
-                            Action="sts:AssumeRole"
-                        )
-                    ]
-                ),
-                ManagedPolicyArns=[
-                    "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-                ],
-                Policies=[
-                    dict(
-                        PolicyName="CloudWatchLogsAccess",
-                        PolicyDocument=dict(
-                            Version="2012-10-17",
-                            Statement=[
-                                dict(
-                                    Effect="Allow",
-                                    Action="logs:CreateLogGroup",
-                                    Resource={"Fn::Sub": "*"}
-                                ),
-                                dict(
-                                    Effect="Allow",
-                                    Action=[
-                                        "logs:CreateLogStream",
-                                        "logs:PutLogEvents"
-                                    ],
-                                    Resource={"Fn::Sub": "*"}
-                                )
-                            ]
-                        )
-                    )
-                ]
-            )
-        )
-        new_resources['ECSTaskRole'] = dict(
-            Type='AWS::IAM::Role',
-            Properties=dict(
-                AssumeRolePolicyDocument=dict(
-                    Version="2012-10-17",
-                    Statement=[
-                        dict(
-                            Effect="Allow",
-                            Principal=dict(Service="ecs-tasks.amazonaws.com"),
-                            Action="sts:AssumeRole"
-                        )
-                    ]
-                ),
-                Policies=[
-                    dict(
-                        PolicyName="SQSAccess",
-                        PolicyDocument=dict(
-                            Version="2012-10-17",
-                            Statement=[
-                                dict(
-                                    Effect="Allow",
-                                    Action="sqs:SendMessage",
-                                    Resource={"Fn::GetAtt": ["EventsQueue", "Arn"]}
-                                )
-                            ]
-                        )
-                    ),
-                    dict(
-                        PolicyName="S3Access",
-                        PolicyDocument=dict(
-                            Version="2012-10-17",
-                            Statement=[
-                                dict(
-                                    Effect="Allow",
-                                    Action="s3:GetObject",
-                                    Resource={"Fn::Sub": "${TestContextBucket.Arn}/*"}
-                                )
-                            ]
-                        )
-                    ),
-                    dict(
-                        PolicyName="DynamoDBAccess",
-                        PolicyDocument=dict(
-                            Version="2012-10-17",
-                            Statement=[
-                                dict(
-                                    Effect="Allow",
-                                    Action="dynamodb:GetItem",
-                                    Resource={"Fn::GetAtt": ["ResultsTable", "Arn"]}
-                                )
-                            ]
-                        )
-                    )
-                ]
-            )
-        )
-        new_resources['ECSCluster'] = dict(
-            Type='AWS::ECS::Cluster',
-            Properties=dict(
-                CapacityProviders=['FARGATE'],
-                DefaultCapacityProviderStrategy=[
-                    dict(
-                        CapacityProvider='FARGATE',
-                        Weight=1
-                    )
-                ]
-            )
-        )
+    if create_ecs_task_dependencies:
+        new_resources[ecs_task_execution_role_logical_id] = ecs_task_execution_role()
+        new_resources[ecs_task_role_logical_id] = ecs_task_role()
+        ecs_cluster_logical_id = 'ECSCluster'
+        new_resources[ecs_cluster_logical_id] = ecs_cluster()
         new_outputs['ECSClusterArn'] = dict(
             Value={"Fn::GetAtt": ["ECSCluster", "Arn"]}
         )
@@ -161,7 +65,125 @@ def handler(event, _):
     return create_response(event, updated_fragment)
 
 
-def create_table_interaction_role_policy(table_name, table_logical_id):
+def ecs_cluster():
+    return dict(
+        Type='AWS::ECS::Cluster',
+        Properties=dict(
+            CapacityProviders=['FARGATE'],
+            DefaultCapacityProviderStrategy=[
+                dict(
+                    CapacityProvider='FARGATE',
+                    Weight=1
+                )
+            ]
+        )
+    )
+
+
+def ecs_task_role():
+    return dict(
+        Type='AWS::IAM::Role',
+        Properties=dict(
+            AssumeRolePolicyDocument=dict(
+                Version="2012-10-17",
+                Statement=[
+                    dict(
+                        Effect="Allow",
+                        Principal=dict(Service="ecs-tasks.amazonaws.com"),
+                        Action="sts:AssumeRole"
+                    )
+                ]
+            ),
+            Policies=[
+                dict(
+                    PolicyName="SQSAccess",
+                    PolicyDocument=dict(
+                        Version="2012-10-17",
+                        Statement=[
+                            dict(
+                                Effect="Allow",
+                                Action="sqs:SendMessage",
+                                Resource={"Fn::GetAtt": ["EventsQueue", "Arn"]}
+                            )
+                        ]
+                    )
+                ),
+                dict(
+                    PolicyName="S3Access",
+                    PolicyDocument=dict(
+                        Version="2012-10-17",
+                        Statement=[
+                            dict(
+                                Effect="Allow",
+                                Action="s3:GetObject",
+                                Resource={"Fn::Sub": "${TestContextBucket.Arn}/*"}
+                            )
+                        ]
+                    )
+                ),
+                dict(
+                    PolicyName="DynamoDBAccess",
+                    PolicyDocument=dict(
+                        Version="2012-10-17",
+                        Statement=[
+                            dict(
+                                Effect="Allow",
+                                Action="dynamodb:GetItem",
+                                Resource={"Fn::GetAtt": ["ResultsTable", "Arn"]}
+                            )
+                        ]
+                    )
+                )
+            ]
+        )
+    )
+
+
+def ecs_task_execution_role():
+    return dict(
+        Type='AWS::IAM::Role',
+        Properties=dict(
+            AssumeRolePolicyDocument=dict(
+                Version="2012-10-17",
+                Statement=[
+                    dict(
+                        Effect="Allow",
+                        Principal=dict(Service="ecs-tasks.amazonaws.com"),
+                        Action="sts:AssumeRole"
+                    )
+                ]
+            ),
+            ManagedPolicyArns=[
+                "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+            ],
+            Policies=[
+                dict(
+                    PolicyName="CloudWatchLogsAccess",
+                    PolicyDocument=dict(
+                        Version="2012-10-17",
+                        Statement=[
+                            dict(
+                                Effect="Allow",
+                                Action="logs:CreateLogGroup",
+                                Resource={"Fn::Sub": "*"}
+                            ),
+                            dict(
+                                Effect="Allow",
+                                Action=[
+                                    "logs:CreateLogStream",
+                                    "logs:PutLogEvents"
+                                ],
+                                Resource={"Fn::Sub": "*"}
+                            )
+                        ]
+                    )
+                )
+            ]
+        )
+    )
+
+
+def dynamodb_table_interaction_role_policy_on(role_logical_id, table_name, table_logical_id):
     return dict(
         Type='AWS::IAM::RolePolicy',
         Properties=dict(
@@ -189,12 +211,12 @@ def create_table_interaction_role_policy(table_name, table_logical_id):
                     )
                 ]
             ),
-            RoleName={"Ref": "TestDoubleManagerRole"}
+            RoleName={"Ref": role_logical_id}
         )
     )
 
 
-def create_table_resource_definition(table_config):
+def dynamodb_table(table_config):
     table_attribute_definitions = [
         dict(
             AttributeName=table_config['PartitionKey']['Name'],
@@ -234,11 +256,10 @@ def create_table_resource_definition(table_config):
     )
 
 
-def create_container_definition(task_family, container_name):
-    repository_uri = os.environ.get('ECS_TASK_REPOSITORY_URI')
+def create_container_definition(task_family, container_name, image):
     return dict(
         Name=container_name,
-        Image=repository_uri,
+        Image=image,
         Essential=True,
         StopTimeout=10,
         Environment=[
@@ -260,7 +281,8 @@ def create_container_definition(task_family, container_name):
     )
 
 
-def create_ecs_task_definition_with_containers(task_family, containers):
+def ecs_task_definition_with_containers(task_family, containers, container_image, task_role_logical_id,
+                                        execution_role_logical_id):
     return dict(
         Type='AWS::ECS::TaskDefinition',
         Properties=dict(
@@ -268,14 +290,14 @@ def create_ecs_task_definition_with_containers(task_family, containers):
             NetworkMode='awsvpc',
             Cpu='256',
             Memory='512',
-            ExecutionRoleArn={"Fn::GetAtt": ["ECSTaskExecutionRole", "Arn"]},
-            TaskRoleArn={"Fn::GetAtt": ["ECSTaskRole", "Arn"]},
+            ExecutionRoleArn={"Fn::GetAtt": [execution_role_logical_id, "Arn"]},
+            TaskRoleArn={"Fn::GetAtt": [task_role_logical_id, "Arn"]},
             RuntimePlatform=dict(
                 CpuArchitecture='ARM64',
                 OperatingSystemFamily='LINUX'
             ),
             ContainerDefinitions=[
-                create_container_definition(task_family, container_name)
+                create_container_definition(task_family, container_name, container_image)
                 for container_name in containers
             ]
         )
