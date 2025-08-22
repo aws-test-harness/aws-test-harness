@@ -28,6 +28,7 @@ def test_lambda_function_test_double(
         "First",
         lambda event: {"value": event["value"] * 2}
     )
+    assert mocking_engine.get_mock_lambda_function("First") == test_double
 
     execution = state_machine.execute({
         "input": {
@@ -71,6 +72,7 @@ def test_state_machine_test_double_with_start_execution_sync_integration(
         "First",
         lambda execution_input: dict(result=execution_input["value"] * 3)
     )
+    assert mocking_engine.get_mock_state_machine("First") == test_double
 
     execution = state_machine.execute({
         "input": {
@@ -220,6 +222,8 @@ def test_ecs_task_test_double_with_run_task_sync_integration(
 
     blue_test_double = mocking_engine.mock_an_ecs_task_container(task="First", container="Blue",
                                                                  handler=blue_container_handler)
+    assert mocking_engine.get_mock_ecs_task_container(task="First", container="Blue") == blue_test_double
+
     yellow_test_double = mocking_engine.mock_an_ecs_task_container(task="First", container="Yellow",
                                                                    handler=yellow_container_handler)
 
