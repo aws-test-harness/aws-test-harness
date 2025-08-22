@@ -20,6 +20,10 @@ Parameters:
   ECSTaskFamilies:
     Type: String
     Default: "{}"
+Conditions:
+  HasLambdaFunctions: !Not [!Equals [!Join ["", !Ref LambdaFunctionNames], ""]]
+  HasStateMachines: !Not [!Equals [!Join ["", !Ref StateMachineNames], ""]]
+  HasS3Buckets: !Not [!Equals [!Join ["", !Ref S3BucketNames], ""]]
 Resources:
   TestDoubleManagerRole:
     Type: AWS::IAM::Role
@@ -64,7 +68,7 @@ Resources:
                   - !Sub "${TestContextBucket.Arn}/*"
   'Fn::ForEach::S3BucketInteractionRolePolicies':
     - S3BucketName
-    - !Ref S3BucketNames
+    - !If [HasS3Buckets, !Ref S3BucketNames, []]
     - '${S3BucketName}RolePolicy':
         Type: AWS::IAM::RolePolicy
         Properties:
@@ -85,7 +89,7 @@ Resources:
           RoleName: !Ref TestDoubleManagerRole
   'Fn::ForEach::S3Buckets':
     - S3BucketName
-    - !Ref S3BucketNames
+    - !If [HasS3Buckets, !Ref S3BucketNames, []]
     - '${S3BucketName}Bucket':
         Type: AWS::S3::Bucket
         Properties:
@@ -107,7 +111,7 @@ Resources:
                   NoncurrentDays: 1
   'Fn::ForEach::LambdaFunctions':
     - LambdaFunctionName
-    - !Ref LambdaFunctionNames
+    - !If [HasLambdaFunctions, !Ref LambdaFunctionNames, []]
     - '${LambdaFunctionName}Function':
         Type: AWS::Lambda::Function
         Properties:
@@ -129,6 +133,7 @@ Resources:
               TEST_CONTEXT_BUCKET_NAME: !Ref TestContextBucket
   LambdaFunctionExecutionRole:
     Type: AWS::IAM::Role
+    Condition: HasLambdaFunctions
     Properties:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -165,7 +170,7 @@ Resources:
                 Resource: !Sub "${TestContextBucket.Arn}/*"
   'Fn::ForEach::StateMachines':
     - StateMachineName
-    - !Ref StateMachineNames
+    - !If [HasStateMachines, !Ref StateMachineNames, []]
     - '${StateMachineName}StateMachine':
         Type: AWS::Serverless::StateMachine
         Properties:
@@ -262,6 +267,7 @@ Resources:
           Type: STANDARD
   StateMachineRole:
     Type: AWS::IAM::Role
+    Condition: HasStateMachines
     Properties:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -336,19 +342,19 @@ Resources:
 Outputs:
   'Fn::ForEach::LambdaFunctionNameOutputs':
     - LambdaFunctionName
-    - !Ref LambdaFunctionNames
+    - !If [HasLambdaFunctions, !Ref LambdaFunctionNames, []]
     - '${LambdaFunctionName}LambdaFunctionName':
         Value:
           Ref: !Sub '${LambdaFunctionName}Function'
   'Fn::ForEach::StateMachineArnOutputs':
     - StateMachineName
-    - !Ref StateMachineNames
+    - !If [HasStateMachines, !Ref StateMachineNames, []]
     - '${StateMachineName}StateMachineArn':
         Value:
           Ref: !Sub '${StateMachineName}StateMachine'
   'Fn::ForEach::S3BucketNameOutputs':
     - S3BucketName
-    - !Ref S3BucketNames
+    - !If [HasS3Buckets, !Ref S3BucketNames, []]
     - '${S3BucketName}S3BucketName':
         Value:
           Ref: !Sub '${S3BucketName}Bucket'
