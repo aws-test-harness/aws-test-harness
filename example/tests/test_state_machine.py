@@ -191,41 +191,26 @@ def test_ecs_task_test_double_with_run_task_sync_integration(
     bucket = test_double_driver.get_s3_bucket("First")
     table = test_double_driver.get_dynamodb_table("First")
 
-    def blue_container_handler(task_context):
-        s3_object_key = task_context.command_args[0]
+    def render_greeting(task_context):
         greeting_template = task_context.command_args[1]
-
-        bucket.put_object(
-            key=s3_object_key,
-            content=greeting_template.format(
-                first_name=task_context.env_vars["FIRST_NAME"],
-                last_name=task_context.env_vars["LAST_NAME"],
-            )
+        return greeting_template.format(
+            first_name=task_context.env_vars["FIRST_NAME"],
+            last_name=task_context.env_vars["LAST_NAME"]
         )
 
+    def blue_handler(task_context):
+        bucket.put_object(key=task_context.command_args[0], content=render_greeting(task_context))
         return ExitCode(0)
 
-    def yellow_container_handler(task_context):
-        partition_key = task_context.command_args[0]
-        greeting_template = task_context.command_args[1]
-
-        table.put_item({
-            "PK": partition_key,
-            "SK": "processed",
-            "message": greeting_template.format(
-                first_name=task_context.env_vars["FIRST_NAME"],
-                last_name=task_context.env_vars["LAST_NAME"],
-            )
-        })
-
-        return ExitCode(0)
-
-    blue_test_double = mocking_engine.mock_an_ecs_task_container(task="First", container="Blue",
-                                                                 handler=blue_container_handler)
+    blue_test_double = mocking_engine.mock_an_ecs_task_container(task="First", container="Blue", handler=blue_handler)
     assert mocking_engine.get_mock_ecs_task_container(task="First", container="Blue") == blue_test_double
 
+    def yellow_handler(task_context):
+        table.put_item({"PK": task_context.command_args[0], "SK": "sk", "message": render_greeting(task_context)})
+        return ExitCode(0)
+
     yellow_test_double = mocking_engine.mock_an_ecs_task_container(task="First", container="Yellow",
-                                                                   handler=yellow_container_handler)
+                                                                   handler=yellow_handler)
 
     output_key = f"{uuid4()}.txt"
 
@@ -243,14 +228,10 @@ def test_ecs_task_test_double_with_run_task_sync_integration(
     )
 
     execution.assert_succeeded()
-    containers = execution.output_json["ecsRunTaskSync"]["Containers"]
+    containers_data = execution.output_json["ecsRunTaskSync"]["Containers"]
 
-    blue_container = get_container("Blue", containers)
+    blue_container = get_container_data("Blue", containers_data)
     assert blue_container["ExitCode"] == 0
-
-    yellow_container = get_container("Yellow", containers)
-    assert yellow_container["ExitCode"] == 0
-
     blue_test_double.assert_called_once_with(TaskContext(
         command_args=[output_key, "Hello {first_name} {last_name}!"],
         env_vars=ANY
@@ -260,6 +241,8 @@ def test_ecs_task_test_double_with_run_task_sync_integration(
     assert blue_task_context.env_vars['LAST_NAME'] == "Developer"
     assert bucket.get_object(output_key) == "Hello ECS Developer!"
 
+    yellow_container = get_container_data("Yellow", containers_data)
+    assert yellow_container["ExitCode"] == 0
     yellow_test_double.assert_called_once_with(TaskContext(
         command_args=[output_key, "Hello {first_name} {last_name}!"],
         env_vars=ANY
@@ -267,7 +250,7 @@ def test_ecs_task_test_double_with_run_task_sync_integration(
     yellow_task_context = cast(TaskContext, yellow_test_double.call_args.args[0])
     assert yellow_task_context.env_vars['FIRST_NAME'] == "ECS"
     assert yellow_task_context.env_vars['LAST_NAME'] == "Developer"
-    table_item = table.get_item({"PK": output_key, "SK": "processed"})
+    table_item = table.get_item({"PK": output_key, "SK": "sk"})
     assert table_item["message"] == "Hello ECS Developer!"
 
 
@@ -296,10 +279,10 @@ def test_instructing_ecs_task_test_double_to_fail(
     failure_cause_data = json.loads(execution.failure_cause)
     containers = failure_cause_data["Containers"]
 
-    blue_container = get_container('Blue', containers)
+    blue_container = get_container_data('Blue', containers)
     assert blue_container["ExitCode"] == 1
 
-    yellow_container = get_container('Yellow', containers)
+    yellow_container = get_container_data('Yellow', containers)
     assert yellow_container["ExitCode"] == 0
 
 
@@ -359,5 +342,5 @@ def test_ecs_task_callback_pattern_with_failure(
     assert execution.failure_cause == "Failed to process input data"
 
 
-def get_container(container_name, containers):
-    return [container for container in containers if container["Name"] == container_name][0]
+def get_container_data(container_name, containers_data):
+    return [container for container in containers_data if container["Name"] == container_name][0]
