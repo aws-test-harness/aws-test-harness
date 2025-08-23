@@ -29,9 +29,12 @@ def handler(event, _):
 
     create_ecs_task_dependencies = False
 
-    ecs_task_execution_role_logical_id = "ECSTaskExecutionRole"
-    ecs_task_role_logical_id = "ECSTaskRole"
     container_image = os.environ.get('ECS_TASK_REPOSITORY_URI')
+    ecs_task_logical_ids = dict(
+        TaskRole="ECSTaskRole",
+        ExecutionRole="ECSTaskExecutionRole",
+        LogGroup='ECSTaskLogGroup'
+    )
 
     for task_family, task_config in ecs_task_families_config.items():
         containers = task_config.get('Containers', [])
@@ -40,13 +43,15 @@ def handler(event, _):
             task_def_logical_id = f'{task_family}TaskDefinition'
             new_resources[task_def_logical_id] = ecs_task_definition_with_containers(
                 task_family, containers, container_image,
-                ecs_task_role_logical_id, ecs_task_execution_role_logical_id
+                ecs_task_logical_ids
             )
+
             new_outputs[f'{task_family}TaskDefinitionArn'] = dict(Value={"Ref": task_def_logical_id})
 
     if create_ecs_task_dependencies:
-        new_resources[ecs_task_execution_role_logical_id] = ecs_task_execution_role()
-        new_resources[ecs_task_role_logical_id] = ecs_task_role()
+        new_resources[ecs_task_logical_ids['LogGroup']] = log_group("/aws-test-harness/ecs-task-containers")
+        new_resources[ecs_task_logical_ids['ExecutionRole']] = ecs_task_execution_role()
+        new_resources[ecs_task_logical_ids['TaskRole']] = ecs_task_role()
         ecs_cluster_logical_id = 'ECSCluster'
         new_resources[ecs_cluster_logical_id] = ecs_cluster()
         new_outputs['ECSClusterArn'] = dict(
@@ -63,6 +68,16 @@ def handler(event, _):
 
     print(f'Returning fragment: {json.dumps(updated_fragment)}')
     return create_response(event, updated_fragment)
+
+
+def log_group(name):
+    return dict(
+        Type="AWS::Logs::LogGroup",
+        Properties={
+            "LogGroupName": name,
+            "RetentionInDays": 1,
+        }
+    )
 
 
 def ecs_cluster():
@@ -256,7 +271,7 @@ def dynamodb_table(table_config):
     )
 
 
-def create_container_definition(task_family, container_name, image):
+def create_container_definition(task_family, container_name, image, ecs_task_log_group_logical_id):
     return dict(
         Name=container_name,
         Image=image,
@@ -271,7 +286,7 @@ def create_container_definition(task_family, container_name, image):
             LogDriver='awslogs',
             Options=dict(
                 **{
-                    'awslogs-group': f'/aws-test-harness/ecs',
+                    'awslogs-group': {'Ref': ecs_task_log_group_logical_id},
                     'awslogs-region': {"Ref": "AWS::Region"},
                     'awslogs-stream-prefix': task_family,
                     'awslogs-create-group': 'true'
@@ -281,8 +296,7 @@ def create_container_definition(task_family, container_name, image):
     )
 
 
-def ecs_task_definition_with_containers(task_family, containers, container_image, task_role_logical_id,
-                                        execution_role_logical_id):
+def ecs_task_definition_with_containers(task_family, containers, container_image, logical_ids):
     return dict(
         Type='AWS::ECS::TaskDefinition',
         Properties=dict(
@@ -290,14 +304,14 @@ def ecs_task_definition_with_containers(task_family, containers, container_image
             NetworkMode='awsvpc',
             Cpu='256',
             Memory='512',
-            ExecutionRoleArn={"Fn::GetAtt": [execution_role_logical_id, "Arn"]},
-            TaskRoleArn={"Fn::GetAtt": [task_role_logical_id, "Arn"]},
+            ExecutionRoleArn={"Fn::GetAtt": [logical_ids['ExecutionRole'], "Arn"]},
+            TaskRoleArn={"Fn::GetAtt": [logical_ids['TaskRole'], "Arn"]},
             RuntimePlatform=dict(
                 CpuArchitecture='ARM64',
                 OperatingSystemFamily='LINUX'
             ),
             ContainerDefinitions=[
-                create_container_definition(task_family, container_name, container_image)
+                create_container_definition(task_family, container_name, container_image, logical_ids['LogGroup'])
                 for container_name in containers
             ]
         )
