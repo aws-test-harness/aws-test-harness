@@ -49,7 +49,7 @@ def handler(event, _):
             new_outputs[f'{task_family}TaskDefinitionArn'] = dict(Value={"Ref": task_def_logical_id})
 
     if create_ecs_task_dependencies:
-        new_resources[ecs_task_logical_ids['LogGroup']] = log_group("/aws-test-harness/ecs-task-containers")
+        new_resources[ecs_task_logical_ids['LogGroup']] = log_group({"Fn::Sub": "/aws-test-harness/${AWS::StackName}/ecs-task-containers"})
         new_resources[ecs_task_logical_ids['ExecutionRole']] = ecs_task_execution_role()
         new_resources[ecs_task_logical_ids['TaskRole']] = ecs_task_role()
         ecs_cluster_logical_id = 'ECSCluster'
