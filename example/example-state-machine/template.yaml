@@ -15,6 +15,10 @@ Parameters:
     Type: String
   FirstTaskDefinitionArn:
     Type: String
+  ECSTaskExecutionRoleArn:
+    Type: String
+  ECSTaskRoleArn:
+    Type: String
   ECSClusterArn:
     Type: String
   VpcId:
@@ -83,7 +87,9 @@ Resources:
             - Effect: Allow
               Action:
                 - iam:PassRole
-              Resource: "*"
+              Resource:
+                - !Ref ECSTaskRoleArn
+                - !Ref ECSTaskExecutionRoleArn
         - Version: 2012-10-17
           Statement:
             - Effect: Allow

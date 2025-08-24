@@ -66,6 +66,8 @@ Resources:
         FirstFunctionName: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstLambdaFunctionName
         FirstStateMachineArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstStateMachineArn
         FirstTaskDefinitionArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstTaskDefinitionArn
+        ECSTaskExecutionRoleArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.ECSTaskExecutionRoleArn
+        ECSTaskRoleArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.ECSTaskRoleArn
         ECSClusterArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.ECSClusterArn
         VpcId: !Ref VpcId
         SubnetIds: !Join [",", !Ref SubnetIds]

@@ -60,6 +60,13 @@ def handler(event, _):
             Value={"Fn::GetAtt": ["ECSCluster", "Arn"]}
         )
 
+        new_outputs['ECSTaskExecutionRoleArn'] = dict(
+            Value={"Fn::GetAtt": [ecs_task_logical_ids['ExecutionRole'], "Arn"]}
+        )
+        new_outputs['ECSTaskRoleArn'] = dict(
+            Value={"Fn::GetAtt": [ecs_task_logical_ids['TaskRole'], "Arn"]}
+        )
+
     updated_fragment = deepcopy(original_fragment)
 
     updated_fragment['Resources'] = dict(**original_fragment['Resources'], **new_resources)
