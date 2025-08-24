@@ -50,8 +50,9 @@ def handler(event, _):
 
     if create_ecs_task_dependencies:
         log_groups_prefix = os.environ['LOG_GROUPS_PREFIX']
-        new_resources[ecs_task_logical_ids['LogGroup']] = log_group({"Fn::Sub": log_groups_prefix + "/aws-test-harness/${AWS::StackName}/ecs-task-containers"})
-        new_resources[ecs_task_logical_ids['ExecutionRole']] = ecs_task_execution_role()
+        new_resources[ecs_task_logical_ids['LogGroup']] = log_group(
+            {"Fn::Sub": log_groups_prefix + "/aws-test-harness/${AWS::StackName}/ecs-task-containers"})
+        new_resources[ecs_task_logical_ids['ExecutionRole']] = ecs_task_execution_role(ecs_task_logical_ids['LogGroup'])
         new_resources[ecs_task_logical_ids['TaskRole']] = ecs_task_role()
         ecs_cluster_logical_id = 'ECSCluster'
         new_resources[ecs_cluster_logical_id] = ecs_cluster()
@@ -155,7 +156,7 @@ def ecs_task_role():
     )
 
 
-def ecs_task_execution_role():
+def ecs_task_execution_role(log_group_logical_id):
     return dict(
         Type='AWS::IAM::Role',
         Properties=dict(
@@ -180,16 +181,13 @@ def ecs_task_execution_role():
                         Statement=[
                             dict(
                                 Effect="Allow",
-                                Action="logs:CreateLogGroup",
-                                Resource={"Fn::Sub": "*"}
-                            ),
-                            dict(
-                                Effect="Allow",
                                 Action=[
                                     "logs:CreateLogStream",
                                     "logs:PutLogEvents"
                                 ],
-                                Resource={"Fn::Sub": "*"}
+                                Resource={
+                                    "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${" + log_group_logical_id + "}:log-stream:*"
+                                }
                             )
                         ]
                     )
