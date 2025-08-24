@@ -3,7 +3,7 @@
 set -o nounset -o errexit -o pipefail;
 
 usage() {
-  echo "Usage: $0 [--help] --macros-stack-name stack_name --stack-templates-s3-uri s3_uri --aws-region region [--macro-names-prefix macro_names_prefix] [--image-repository-names-prefix image_repository_names_prefix]"
+  echo "Usage: $0 [--help] --macros-stack-name stack_name --stack-templates-s3-uri s3_uri --aws-region region [--macro-names-prefix macro_names_prefix] [--image-repository-names-prefix image_repository_names_prefix] [--log-groups-prefix log_groups_prefix]"
   exit 1
 }
 
@@ -29,6 +29,10 @@ while [[ "${1:-}" != "" ]]; do
         --image-repository-names-prefix )
             shift
             image_repository_names_prefix="${1:-}"
+            ;;
+        --log-groups-prefix )
+            shift
+            log_groups_prefix="${1:-}"
             ;;
         --stack-templates-s3-uri )
             shift
@@ -82,7 +86,10 @@ aws cloudformation deploy \
   --stack-name "${macros_stack_name}" \
   --template-file macros.yaml \
   --capabilities CAPABILITY_IAM \
-  --parameter-overrides MacroNamesPrefix="${macro_names_prefix}" ImageRepositoryNamesPrefix="${image_repository_names_prefix}"
+  --parameter-overrides \
+    MacroNamesPrefix="${macro_names_prefix}" \
+    ImageRepositoryNamesPrefix="${image_repository_names_prefix}" \
+    LogGroupsPrefix="${log_groups_prefix}"
 
 repository_uri=$(aws cloudformation describe-stacks \
   --stack-name "${macros_stack_name}" \

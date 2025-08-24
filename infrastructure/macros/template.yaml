@@ -8,6 +8,10 @@ Parameters:
     Type: String
     Description: Optional prefix for all image repository names
     Default: ""
+  LogGroupsPrefix:
+    Type: String
+    Description: Optional prefix for log groups
+    Default: ""
 Resources:
   ECSTaskContainerTestDoubleRepository:
     Type: AWS::ECR::Repository
@@ -84,6 +88,7 @@ Resources:
       Environment:
         Variables:
           ECS_TASK_REPOSITORY_URI: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECSTaskContainerTestDoubleRepository}:latest"
+          LOG_GROUPS_PREFIX: !Ref LogGroupsPrefix
   LambdaFunctionExecutionRole:
     Type: AWS::IAM::Role
     Properties:
