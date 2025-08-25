@@ -213,9 +213,9 @@ class MessageListener(Thread):
         print(f'Returning result: {json.dumps(result)}')
 
         return dict(
-            partitionKey=f'{task_definition_arn}#{invocation_id}',
+            partitionKey=f'{task_definition_arn}#{container_name}#{invocation_id}',
             result=result,
-            taskFamily=task_definition_arn,
+            taskDefinitionArn=task_definition_arn,
             containerName=container_name,
             invocationId=invocation_id,
             ttl=int((datetime.now() + timedelta(hours=12)).timestamp())

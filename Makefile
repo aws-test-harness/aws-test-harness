@@ -23,11 +23,11 @@ clean:
 build: clean build-infrastructure build-tools build-library
 
 .PHONY: build-tools
-build-tools:
+build-tools: clean
 	tar -czf dist/tools.tar.gz tools
 
 .PHONY: build-infrastructure
-build-infrastructure: build-stack-templates build-macros-template copy-installation-script copy-ecs-task-test-double
+build-infrastructure: clean build-stack-templates build-macros-template copy-installation-script copy-ecs-task-test-double
 	tar -czf dist/infrastructure.tar.gz -C dist infrastructure && rm -rf dist/infrastructure
 
 .PHONY: create-infrastructure-dist-directory
@@ -55,10 +55,14 @@ copy-installation-script: create-infrastructure-dist-directory
 
 .PHONY: copy-ecs-task-test-double
 copy-ecs-task-test-double: create-infrastructure-dist-directory
-	cp -r infrastructure/ecs-task-test-double dist/infrastructure/
+	mkdir -p dist/infrastructure/ecs-task-test-double
+	cp -r infrastructure/ecs-task-test-double/src \
+		infrastructure/ecs-task-test-double/pyproject.toml \
+		infrastructure/ecs-task-test-double/Dockerfile \
+		dist/infrastructure/ecs-task-test-double
 
 .PHONY: build-library
-build-library:
+build-library: clean
 	uv build -o dist/library
 
 .PHONY: publish-non-library-assets

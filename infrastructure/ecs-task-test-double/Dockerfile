@@ -9,5 +9,5 @@ WORKDIR /app
 COPY --from=builder /tmp/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     rm requirements.txt
-COPY src/ecs_task_runner.py .
-ENTRYPOINT ["python", "ecs_task_runner.py"]
+COPY src/ .
+ENTRYPOINT ["python", "app.py"]
