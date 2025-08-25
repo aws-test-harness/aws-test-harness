@@ -1,6 +1,8 @@
 VERSION := 0.0.1a22
 STACK_TEMPLATES_DIRECTORY := infrastructure/templates
 STACK_TEMPLATE_BUILD_TARGETS := $(shell find $(STACK_TEMPLATES_DIRECTORY) -type d -depth 1 -exec basename {} \; | sed 's/^/build-/' | sed 's/$$/-stack-template/')
+CONFIG_FILE = example/config.json
+AWS_DEPLOYMENT_PROFILE = $(shell jq -r '.awsDeploymentProfile' "$(CONFIG_FILE)")
 FORCE?=false
 
 .PHONY: default
@@ -70,10 +72,10 @@ publish-library:
 .PHONY: deploy-infrastructure
 deploy-infrastructure: build-infrastructure
 	tar -xf dist/infrastructure.tar.gz -C dist
-	AWS_PROFILE=$$(jq -r '.awsDeploymentProfile' example/config.json) ./dist/infrastructure/install.sh \
+	AWS_PROFILE=$(AWS_DEPLOYMENT_PROFILE) ./dist/infrastructure/install.sh \
 		--macros-stack-name aws-test-harness-macros \
-		--stack-templates-s3-uri s3://$$(jq -r '.stackTemplatesS3BucketName' example/config.json)/aws-test-harness-templates \
-		--aws-region $$(jq -r '.awsRegion' example/config.json) \
+		--stack-templates-s3-uri s3://$$(jq -r '.stackTemplatesS3BucketName' "$(CONFIG_FILE)")/aws-test-harness-templates \
+		--aws-region $$(jq -r '.awsRegion' "$(CONFIG_FILE)") \
 		--macro-names-prefix MacroNamesPrefix- \
 		--image-repository-names-prefix "image-repository-names-prefix/" \
 		--log-groups-prefix "/log-groups-prefix"
@@ -81,20 +83,20 @@ deploy-infrastructure: build-infrastructure
 .PHONY: deploy-example-sandbox
 deploy-example-sandbox:
 	sam deploy \
-		--profile $$(jq -r '.awsDeploymentProfile' example/config.json) \
+		--profile $(AWS_DEPLOYMENT_PROFILE) \
 		--template example/tests/sandbox/template.yaml \
 		--config-file samconfig.toml \
 		--max-wait-duration 5 \
 		--parameter-overrides \
-			StackTemplatesS3BucketName=$$(jq -r '.stackTemplatesS3BucketName' example/config.json) \
-			VpcId=$$(jq -r '.vpcId' example/config.json) \
-			SubnetIds=$$(jq -r '.subnetIds | join(",")' example/config.json) \
-			SecurityGroupIds=$$(jq -r '.securityGroupIds | join(",")' example/config.json)
+			StackTemplatesS3BucketName=$$(jq -r '.stackTemplatesS3BucketName' "$(CONFIG_FILE)") \
+			VpcId=$$(jq -r '.vpcId' "$(CONFIG_FILE)") \
+			SubnetIds=$$(jq -r '.subnetIds | join(",")' "$(CONFIG_FILE)") \
+			SecurityGroupIds=$$(jq -r '.securityGroupIds | join(",")' "$(CONFIG_FILE)")
 
 .PHONY: update-sandbox-state-machine
 update-sandbox-state-machine:
-	AWS_PROFILE=$$(jq -r '.awsDeploymentProfile' example/config.json) ./tools/update-state-machine.sh \
-		--cfn-stack $$(jq -r '.sandboxStackName' example/config.json) \
+	AWS_PROFILE=$(AWS_DEPLOYMENT_PROFILE) ./tools/update-state-machine.sh \
+		--cfn-stack $$(jq -r '.sandboxStackName' "$(CONFIG_FILE)") \
 		--cfn-resource ExampleStateMachine/StateMachine \
 		--definition example/example-state-machine/statemachine.asl.yaml \
 		$$([ "$(FORCE)" = "true" ] && echo '--force')
