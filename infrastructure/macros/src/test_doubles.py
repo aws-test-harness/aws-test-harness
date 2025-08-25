@@ -97,7 +97,7 @@ def ecs_cluster():
             DefaultCapacityProviderStrategy=[
                 dict(
                     CapacityProvider='FARGATE',
-                    Weight=1
+                    Weight=1000
                 )
             ]
         )
@@ -282,7 +282,7 @@ def create_container_definition(task_family, container_name, image, ecs_task_log
         Name=container_name,
         Image=image,
         Essential=True,
-        StopTimeout=10,
+        StopTimeout=3,
         Environment=[
             dict(Name='__AWS_TEST_HARNESS__EVENTS_QUEUE_URL', Value={'Ref': 'EventsQueue'}),
             dict(Name='__AWS_TEST_HARNESS__TEST_CONTEXT_BUCKET_NAME', Value={'Ref': 'TestContextBucket'}),
@@ -294,8 +294,7 @@ def create_container_definition(task_family, container_name, image, ecs_task_log
                 **{
                     'awslogs-group': {'Ref': ecs_task_log_group_logical_id},
                     'awslogs-region': {"Ref": "AWS::Region"},
-                    'awslogs-stream-prefix': task_family,
-                    'awslogs-create-group': 'true'
+                    'awslogs-stream-prefix': task_family
                 }
             )
         )
@@ -306,7 +305,6 @@ def ecs_task_definition_with_containers(task_family, containers, container_image
     return dict(
         Type='AWS::ECS::TaskDefinition',
         Properties=dict(
-            RequiresCompatibilities=['FARGATE'],
             NetworkMode='awsvpc',
             Cpu='256',
             Memory='512',
