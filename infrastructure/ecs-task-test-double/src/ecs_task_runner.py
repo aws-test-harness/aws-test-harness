@@ -5,7 +5,6 @@ import boto3
 import requests
 from time import sleep, time
 from uuid import uuid4
-import logging
 from datetime import datetime, timezone
 
 
