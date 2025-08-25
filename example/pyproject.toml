@@ -11,7 +11,7 @@ dependencies = [
 [tool.uv]
 dev-dependencies = [
     "aws-test-harness",
-    "pytest>=8.3.4",
+    "pytest>=8.4.1",
 ]
 
 [tool.uv.sources]

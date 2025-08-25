@@ -5,9 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "boto3>=1.29.7",
-    "boto3-stubs-lite[cloudformation,dynamodb,s3,sqs,stepfunctions,sts]>=1.29.7",
-    "ruff>=0.12.8",
+    "boto3>=1.40.17",
+    "boto3-stubs-lite[cloudformation,dynamodb,s3,sqs,stepfunctions,sts]>=1.40.17",
+    "ruff>=0.12.10",
 ]
 
 [build-system]

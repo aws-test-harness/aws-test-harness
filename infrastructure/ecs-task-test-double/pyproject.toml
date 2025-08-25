@@ -4,6 +4,6 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
-    "boto3>=1.35.44",
+    "boto3>=1.40.17",
     "requests>=2.32.5",
 ]
