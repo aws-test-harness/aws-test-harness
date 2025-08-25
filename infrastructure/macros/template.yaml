@@ -88,6 +88,7 @@ Resources:
       Environment:
         Variables:
           ECS_TASK_REPOSITORY_URI: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECSTaskContainerTestDoubleRepository}:latest"
+          ECS_TASK_REPOSITORY_NAME: !Ref ECSTaskContainerTestDoubleRepository
           LOG_GROUPS_PREFIX: !Ref LogGroupsPrefix
   LambdaFunctionExecutionRole:
     Type: AWS::IAM::Role

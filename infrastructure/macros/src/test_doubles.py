@@ -52,7 +52,9 @@ def handler(event, _):
         log_groups_prefix = os.environ['LOG_GROUPS_PREFIX']
         new_resources[ecs_task_logical_ids['LogGroup']] = log_group(
             {"Fn::Sub": log_groups_prefix + "/aws-test-harness/${AWS::StackName}/ecs-task-containers"})
-        new_resources[ecs_task_logical_ids['ExecutionRole']] = ecs_task_execution_role(ecs_task_logical_ids['LogGroup'])
+        new_resources[ecs_task_logical_ids['ExecutionRole']] = ecs_task_execution_role(
+            ecs_task_logical_ids['LogGroup'], os.environ['ECS_TASK_REPOSITORY_NAME']
+        )
         new_resources[ecs_task_logical_ids['TaskRole']] = ecs_task_role()
         ecs_cluster_logical_id = 'ECSCluster'
         new_resources[ecs_cluster_logical_id] = ecs_cluster()
@@ -163,7 +165,7 @@ def ecs_task_role():
     )
 
 
-def ecs_task_execution_role(log_group_logical_id):
+def ecs_task_execution_role(log_group_logical_id, ecs_task_repository_name):
     return dict(
         Type='AWS::IAM::Role',
         Properties=dict(
@@ -177,9 +179,6 @@ def ecs_task_execution_role(log_group_logical_id):
                     )
                 ]
             ),
-            ManagedPolicyArns=[
-                "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-            ],
             Policies=[
                 dict(
                     PolicyName="CloudWatchLogsAccess",
@@ -194,6 +193,32 @@ def ecs_task_execution_role(log_group_logical_id):
                                 ],
                                 Resource={
                                     "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${" + log_group_logical_id + "}:log-stream:*"
+                                }
+                            )
+                        ]
+                    )
+                ),
+                dict(
+                    PolicyName="ECRAccess",
+                    PolicyDocument=dict(
+                        Version="2012-10-17",
+                        Statement=[
+                            dict(
+                                Effect="Allow",
+                                Action=[
+                                    "ecr:GetAuthorizationToken",
+                                ],
+                                Resource="*"
+                            ),
+                            dict(
+                                Effect="Allow",
+                                Action=[
+                                    "ecr:BatchCheckLayerAvailability",
+                                    "ecr:GetDownloadUrlForLayer",
+                                    "ecr:BatchGetImage",
+                                ],
+                                Resource={
+                                    "Fn::Sub": "arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/" + ecs_task_repository_name
                                 }
                             )
                         ]
