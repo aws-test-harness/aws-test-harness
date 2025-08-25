@@ -327,12 +327,14 @@ def create_container_definition(task_family, container_name, image, ecs_task_log
 
 
 def ecs_task_definition_with_containers(task_family, containers, container_image, logical_ids):
+    container_count = len(containers)
+
     return dict(
         Type='AWS::ECS::TaskDefinition',
         Properties=dict(
             NetworkMode='awsvpc',
-            Cpu='256',
-            Memory='512',
+            Cpu=str(256 * container_count),
+            Memory=str(512 * container_count),
             ExecutionRoleArn={"Fn::GetAtt": [logical_ids['ExecutionRole'], "Arn"]},
             TaskRoleArn={"Fn::GetAtt": [logical_ids['TaskRole'], "Arn"]},
             RuntimePlatform=dict(
