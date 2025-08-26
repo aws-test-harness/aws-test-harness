@@ -46,7 +46,7 @@ def handler(event, _):
                 ecs_task_logical_ids
             )
 
-            new_outputs[f'{task_family}TaskDefinitionArn'] = dict(Value={"Ref": task_def_logical_id})
+            new_outputs[f'{task_family}ECSTaskDefinitionArn'] = dict(Value={"Ref": task_def_logical_id})
 
     if create_ecs_task_dependencies:
         log_groups_prefix = os.environ['LOG_GROUPS_PREFIX']

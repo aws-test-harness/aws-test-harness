@@ -65,7 +65,7 @@ Resources:
         SecondBucketName: !GetAtt AWSTestHarnessTestDoubles.Outputs.SecondS3BucketName
         FirstFunctionName: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstLambdaFunctionName
         FirstStateMachineArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstStateMachineArn
-        FirstTaskDefinitionArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstTaskDefinitionArn
+        FirstTaskDefinitionArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.FirstECSTaskDefinitionArn
         ECSTaskExecutionRoleArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.ECSTaskExecutionRoleArn
         ECSTaskRoleArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.ECSTaskRoleArn
         ECSClusterArn: !GetAtt AWSTestHarnessTestDoubles.Outputs.ECSClusterArn
