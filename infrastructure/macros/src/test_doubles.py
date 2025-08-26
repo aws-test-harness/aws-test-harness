@@ -25,7 +25,7 @@ def handler(event, _):
             Value={"Ref": f"{table_name}Table"}
         )
 
-    ecs_task_families_config = json.loads(template_parameters.get('ECSTaskFamilies', '{}'))
+    ecs_task_definitions_config = json.loads(template_parameters.get('ECSTaskDefinitions', '{}'))
 
     create_ecs_task_dependencies = False
 
@@ -36,7 +36,7 @@ def handler(event, _):
         LogGroup='ECSTaskLogGroup'
     )
 
-    for task_family, task_config in ecs_task_families_config.items():
+    for task_family, task_config in ecs_task_definitions_config.items():
         containers = task_config.get('Containers', [])
         if containers:
             create_ecs_task_dependencies = True

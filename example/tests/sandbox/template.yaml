@@ -42,7 +42,7 @@ Resources:
         LambdaFunctionNames: First, Second
         StateMachineNames: First, Second
         S3BucketNames: First, Second
-        ECSTaskFamilies:
+        ECSTaskDefinitions:
           Fn::ToJsonString:
             First:
               Containers:

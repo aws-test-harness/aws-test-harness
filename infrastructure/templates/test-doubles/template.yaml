@@ -17,7 +17,7 @@ Parameters:
   S3BucketNames:
     Type: CommaDelimitedList
     Default: ""
-  ECSTaskFamilies:
+  ECSTaskDefinitions:
     Type: String
     Default: "{}"
 Conditions:
