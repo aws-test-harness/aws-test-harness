@@ -3,9 +3,11 @@
 set -o nounset -o errexit -o pipefail;
 
 usage() {
-  echo "Usage: $0 [--help] --macros-stack-name stack_name --stack-templates-s3-uri s3_uri --aws-region region [--macro-names-prefix macro_names_prefix] [--image-repository-names-prefix image_repository_names_prefix] [--log-groups-prefix log_groups_prefix]"
+  echo "Usage: $0 [--help] --macros-stack-name stack_name --stack-templates-s3-uri s3_uri --aws-region region [--macro-names-prefix macro_names_prefix] [--image-repository-names-prefix image_repository_names_prefix] [--containers-on-amd64] [--log-groups-prefix log_groups_prefix]"
   exit 1
 }
+
+containers_on_amd64=0
 
 while [[ "${1:-}" != "" ]]; do
     case ${1} in
@@ -29,6 +31,9 @@ while [[ "${1:-}" != "" ]]; do
         --image-repository-names-prefix )
             shift
             image_repository_names_prefix="${1:-}"
+            ;;
+        --containers-on-amd64 )
+            containers_on_amd64=1
             ;;
         --log-groups-prefix )
             shift
@@ -81,12 +86,21 @@ script_directory_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/nu
 
 cd "${script_directory_path}"
 
+if [ ${containers_on_amd64} -eq 1 ]; then
+  container_architecture=X86_64
+  docker_build_architecture=amd64
+else
+  container_architecture=ARM64
+  docker_build_architecture=arm64
+fi
+
 echo "Deploying macros..."
 aws cloudformation deploy \
   --stack-name "${macros_stack_name}" \
   --template-file macros.yaml \
   --capabilities CAPABILITY_IAM \
   --parameter-overrides \
+    ContainerArchitecture="${container_architecture}" \
     MacroNamesPrefix="${macro_names_prefix}" \
     ImageRepositoryNamesPrefix="${image_repository_names_prefix}" \
     LogGroupsPrefix="${log_groups_prefix}"
@@ -106,7 +120,7 @@ account_id=$(aws sts get-caller-identity --query Account --output text)
 aws ecr get-login-password --region "${aws_region}" | docker login --username AWS --password-stdin "${account_id}.dkr.ecr.${aws_region}.amazonaws.com"
 
 cd ecs-task-test-double
-docker build --platform linux/arm64 -t "${repository_uri}" .
+docker build --platform linux/"${docker_build_architecture}" -t "${repository_uri}" .
 docker push "${repository_uri}"
 cd ..
 

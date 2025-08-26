@@ -42,8 +42,8 @@ def handler(event, _):
             create_ecs_task_dependencies = True
             task_def_logical_id = f'{task_family}TaskDefinition'
             new_resources[task_def_logical_id] = ecs_task_definition_with_containers(
-                task_family, containers, container_image,
-                ecs_task_logical_ids
+                task_family, containers, container_image, ecs_task_logical_ids,
+                os.environ.get('CONTAINER_ARCHITECTURE', 'ARM64')
             )
 
             new_outputs[f'{task_family}ECSTaskDefinitionArn'] = dict(Value={"Ref": task_def_logical_id})
@@ -326,7 +326,7 @@ def create_container_definition(task_family, container_name, image, ecs_task_log
     )
 
 
-def ecs_task_definition_with_containers(task_family, containers, container_image, logical_ids):
+def ecs_task_definition_with_containers(task_family, containers, container_image, logical_ids, container_architecture):
     container_count = len(containers)
 
     return dict(
@@ -338,7 +338,7 @@ def ecs_task_definition_with_containers(task_family, containers, container_image
             ExecutionRoleArn={"Fn::GetAtt": [logical_ids['ExecutionRole'], "Arn"]},
             TaskRoleArn={"Fn::GetAtt": [logical_ids['TaskRole'], "Arn"]},
             RuntimePlatform=dict(
-                CpuArchitecture='ARM64',
+                CpuArchitecture=container_architecture,
                 OperatingSystemFamily='LINUX'
             ),
             ContainerDefinitions=[

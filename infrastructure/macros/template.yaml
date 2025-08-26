@@ -1,5 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
+  ContainerArchitecture:
+    Type: String
+    Description: Platform architecture for ECS task containers
+    Default: ARM64
+    AllowedValues : [X86_64, ARM64]
   MacroNamesPrefix:
     Type: String
     Description: Optional prefix for all macro names
@@ -87,6 +92,7 @@ Resources:
       Timeout: 5
       Environment:
         Variables:
+          CONTAINER_ARCHITECTURE: !Ref ContainerArchitecture
           ECS_TASK_REPOSITORY_URI: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECSTaskContainerTestDoubleRepository}:latest"
           ECS_TASK_REPOSITORY_NAME: !Ref ECSTaskContainerTestDoubleRepository
           LOG_GROUPS_PREFIX: !Ref LogGroupsPrefix
