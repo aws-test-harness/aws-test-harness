@@ -83,7 +83,7 @@ Resources:
               Action:
                 - ecs:RunTask
               Resource:
-                - !Ref FirstTaskDefinitionArn
+                - !Sub "${FirstTaskDefinitionArn}:*"
             - Effect: Allow
               Action:
                 - iam:PassRole

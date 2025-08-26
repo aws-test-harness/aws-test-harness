@@ -46,7 +46,18 @@ def handler(event, _):
                 os.environ.get('CONTAINER_ARCHITECTURE', 'ARM64')
             )
 
-            new_outputs[f'{task_family}ECSTaskDefinitionArn'] = dict(Value={"Ref": task_def_logical_id})
+            task_definition_reference = {"Ref": task_def_logical_id}
+            new_outputs[f'{task_family}ECSTaskDefinitionArn'] = dict(Value=task_definition_reference)
+            new_outputs[f'{task_family}ECSTaskDefinitionArnWithoutRevision'] = dict(Value={
+                "Fn::Join": [":", [
+                    {"Fn::Select": [0, {"Fn::Split": [":", task_definition_reference]}]},
+                    {"Fn::Select": [1, {"Fn::Split": [":", task_definition_reference]}]},
+                    {"Fn::Select": [2, {"Fn::Split": [":", task_definition_reference]}]},
+                    {"Fn::Select": [3, {"Fn::Split": [":", task_definition_reference]}]},
+                    {"Fn::Select": [4, {"Fn::Split": [":", task_definition_reference]}]},
+                    {"Fn::Select": [5, {"Fn::Split": [":", task_definition_reference]}]}
+                ]]
+            })
 
     if create_ecs_task_dependencies:
         log_groups_prefix = os.environ['LOG_GROUPS_PREFIX']
