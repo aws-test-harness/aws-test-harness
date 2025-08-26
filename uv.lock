@@ -4,11 +4,15 @@ requires-python = ">=3.11"
 
 [[package]]
 name = "aws-test-harness"
-version = "0.1.1a4"
+version = "0.1.1a5"
 source = { editable = "." }
 dependencies = [
     { name = "boto3" },
     { name = "boto3-stubs-lite", extra = ["cloudformation", "dynamodb", "s3", "sqs", "stepfunctions", "sts"] },
+]
+
+[package.dev-dependencies]
+dev = [
     { name = "ruff" },
 ]
 
@@ -16,8 +20,10 @@ dependencies = [
 requires-dist = [
     { name = "boto3", specifier = ">=1.40.17" },
     { name = "boto3-stubs-lite", extras = ["cloudformation", "dynamodb", "s3", "sqs", "stepfunctions", "sts"], specifier = ">=1.40.17" },
-    { name = "ruff", specifier = ">=0.12.10" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.12.10" }]
 
 [[package]]
 name = "boto3"
