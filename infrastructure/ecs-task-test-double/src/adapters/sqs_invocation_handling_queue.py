@@ -1,4 +1,5 @@
 import json
+import hashlib
 
 import boto3
 
@@ -27,7 +28,8 @@ class SQSInvocationHandlingQueue:
         self.__sqs_client.send_message(
             QueueUrl=self.__events_queue_url,
             MessageBody=json.dumps(invocation_data),
-            MessageGroupId=f"{invocation.task_family}-{invocation.container_name}",
+            # Hash to ensure length and character safety
+            MessageGroupId=self.__sha1(f"{invocation.task_family}-{invocation.container_name}"),
             MessageAttributes={
                 'InvocationType': {
                     'StringValue': 'ECS Task Execution',
@@ -41,3 +43,7 @@ class SQSInvocationHandlingQueue:
         )
 
         self.__logger.info("Invocation scheduled for handling", invocation=invocation_data)
+
+    @staticmethod
+    def __sha1(raw_group_id):
+        return hashlib.sha1(raw_group_id.encode()).hexdigest()
