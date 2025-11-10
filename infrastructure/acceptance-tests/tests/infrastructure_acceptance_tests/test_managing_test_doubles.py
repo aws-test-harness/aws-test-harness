@@ -6,12 +6,13 @@ from uuid import uuid4
 
 import pytest
 from boto3 import Session
+from mypy_boto3_cloudformation.type_defs import StackResourceDetailTypeDef
 from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource
 from mypy_boto3_stepfunctions.client import SFNClient
 
 from aws_test_harness_test_support.file_utils import absolute_path_relative_to
-from aws_test_harness_test_support.step_functions_utils import start_state_machine_execution, \
-    wait_for_state_machine_execution_completion
+from aws_test_harness_test_support.step_functions_utils import wait_for_state_machine_execution_completion, \
+    start_statemachine_execution
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from test_double_invocation_handler_messaging.test_support.invocation_messaging_utils import \
@@ -66,57 +67,70 @@ def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session
 
 
 def test_managing_test_double_s3_buckets(test_stack: TestCloudFormationStack) -> None:
-    red_s3_bucket_resource = test_stack.get_stack_resource('RedAWSTestHarnessS3Bucket')
-    assert red_s3_bucket_resource is not None
-    assert red_s3_bucket_resource['ResourceType'] == 'AWS::S3::Bucket'
-
-    green_s3_bucket_resource = test_stack.get_stack_resource('GreenAWSTestHarnessS3Bucket')
-    assert green_s3_bucket_resource is not None
-    assert green_s3_bucket_resource['ResourceType'] == 'AWS::S3::Bucket'
+    assert_s3_bucket_resource_exists_in(test_stack, 'RedAWSTestHarnessS3Bucket')
+    assert_s3_bucket_resource_exists_in(test_stack, 'GreenAWSTestHarnessS3Bucket')
 
 
 def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack, boto_session: Session) -> None:
-    blue_state_machine_resource = test_stack.get_stack_resource('BlueAWSTestHarnessStateMachine')
-    assert blue_state_machine_resource is not None
-    assert blue_state_machine_resource['ResourceType'] == 'AWS::StepFunctions::StateMachine'
-
-    yellow_state_machine_resource = test_stack.get_stack_resource('YellowAWSTestHarnessStateMachine')
-    assert yellow_state_machine_resource is not None
-    assert yellow_state_machine_resource['ResourceType'] == 'AWS::StepFunctions::StateMachine'
-
-    step_functions_client: SFNClient = boto_session.client('stepfunctions')
+    blue_state_machine = assert_state_machine_resource_exists_in(test_stack, 'BlueAWSTestHarnessStateMachine')
+    assert_state_machine_resource_exists_in(test_stack, 'YellowAWSTestHarnessStateMachine')
 
     random_input_string = str(uuid4())
-    execution_arn = start_state_machine_execution(
-        blue_state_machine_resource['PhysicalResourceId'],
-        step_functions_client,
-        execution_input=dict(randomString=random_input_string)
+
+    state_machine_execution = start_statemachine_execution(
+        dict(randomString=random_input_string),
+        state_machine_arn=blue_state_machine['PhysicalResourceId'],
+        boto_session=boto_session
     )
 
-    sqs_message = wait_for_invocation_sqs_message(
-        execution_arn,
+    assert_invocation_present_in_invocation_queue(
         test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationQueue'),
-        boto_session.client('sqs')
+        expected_execution_arn=state_machine_execution.execution_arn,
+        expected_input=dict(randomString=random_input_string),
+        boto_session=boto_session
     )
-
-    assert sqs_message is not None
-    invocation_parameters = get_invocation_parameters_from_sqs_message(sqs_message)
-    assert invocation_parameters['input'] == dict(randomString=random_input_string)
 
     random_output_string = str(uuid4())
-    dynamodb_resource: DynamoDBServiceResource = boto_session.resource('dynamodb')
-    invocation_table = dynamodb_resource.Table(
-        test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationTable'))
 
-    put_invocation_result_dynamodb_record(
-        execution_arn,
-        dict(status='succeeded', context=dict(result=dict(randomString=random_output_string))),
-        invocation_table
+    insert_result_into_invocation_table(
+        test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationTable'),
+        execution_arn=state_machine_execution.execution_arn,
+        result=dict(randomString=random_output_string),
+        boto_session=boto_session
     )
 
-    execution_description = wait_for_state_machine_execution_completion(execution_arn, step_functions_client)
-    assert execution_description['status'] == 'SUCCEEDED', execution_description['cause']
-    assert json.loads(execution_description['output']) == dict(randomString=random_output_string)
+    state_machine_execution.assert_succeeded_with_output(dict(randomString=random_output_string))
+
+
+def assert_s3_bucket_resource_exists_in(test_stack: TestCloudFormationStack,
+                                        resource_logical_id: str) -> StackResourceDetailTypeDef:
+    return assert_resource_exists_in_stack(test_stack, resource_logical_id, 'AWS::S3::Bucket')
+
+
+def assert_state_machine_resource_exists_in(test_stack: TestCloudFormationStack,
+                                            resource_logical_id: str) -> StackResourceDetailTypeDef:
+    return assert_resource_exists_in_stack(test_stack, resource_logical_id, 'AWS::StepFunctions::StateMachine')
+
+
+def assert_resource_exists_in_stack(test_stack: TestCloudFormationStack, resource_logical_id: str,
+                                    expected_resource_type: str) -> StackResourceDetailTypeDef:
+    resource = test_stack.get_stack_resource(resource_logical_id)
+    assert resource is not None
+    assert resource['ResourceType'] == expected_resource_type
+
+    return resource
+
+
+def assert_invocation_present_in_invocation_queue(invocation_queue_url: str, expected_execution_arn: str,
+                                                  expected_input: dict[str, str], boto_session: Session):
+    sqs_message = wait_for_invocation_sqs_message(
+        expected_execution_arn,
+        invocation_queue_url,
+        boto_session.client('sqs')
+    )
+    assert sqs_message is not None
+    invocation_parameters = get_invocation_parameters_from_sqs_message(sqs_message)
+    assert invocation_parameters['input'] == expected_input
 
 
 def test_omitting_test_double_stack_parameters(cfn_stack_name_prefix: str, logger: Logger,
@@ -131,3 +145,21 @@ def test_omitting_test_double_stack_parameters(cfn_stack_name_prefix: str, logge
 
     a_stack_resource = stack.get_stack_resource('Bucket')
     assert a_stack_resource is not None
+
+
+def insert_result_into_invocation_table(invocation_table_name: str, execution_arn: str, result: dict[str, str],
+                                        boto_session: Session):
+    dynamodb_resource: DynamoDBServiceResource = boto_session.resource('dynamodb')
+
+    put_invocation_result_dynamodb_record(
+        execution_arn,
+        dict(status='succeeded', context=dict(result=result)),
+        dynamodb_resource.Table(invocation_table_name)
+    )
+
+
+def assert_state_machine_execution_succeeded_with_output(expected_output: dict[str, str], execution_arn: str,
+                                                         step_functions_client: SFNClient):
+    execution_description = wait_for_state_machine_execution_completion(execution_arn, step_functions_client)
+    assert execution_description['status'] == 'SUCCEEDED', execution_description['cause']
+    assert json.loads(execution_description['output']) == expected_output
