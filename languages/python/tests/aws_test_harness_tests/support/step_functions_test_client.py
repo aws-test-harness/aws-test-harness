@@ -8,7 +8,11 @@ from aws_test_harness_test_support.step_functions_utils import execute_state_mac
 
 
 class StepFunctionsTestClient:
+    __boto_session: Session
+    __sfn_client: SFNClient
+
     def __init__(self, boto_session: Session):
+        self.__boto_session = boto_session
         self.__sfn_client: SFNClient = boto_session.client('stepfunctions')
 
     def get_latest_execution_arn(self, state_machine_arn: str) -> Optional[str]:
@@ -36,4 +40,4 @@ class StepFunctionsTestClient:
 
     def execute_state_machine(self, state_machine_arn: str,
                               execution_input: Dict[str, Any]) -> DescribeExecutionOutputTypeDef:
-        return execute_state_machine(state_machine_arn, self.__sfn_client, execution_input)
+        return execute_state_machine(state_machine_arn, self.__boto_session, execution_input)

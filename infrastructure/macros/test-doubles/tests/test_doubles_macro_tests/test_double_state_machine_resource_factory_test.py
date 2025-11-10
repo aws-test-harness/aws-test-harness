@@ -5,7 +5,6 @@ from typing import cast
 import pytest
 from boto3 import Session
 from mypy_boto3_sqs.client import SQSClient
-from mypy_boto3_stepfunctions.client import SFNClient
 
 from aws_test_harness_test_support.step_functions_utils import execute_state_machine, \
     assert_describes_successful_execution, assert_describes_failed_execution
@@ -21,17 +20,12 @@ def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session
 
 
 @pytest.fixture(scope="module")
-def step_functions_client(boto_session: Session) -> SFNClient:
-    return cast(SFNClient, boto_session.client('stepfunctions'))
-
-
-@pytest.fixture(scope="module")
 def sqs_client(boto_session: Session) -> SQSClient:
     return cast(SQSClient, boto_session.client('sqs'))
 
 
 def test_generates_cloudformation_resources_for_a_state_machine_that_returns_output_as_instructed_by_invocation_handling_lambda_function(
-        step_functions_client: SFNClient, sqs_client: SQSClient,
+        boto_session: Session, sqs_client: SQSClient,
         test_stack: TestCloudFormationStack) -> None:
     resource_descriptions = TestDoubleStateMachineResourceFactory.generate_resources(
         'StateMachineRole',
@@ -57,7 +51,7 @@ def test_generates_cloudformation_resources_for_a_state_machine_that_returns_out
 
     execution_description = execute_state_machine(
         example_state_machine_arn,
-        step_functions_client,
+        boto_session,
         execution_input=dict(colour='orange', size='small'),
     )
     assert_describes_successful_execution(execution_description)
@@ -74,7 +68,7 @@ def test_generates_cloudformation_resources_for_a_state_machine_that_returns_out
 
 
 def test_generates_cloudformation_resources_for_a_state_machine_that_fails_if_instructed_by_invocation_handling_lambda_function(
-        step_functions_client: SFNClient, sqs_client: SQSClient,
+        boto_session: Session, sqs_client: SQSClient,
         test_stack: TestCloudFormationStack) -> None:
     resource_descriptions = TestDoubleStateMachineResourceFactory.generate_resources(
         'StateMachineRole',
@@ -100,7 +94,7 @@ def test_generates_cloudformation_resources_for_a_state_machine_that_fails_if_in
 
     execution_description = execute_state_machine(
         example_state_machine_arn,
-        step_functions_client,
+        boto_session,
         execution_input=dict(colour='orange', size='small'),
     )
     assert_describes_failed_execution(execution_description, 'the expected cause', 'TheExpectedError')

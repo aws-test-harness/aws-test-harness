@@ -12,7 +12,7 @@ from mypy_boto3_stepfunctions.client import SFNClient
 
 from aws_test_harness_test_support.file_utils import absolute_path_relative_to
 from aws_test_harness_test_support.step_functions_utils import wait_for_state_machine_execution_completion, \
-    start_statemachine_execution
+    start_state_machine_execution
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from test_double_invocation_handler_messaging.test_support.invocation_messaging_utils import \
@@ -77,7 +77,7 @@ def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack
 
     random_input_string = str(uuid4())
 
-    state_machine_execution = start_statemachine_execution(
+    state_machine_execution = start_state_machine_execution(
         dict(randomString=random_input_string),
         state_machine_arn=blue_state_machine['PhysicalResourceId'],
         boto_session=boto_session
@@ -85,7 +85,7 @@ def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack
 
     assert_invocation_present_in_invocation_queue(
         test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationQueue'),
-        expected_execution_arn=state_machine_execution.execution_arn,
+        expected_execution_arn=state_machine_execution.arn,
         expected_input=dict(randomString=random_input_string),
         boto_session=boto_session
     )
@@ -94,7 +94,7 @@ def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack
 
     insert_result_into_invocation_table(
         test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationTable'),
-        execution_arn=state_machine_execution.execution_arn,
+        execution_arn=state_machine_execution.arn,
         result=dict(randomString=random_output_string),
         boto_session=boto_session
     )
