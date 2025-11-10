@@ -7,6 +7,9 @@ from test_double_invocation_handler_messaging.infrastructure.test_double_invocat
 
 @dataclass
 class TestDoubleInvocationHandlingResourceDescriptions:
+    # Tell pytest to treat this class as a normal class
+    __test__ = False
+
     invocation_handler_function: Dict[str, Any]
     invocation_handler_function_role: Dict[str, Any]
     invocation_queue: Dict[str, Any]
@@ -14,6 +17,9 @@ class TestDoubleInvocationHandlingResourceDescriptions:
 
 
 class TestDoubleInvocationHandlingResourceFactory:
+    # Tell pytest to treat this class as a normal class
+    __test__ = False
+
     def __init__(self, invocation_handler_function_code_s3_bucket: str,
                  invocation_handler_function_code_s3_key: str):
         self.__invocation_handler_function_code_s3_bucket = invocation_handler_function_code_s3_bucket

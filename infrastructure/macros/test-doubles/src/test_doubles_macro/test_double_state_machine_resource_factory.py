@@ -4,11 +4,17 @@ from typing import Dict, Any
 
 @dataclass
 class TestDoubleStateMachineResourceDescriptions:
+    # Tell pytest to treat this class as a normal class
+    __test__ = False
+
     state_machine: Dict[str, Any]
     role: Dict[str, Any]
 
 
 class TestDoubleStateMachineResourceFactory:
+    # Tell pytest to treat this class as a normal class
+    __test__ = False
+
 
     @classmethod
     def generate_resources(cls, role_cfn_logical_id: str,

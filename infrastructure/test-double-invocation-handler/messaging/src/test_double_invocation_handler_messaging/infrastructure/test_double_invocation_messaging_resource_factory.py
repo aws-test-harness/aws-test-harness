@@ -2,6 +2,9 @@ from typing import Dict, Any
 
 
 class TestDoubleInvocationMessagingResourceFactory:
+    # Tell pytest to treat this class as a normal class
+    __test__ = False
+
     @staticmethod
     def generate_queue_resource() -> Dict[str, Any]:
         return dict(

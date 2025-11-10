@@ -6,6 +6,9 @@ from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFor
 
 
 class TestS3BucketStack(TestCloudFormationStack):
+    # Tell pytest to treat this class as a normal class
+    __test__ = False
+
     def __init__(self, stack_name: str, logger: Logger, boto_session: Session):
         super().__init__(stack_name, logger, boto_session)
 
