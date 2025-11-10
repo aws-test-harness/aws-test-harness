@@ -16,10 +16,7 @@ function __lambda__build_function_code_asset() {
   # shellcheck disable=SC2164
   pushd "${lambda_function_directory_path}" > /dev/null
   echo "Installing packages..." >&2
-  # Cargo expects HOME to be set
-  HOME=~
-  # Ensure uv is on path
-  . $HOME/.cargo/env
+  PATH=$PATH:~/.local/bin
   uv export --no-header --no-hashes --frozen --no-emit-project --no-dev > "${working_directory_path}/requirements.txt"
   uv_workspace_root_directory="$(__lambda__find_uv_workspace_root_directory)"
   # Include editable dependencies in requirements.txt
