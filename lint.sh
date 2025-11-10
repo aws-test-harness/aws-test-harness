@@ -24,7 +24,7 @@ if [[ "${fix_linting}" -eq 1 ]]; then
 fi
 
 echo Type checking...
-uv run mypy
+uv run ty check --color never .
 echo
 
 echo Linting...

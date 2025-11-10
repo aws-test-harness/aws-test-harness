@@ -138,10 +138,10 @@ class TestCloudFormationStack:
     def __create_stack_template_data(AWSTemplateFormatVersion: str, Transform: Optional[Union[str, List[str]]],
                                      Parameters: Optional[Dict[str, Any]], Resources: Dict[str, Any],
                                      Outputs: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        stack_template_data = dict(
+        stack_template_data = cast(Dict[str, Any], dict(
             AWSTemplateFormatVersion=AWSTemplateFormatVersion,
             Resources=Resources,
-        )
+        ))
 
         if Transform:
             stack_template_data['Transform'] = Transform
