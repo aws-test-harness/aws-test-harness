@@ -12,7 +12,7 @@ from aws_test_harness_test_support.step_functions_utils import assert_describes_
     assert_describes_failed_execution
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
-from aws_test_harness_tests.support.step_functions_test_client import StepFunctionsTestClient
+from aws_test_harness_test_support.step_functions_test_client import StepFunctionsTestClient
 
 
 @pytest.fixture(scope="module")

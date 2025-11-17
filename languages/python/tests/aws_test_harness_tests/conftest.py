@@ -10,7 +10,7 @@ from aws_test_harness_test_support.system_command_executor import SystemCommandE
 from aws_test_harness_test_support.test_s3_bucket_stack import TestS3BucketStack
 from aws_test_harness_tests.support.s3_test_client import S3TestClient
 from aws_test_harness_test_support.file_utils import absolute_path_relative_to
-from aws_test_harness_tests.support.step_functions_test_client import StepFunctionsTestClient
+from aws_test_harness_test_support.step_functions_test_client import StepFunctionsTestClient
 
 
 @pytest.fixture(scope="session")
