@@ -6,7 +6,6 @@ from uuid import uuid4
 
 import pytest
 from boto3 import Session
-from mypy_boto3_cloudformation.type_defs import StackResourceDetailTypeDef
 from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource
 from mypy_boto3_stepfunctions.client import SFNClient
 
@@ -15,6 +14,7 @@ from aws_test_harness_test_support.step_functions_utils import wait_for_state_ma
     start_state_machine_execution
 from aws_test_harness_test_support.system_command_executor import SystemCommandExecutor
 from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFormationStack
+from aws_test_harness_test_support.test_cloudformation_stack2 import TestCloudFormationStack2
 from test_double_invocation_handler_messaging.test_support.invocation_messaging_utils import \
     put_invocation_result_dynamodb_record, wait_for_invocation_sqs_message, get_invocation_parameters_from_sqs_message
 
@@ -49,7 +49,7 @@ def install_infrastructure(cfn_stack_name_prefix: str, boto_session: Session,
 
 
 @pytest.fixture(scope="module")
-def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session) -> TestCloudFormationStack:
+def test_stack_client(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session) -> TestCloudFormationStack:
     stack = TestCloudFormationStack(f'{cfn_stack_name_prefix}acceptance', logger, boto_session)
 
     stack.ensure_state_is(
@@ -66,25 +66,30 @@ def test_stack(cfn_stack_name_prefix: str, logger: Logger, boto_session: Session
     return stack
 
 
-def test_managing_test_double_s3_buckets(test_stack: TestCloudFormationStack) -> None:
-    assert_s3_bucket_resource_exists_in(test_stack, 'RedAWSTestHarnessS3Bucket')
-    assert_s3_bucket_resource_exists_in(test_stack, 'GreenAWSTestHarnessS3Bucket')
+@pytest.fixture(scope="module")
+def test_stack(test_stack_client: TestCloudFormationStack) -> TestCloudFormationStack2:
+    return TestCloudFormationStack2(test_stack_client)
 
 
-def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack, boto_session: Session) -> None:
-    blue_state_machine = assert_state_machine_resource_exists_in(test_stack, 'BlueAWSTestHarnessStateMachine')
-    assert_state_machine_resource_exists_in(test_stack, 'YellowAWSTestHarnessStateMachine')
+def test_managing_test_double_s3_buckets(test_stack: TestCloudFormationStack2) -> None:
+    assert test_stack.has_s3_bucket_resource('RedAWSTestHarnessS3Bucket')
+    assert test_stack.has_s3_bucket_resource('GreenAWSTestHarnessS3Bucket')
+
+
+def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack2, boto_session: Session) -> None:
+    assert test_stack.has_state_machine_resource('BlueAWSTestHarnessStateMachine')
+    assert test_stack.has_state_machine_resource('YellowAWSTestHarnessStateMachine')
 
     random_input_string = str(uuid4())
 
     state_machine_execution = start_state_machine_execution(
         dict(randomString=random_input_string),
-        state_machine_arn=blue_state_machine['PhysicalResourceId'],
+        state_machine_arn=test_stack.physical_id_for('BlueAWSTestHarnessStateMachine'),
         boto_session=boto_session
     )
 
     assert_invocation_present_in_invocation_queue(
-        test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationQueue'),
+        test_stack.physical_id_for('AWSTestHarnessTestDoubleInvocationQueue'),
         expected_execution_arn=state_machine_execution.arn,
         expected_input=dict(randomString=random_input_string),
         boto_session=boto_session
@@ -93,7 +98,7 @@ def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack
     random_output_string = str(uuid4())
 
     insert_result_into_invocation_table(
-        test_stack.get_stack_resource_physical_id('AWSTestHarnessTestDoubleInvocationTable'),
+        test_stack.physical_id_for('AWSTestHarnessTestDoubleInvocationTable'),
         execution_arn=state_machine_execution.arn,
         result=dict(randomString=random_output_string),
         boto_session=boto_session
@@ -102,23 +107,19 @@ def test_managing_test_double_state_machines(test_stack: TestCloudFormationStack
     state_machine_execution.assert_succeeded_with_output(dict(randomString=random_output_string))
 
 
-def assert_s3_bucket_resource_exists_in(test_stack: TestCloudFormationStack,
-                                        resource_logical_id: str) -> StackResourceDetailTypeDef:
-    return assert_resource_exists_in_stack(test_stack, resource_logical_id, 'AWS::S3::Bucket')
+def test_omitting_test_double_stack_parameters(cfn_stack_name_prefix: str, logger: Logger,
+                                               boto_session: Session) -> None:
+    stack_client = TestCloudFormationStack(f'{cfn_stack_name_prefix}acceptance-no-test-doubles', logger, boto_session)
 
+    stack_client.ensure_state_is(
+        Transform=['infrastructure-tests-AWSTestHarness-TestDoubles'],
+        Parameters=dict(),
+        Resources=dict(Bucket=dict(Type='AWS::S3::Bucket', Properties={}))
+    )
 
-def assert_state_machine_resource_exists_in(test_stack: TestCloudFormationStack,
-                                            resource_logical_id: str) -> StackResourceDetailTypeDef:
-    return assert_resource_exists_in_stack(test_stack, resource_logical_id, 'AWS::StepFunctions::StateMachine')
+    stack = TestCloudFormationStack2(stack_client)
 
-
-def assert_resource_exists_in_stack(test_stack: TestCloudFormationStack, resource_logical_id: str,
-                                    expected_resource_type: str) -> StackResourceDetailTypeDef:
-    resource = test_stack.get_stack_resource(resource_logical_id)
-    assert resource is not None
-    assert resource['ResourceType'] == expected_resource_type
-
-    return resource
+    assert stack.has_s3_bucket_resource('Bucket')
 
 
 def assert_invocation_present_in_invocation_queue(invocation_queue_url: str, expected_execution_arn: str,
@@ -131,20 +132,6 @@ def assert_invocation_present_in_invocation_queue(invocation_queue_url: str, exp
     assert sqs_message is not None
     invocation_parameters = get_invocation_parameters_from_sqs_message(sqs_message)
     assert invocation_parameters['input'] == expected_input
-
-
-def test_omitting_test_double_stack_parameters(cfn_stack_name_prefix: str, logger: Logger,
-                                               boto_session: Session) -> None:
-    stack = TestCloudFormationStack(f'{cfn_stack_name_prefix}acceptance-no-test-doubles', logger, boto_session)
-
-    stack.ensure_state_is(
-        Transform=['infrastructure-tests-AWSTestHarness-TestDoubles'],
-        Parameters=dict(),
-        Resources=dict(Bucket=dict(Type='AWS::S3::Bucket', Properties={}))
-    )
-
-    a_stack_resource = stack.get_stack_resource('Bucket')
-    assert a_stack_resource is not None
 
 
 def insert_result_into_invocation_table(invocation_table_name: str, execution_arn: str, result: dict[str, str],
