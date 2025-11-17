@@ -3,7 +3,7 @@
 set -o nounset -o errexit -o pipefail
 
 cleanup() {
-    pkill -P $$ || true
+    pkill -TERM -g $$ || true
 }
 trap cleanup SIGINT SIGTERM EXIT
 

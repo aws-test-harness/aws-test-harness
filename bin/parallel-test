@@ -5,7 +5,7 @@ set -o nounset -o errexit -o pipefail
 test_paths=("$@")
 
 cleanup() {
-    pkill -P $$ || true
+    pkill -TERM -g $$ || true
 }
 trap cleanup SIGINT SIGTERM EXIT
 
