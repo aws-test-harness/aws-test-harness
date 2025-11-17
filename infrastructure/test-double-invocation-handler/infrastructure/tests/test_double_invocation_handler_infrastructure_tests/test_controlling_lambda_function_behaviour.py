@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 from logging import Logger
 from threading import Thread
 from typing import Optional, Any, Dict
@@ -31,11 +32,14 @@ def test_handling_invocation(test_configuration: Dict[str, str], logger: Logger,
 
     project_path = absolute_path_relative_to(__file__, '../../../function-code')
 
+    temporary_build_directory = tempfile.mkdtemp()
+
     system_command_executor.execute([
-        absolute_path_relative_to(__file__, project_path, 'build.sh')
+        absolute_path_relative_to(__file__, project_path, 'build.sh'),
+        temporary_build_directory
     ])
 
-    code_bundle_path = os.path.join(project_path, 'build', 'code.zip')
+    code_bundle_path = os.path.join(temporary_build_directory, 'code.zip')
 
     function_code_s3_key = calculate_md5(code_bundle_path) + '.zip'
 

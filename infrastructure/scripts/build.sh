@@ -17,7 +17,7 @@ function build_asset() {
   project_directory_path="$(get_absolute_path "${project_relative_path}")"
 
   local code_bundle_path
-  code_bundle_path="$("${project_directory_path}"/build.sh)"
+  code_bundle_path="$("${project_directory_path}"/build.sh "$(mktemp -d)")"
 
   local code_bundle_checksum
   code_bundle_checksum="$(cksum "${code_bundle_path}" | cut -f 1 -d ' ')"
