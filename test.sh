@@ -2,9 +2,11 @@
 
 set -o nounset -o errexit -o pipefail
 
-./infrastructure/test.sh
-./languages/python/test.sh
+cleanup() {
+    pkill -P $$ || true
+}
+trap cleanup SIGINT SIGTERM EXIT
 
-echo Running acceptance tests...
-uv run --isolated pytest tests
-echo
+test_paths="$(find ./**/* -type f -name test.sh -exec dirname {} + | xargs -0)"
+# shellcheck disable=SC2086
+bin/parallel-test ${test_paths}

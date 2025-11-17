@@ -2,12 +2,12 @@
 
 set -o nounset -o errexit -o pipefail
 
+test_paths=("$@")
+
 cleanup() {
     pkill -P $$ || true
 }
 trap cleanup SIGINT SIGTERM EXIT
-
-script_directory_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 pid_variable_name_for() {
   local test_path="$1"
@@ -55,16 +55,10 @@ function foreground_test_result {
   return "${exit_code}"
 }
 
-test_paths=(
-    messaging
-    function-code
-    infrastructure
-)
-
 for test_path in "${test_paths[@]}"; do
-    background_execute_tests "${script_directory_path}/${test_path}" "$(pid_variable_name_for "${test_path}")"
+    background_execute_tests "${test_path}" "$(pid_variable_name_for "${test_path}")"
 done
 
 for test_path in "${test_paths[@]}"; do
-    foreground_test_result "${script_directory_path}/${test_path}" "$(pid_variable_name_for "${test_path}")"
+    foreground_test_result "${test_path}" "$(pid_variable_name_for "${test_path}")"
 done
