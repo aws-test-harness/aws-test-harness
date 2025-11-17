@@ -500,25 +500,27 @@ name = "test-double-invocation-handler-messaging"
 version = "0.1.0"
 source = { editable = "infrastructure/test-double-invocation-handler/messaging" }
 dependencies = [
-    { name = "aws-test-harness-test-support" },
     { name = "boto3" },
     { name = "boto3-stubs-lite", extra = ["dynamodb", "sqs"] },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "aws-test-harness-test-support" },
     { name = "pytest" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "aws-test-harness-test-support", editable = "test-support" },
     { name = "boto3", specifier = ">=1.37.13" },
     { name = "boto3-stubs-lite", extras = ["dynamodb", "sqs"], specifier = ">=1.37.13" },
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.3.4" }]
+dev = [
+    { name = "aws-test-harness-test-support", editable = "test-support" },
+    { name = "pytest", specifier = ">=8.3.4" },
+]
 
 [[package]]
 name = "test-doubles-macro"
