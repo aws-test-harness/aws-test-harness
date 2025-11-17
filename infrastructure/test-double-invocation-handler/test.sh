@@ -9,25 +9,27 @@ trap cleanup SIGINT SIGTERM EXIT
 
 script_directory_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-function background_execute {
-  local project_relative_path=$1
-  local pid_variable_name=$2
-
-  project_absolute_path="${script_directory_path}/${project_relative_path}"
-  log_file="${project_absolute_path}/test.log"
-
-  rm -f "${log_file}"
-
-  echo "Running tests under ${project_absolute_path}..." >&2
-  "${project_absolute_path}/test.sh" 1> "${log_file}" 2>&1 &
-  eval "$pid_variable_name=$!"
+pid_variable_name_for() {
+  local test_path="$1"
+  echo "pid_$(echo -n "${test_path}" | sha1sum | cut -d' ' -f1)"
 }
 
-function report {
-  local project_relative_path=$1
-  local test_execution_pid=$2
+function background_execute_tests {
+  local project_absolute_path=$1
+  local pid_variable_name=$2
 
-  project_absolute_path="${script_directory_path}/${project_relative_path}"
+  log_file="${project_absolute_path}/test.log"
+  rm -f "${log_file}"
+  echo "Running tests under ${project_absolute_path}..." >&2
+  "${project_absolute_path}/test.sh" 1> "${log_file}" 2>&1 &
+  eval "${pid_variable_name}=$!"
+}
+
+function foreground_test_result {
+  local project_absolute_path=$1
+  local pid_variable_name=$2
+  local pid=${!pid_variable_name}
+
   log_file="${project_absolute_path}/test.log"
 
   echo ""
@@ -37,7 +39,7 @@ function report {
   echo ""
 
   set +e # don't exit script on test failure
-  wait "${test_execution_pid}"
+  wait "${pid}"
   exit_code=$?
   set -e
 
@@ -53,15 +55,16 @@ function report {
   return "${exit_code}"
 }
 
-messaging_tests_pid=
-background_execute messaging messaging_tests_pid
+test_paths=(
+    messaging
+    function-code
+    infrastructure
+)
 
-function_code_tests_pid=
-background_execute function-code function_code_tests_pid
+for test_path in "${test_paths[@]}"; do
+    background_execute_tests "${script_directory_path}/${test_path}" "$(pid_variable_name_for "${test_path}")"
+done
 
-infrastructure_tests_pid=
-background_execute infrastructure infrastructure_tests_pid
-
-report messaging "${messaging_tests_pid}"
-report function-code "${function_code_tests_pid}"
-report infrastructure "${infrastructure_tests_pid}"
+for test_path in "${test_paths[@]}"; do
+    foreground_test_result "${script_directory_path}/${test_path}" "$(pid_variable_name_for "${test_path}")"
+done
