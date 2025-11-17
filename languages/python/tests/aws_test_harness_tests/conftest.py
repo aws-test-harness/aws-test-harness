@@ -1,5 +1,7 @@
 import logging
 from logging import Logger
+from os import path
+from tempfile import mkdtemp
 from typing import Dict
 
 import pytest
@@ -67,13 +69,15 @@ def test_double_macro_name(boto_session: Session, system_command_executor: Syste
 
     infrastructure_directory_path = '../../../../infrastructure'
 
+    build_directory_path = mkdtemp()
     system_command_executor.execute([
-        absolute_path_relative_to(__file__, infrastructure_directory_path, 'scripts', 'build.sh')
+        absolute_path_relative_to(__file__, infrastructure_directory_path, 'scripts', 'build.sh'),
+        build_directory_path
     ])
 
     system_command_executor.execute(
         [
-            absolute_path_relative_to(__file__, infrastructure_directory_path, 'build', 'install.sh'),
+            path.join(build_directory_path, 'install.sh'),
             f"{cfn_stack_name_prefix}test-harness-test-infrastructure",
             deployment_assets_bucket_stack.bucket_name,
             'aws-test-harness/infrastructure/',

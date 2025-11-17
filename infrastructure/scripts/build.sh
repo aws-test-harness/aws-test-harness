@@ -4,6 +4,8 @@ set -o errexit -o nounset -o pipefail
 
 script_directory_path="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
+build_directory_path="${1}"
+
 get_absolute_path() {
   local relative_path="$1"
   echo "${script_directory_path}/../${relative_path}"
@@ -34,7 +36,6 @@ function build_asset() {
   echo "${asset_relative_file_path}"
 }
 
-build_directory_path="$(get_absolute_path build)"
 rm -rf "${build_directory_path:?}"
 mkdir -p "${build_directory_path}"
 

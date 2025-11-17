@@ -26,19 +26,30 @@ def install_infrastructure(cfn_stack_name_prefix: str, boto_session: Session,
     infrastructure_project_directory_path = absolute_path_relative_to(__file__, '..', '..', '..')
 
     script_directory_path = path.join(infrastructure_project_directory_path, 'scripts')
-    system_command_executor.execute([path.join(script_directory_path, 'build.sh')])
-    system_command_executor.execute([path.join(script_directory_path, 'package.sh')])
 
-    temporary_directory_path = mkdtemp()
-
+    build_directory_path = mkdtemp()
     system_command_executor.execute([
-        'tar', '-C', temporary_directory_path, '-xf',
-        path.join(infrastructure_project_directory_path, 'dist', 'infrastructure.tar.gz')
+        path.join(script_directory_path, 'build.sh'),
+        build_directory_path
+    ])
+
+    distribution_directory_path = mkdtemp()
+    system_command_executor.execute([
+        path.join(script_directory_path, 'package.sh'),
+        build_directory_path,
+        distribution_directory_path
+    ])
+
+    working_directory_path = mkdtemp()
+    system_command_executor.execute([
+        'tar',
+        '-C', working_directory_path,
+        '-xf', path.join(distribution_directory_path, 'infrastructure.tar.gz')
     ])
 
     system_command_executor.execute(
         [
-            path.join(temporary_directory_path, 'install.sh'),
+            path.join(working_directory_path, 'install.sh'),
             f"{cfn_stack_name_prefix}infrastructure",
             s3_deployment_assets_bucket_name,
             'aws-test-harness/infrastructure/',

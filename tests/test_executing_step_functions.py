@@ -1,5 +1,7 @@
 import json
 from logging import Logger
+from os import path
+from tempfile import mkdtemp
 from typing import Generator
 from uuid import uuid4
 
@@ -16,13 +18,15 @@ from aws_test_harness_test_support.test_cloudformation_stack import TestCloudFor
 def before_all(test_cloudformation_stack: TestCloudFormationStack, boto_session: Session,
                s3_deployment_assets_bucket_name: str, system_command_executor: SystemCommandExecutor,
                cfn_stack_name_prefix: str) -> None:
+    build_directory_path = mkdtemp()
     system_command_executor.execute([
-        absolute_path_relative_to(__file__, '..', 'infrastructure', 'scripts', 'build.sh')
+        absolute_path_relative_to(__file__, '..', 'infrastructure', 'scripts', 'build.sh'),
+        build_directory_path
     ])
 
     system_command_executor.execute(
         [
-            absolute_path_relative_to(__file__, '..', 'infrastructure', 'build', 'install.sh'),
+            path.join(build_directory_path, 'install.sh'),
             f"{cfn_stack_name_prefix}infrastructure",
             s3_deployment_assets_bucket_name,
             'aws-test-harness/infrastructure/',
